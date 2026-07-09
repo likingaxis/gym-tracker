@@ -1,0 +1,73 @@
+Trasforma la scheda palestra che ti invio in un JSON valido per la mia web app palestra.
+
+Devi restituire solo JSON valido, senza spiegazioni, senza markdown, senza blocchi ```json e senza testo prima o dopo.
+
+Userò una lista ExerciseDB separata. Per ogni esercizio:
+- scegli il match più corretto dalla lista ExerciseDB che ti ho fornito;
+- copia il suo exerciseId nel campo exercise_db_id;
+- copia il suo name esatto nel campo exercise_db_name;
+- usa exercise_db_confidence: "high" solo se il movimento è davvero lo stesso o una variante praticamente equivalente;
+- se non trovi una corrispondenza sicura, lascia exercise_db_id, exercise_db_name e media_url vuoti;
+- non inventare mai ID, nomi o URL;
+- puoi lasciare media_url vuoto quando exercise_db_id è presente: l'app genererà automaticamente https://static.exercisedb.dev/media/{exercise_db_id}.gif.
+
+Usa esattamente questa struttura:
+
+{
+  "name": "Scheda Nome Mese Anno",
+  "month": "YYYY-MM",
+  "start_date": "",
+  "end_date": "",
+  "days": [
+    {
+      "name": "Giorno 1 - Nome allenamento",
+      "order": 1,
+      "description": "Descrizione o indicazioni generali del giorno",
+      "exercises": [
+        {
+          "order": 1,
+          "name": "Nome esercizio",
+          "exercise_db_query": "query inglese utile",
+          "exercise_db_id": "",
+          "exercise_db_name": "",
+          "exercise_db_confidence": "",
+          "muscle_group": "Gruppo muscolare",
+          "sets": 3,
+          "reps": "15",
+          "rest_seconds": 90,
+          "suggested_weight": "",
+          "technique_notes": "",
+          "tips": "",
+          "video_url": "",
+          "media_url": "",
+          "trainer_notes": ""
+        }
+      ]
+    }
+  ]
+}
+
+Regole obbligatorie:
+1. Il risultato deve essere JSON valido al 100%.
+2. Non usare mai link Markdown.
+3. Nei campi media_url, video_url, name, trainer_notes, tips e technique_notes non inserire mai testo tipo [testo](https://...) o [https://...].
+4. Non inventare link video, immagini o gif.
+5. Lascia video_url e media_url vuoti se non sono presenti nella scheda originale.
+6. Se exercise_db_id è presente, media_url può restare vuoto.
+7. Il campo month deve essere nel formato "YYYY-MM".
+8. Se non conosci start_date ed end_date, lasciali come stringa vuota "".
+9. sets deve essere un numero.
+10. reps deve essere una stringa, anche se è un numero.
+11. Se le ripetizioni cambiano per serie, scrivile tutte nel campo reps, ad esempio "20-15-12-10".
+12. rest_seconds deve essere sempre un numero espresso in secondi.
+13. Se il recupero è scritto in minuti, convertilo in secondi.
+14. Se il recupero non è indicato, usa 90.
+15. Se il carico non è indicato, lascia suggested_weight come "".
+16. Mantieni gli esercizi nello stesso ordine della scheda originale.
+17. Non duplicare esercizi.
+18. Non aggiungere esercizi non presenti nella scheda.
+19. Usa nomi esercizio puliti, senza link o testo sporco dentro name.
+
+Scheda da trasformare:
+
+[INCOLLA QUI LA SCHEDA DEL PERSONAL TRAINER]

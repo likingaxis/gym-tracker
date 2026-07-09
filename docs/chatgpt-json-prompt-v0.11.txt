@@ -1,0 +1,54 @@
+Trasforma la scheda palestra in JSON valido per la mia app.
+
+Restituisci solo JSON valido, senza markdown, senza blocchi ```json e senza spiegazioni.
+
+Per ogni esercizio usa questa struttura:
+
+{
+  "order": 1,
+  "name": "Nome esercizio nella mia scheda",
+  "exercise_db_query": "query inglese utile",
+  "exercise_db_id": "",
+  "exercise_db_name": "",
+  "exercise_db_confidence": "",
+  "muscle_group": "Gruppo muscolare",
+  "sets": 3,
+  "reps": "15",
+  "rest_seconds": 90,
+  "target_rpe": "",
+  "suggested_weight": "",
+  "technique_notes": "",
+  "tips": "",
+  "video_url": "",
+  "media_url": "",
+  "trainer_notes": ""
+}
+
+Regole ExerciseDB:
+- Se ti fornisco una lista ExerciseDB, scegli solo esercizi presenti in quella lista.
+- Copia `exerciseId` nel campo `exercise_db_id` solo se il match è sicuro.
+- Copia il nome esatto ExerciseDB in `exercise_db_name` solo se il match è sicuro.
+- Se conosci `exercise_db_id`, puoi lasciare `media_url` vuoto: l'app genererà la GIF.
+- Non inventare mai ID, nomi o URL.
+- Se non trovi un match sicuro, lascia `exercise_db_id`, `exercise_db_name` e `media_url` vuoti.
+
+Regole RPE:
+- Compila `target_rpe` solo se la scheda indica un RPE previsto, ad esempio "8" o "7-8".
+- Se la scheda non indica RPE, lascia `target_rpe`: "".
+- Non mettere l'RPE target dentro `suggested_weight`.
+- L'RPE reale verrà inserito durante l'allenamento, quindi non va nel JSON.
+
+Regole generali:
+- `sets` deve essere un numero.
+- `reps` deve essere una stringa, anche se è un numero.
+- Se le ripetizioni cambiano per serie, usa ad esempio "20-15-12-10".
+- `rest_seconds` deve essere un numero in secondi.
+- Se il recupero non è indicato, usa 90.
+- Lascia `suggested_weight` vuoto se non è indicato un carico.
+- Non usare mai link Markdown.
+- Mantieni l'ordine originale.
+- Non aggiungere esercizi non presenti nella scheda.
+
+Scheda da trasformare:
+
+[INCOLLA QUI LA SCHEDA]

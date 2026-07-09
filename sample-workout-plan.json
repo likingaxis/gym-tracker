@@ -1,0 +1,73 @@
+{
+  "name": "Scheda Demo Luglio 2026",
+  "month": "2026-07",
+  "days": [
+    {
+      "name": "Giorno 1 - Petto e Tricipiti",
+      "order": 1,
+      "description": "Allenamento upper body focus petto",
+      "exercises": [
+        {
+          "order": 1,
+          "name": "Panca piana bilanciere",
+          "muscle_group": "Petto",
+          "sets": 4,
+          "reps": "8",
+          "rest_seconds": 120,
+          "suggested_weight": "60 kg",
+          "technique_notes": "Mantieni le scapole addotte, piedi stabili e controllo nella fase eccentrica.",
+          "tips": "Non rimbalzare il bilanciere sul petto. Mantieni traiettoria controllata.",
+          "video_url": "https://www.youtube.com/",
+          "media_url": "",
+          "trainer_notes": "Aumentare il carico solo se tutte le serie sono completate con buona tecnica.",
+          "exercise_db_query": "barbell bench press",
+          "exercise_db_id": "",
+          "target_rpe": "8"
+        },
+        {
+          "order": 2,
+          "name": "Croci manubri su panca inclinata",
+          "muscle_group": "Petto",
+          "sets": 3,
+          "reps": "10-12",
+          "rest_seconds": 90,
+          "suggested_weight": "12 kg",
+          "technique_notes": "Movimento controllato, gomiti morbidi, fermati prima di perdere controllo della spalla.",
+          "tips": "Pensa ad abbracciare un tronco, non a spingere i manubri.",
+          "video_url": "https://www.youtube.com/",
+          "trainer_notes": "Focus su controllo e allungamento.",
+          "media_url": "",
+          "exercise_db_query": "incline dumbbell fly",
+          "exercise_db_id": "",
+          "target_rpe": ""
+        }
+      ]
+    },
+    {
+      "name": "Giorno 2 - Schiena e Bicipiti",
+      "order": 2,
+      "description": "Trazione e tirate",
+      "exercises": [
+        {
+          "order": 1,
+          "name": "Lat machine presa larga",
+          "muscle_group": "Schiena",
+          "sets": 4,
+          "reps": "10",
+          "rest_seconds": 90,
+          "suggested_weight": "45 kg",
+          "technique_notes": "Porta il petto verso la barra e tira con i gomiti verso il basso.",
+          "tips": "Non oscillare con il busto.",
+          "video_url": "https://www.youtube.com/",
+          "media_url": "",
+          "trainer_notes": "",
+          "exercise_db_query": "lat pulldown",
+          "exercise_db_id": "",
+          "target_rpe": ""
+        }
+      ]
+    }
+  ],
+  "start_date": "2026-07-01",
+  "end_date": "2026-07-31"
+}

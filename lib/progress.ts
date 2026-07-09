@@ -1,18 +1,22 @@
+import { firstRelation } from "@/lib/relations";
+
+export type MaybeRelation<T> = T | T[] | null | undefined;
+
 export type SessionLike = {
   id: string;
   status?: string | null;
   started_at?: string | null;
   completed_at?: string | null;
-  workout_days?: { name?: string | null } | null;
-  workout_plans?: { name?: string | null; month?: string | null } | null;
+  workout_days?: MaybeRelation<{ name?: string | null }>;
+  workout_plans?: MaybeRelation<{ name?: string | null; month?: string | null }>;
   session_exercises?: Array<{
     completed?: boolean | null;
-    exercises?: {
+    exercises?: MaybeRelation<{
       id?: string | null;
       name?: string | null;
       exercise_db_id?: string | null;
       muscle_group?: string | null;
-    } | null;
+    }>;
     exercise_sets?: Array<{
       completed?: boolean | null;
       reps?: string | number | null;
@@ -127,7 +131,8 @@ export function buildMuscleGroupSets(sessions: SessionLike[]) {
 
   for (const session of sessions.filter((item) => item.status === "completed")) {
     for (const sessionExercise of session.session_exercises ?? []) {
-      const group = sessionExercise.exercises?.muscle_group?.trim() || "Altro";
+      const exercise = firstRelation(sessionExercise.exercises);
+      const group = exercise?.muscle_group?.trim() || "Altro";
       const completedSets = (sessionExercise.exercise_sets ?? []).filter((set) => set.completed).length;
       counts.set(group, (counts.get(group) ?? 0) + completedSets);
     }
@@ -149,7 +154,7 @@ export function buildExerciseProgress(sessions: SessionLike[]) {
   for (const session of sessions.filter((item) => item.status === "completed")) {
     const date = session.started_at ?? "";
     for (const item of session.session_exercises ?? []) {
-      const exercise = item.exercises;
+      const exercise = firstRelation(item.exercises);
       const key = normalizeExerciseKey(exercise?.name, exercise?.exercise_db_id);
       if (!key || key === "name:") continue;
 
@@ -269,7 +274,8 @@ export function buildMuscleGroupVolume(sessions: SessionLike[]) {
 
   for (const session of sessions.filter((item) => item.status === "completed")) {
     for (const sessionExercise of session.session_exercises ?? []) {
-      const group = sessionExercise.exercises?.muscle_group?.trim() || "Altro";
+      const exercise = firstRelation(sessionExercise.exercises);
+      const group = exercise?.muscle_group?.trim() || "Altro";
       const record = map.get(group) ?? { group, sets: 0, volume: 0, averageRpe: null, rpeValues: [] };
       for (const set of sessionExercise.exercise_sets ?? []) {
         if (set.completed) record.sets += 1;

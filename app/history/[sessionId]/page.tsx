@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { Card } from "@/components/ui/Card";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getSelectedProfileId } from "@/lib/profiles";
+import { firstRelation, relationName } from "@/lib/relations";
 import { SessionActions } from "@/components/history/SessionActions";
 import { formatAverage, formatCompactNumber, getSessionSummary } from "@/lib/progress";
 
@@ -44,15 +45,15 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
   const summary = getSessionSummary(session);
 
   const exercises = [...(session.session_exercises ?? [])].sort((a: any, b: any) => {
-    return (a.exercises?.exercise_order ?? 0) - (b.exercises?.exercise_order ?? 0);
+    return (firstRelation(a.exercises)?.exercise_order ?? 0) - (firstRelation(b.exercises)?.exercise_order ?? 0);
   });
 
   return (
     <div className="space-y-5">
       <header>
         <p className="text-sm font-bold uppercase tracking-[0.3em] text-gym-accent">Dettaglio</p>
-        <h1 className="mt-2 text-3xl font-black">{session.workout_days?.name ?? "Allenamento"}</h1>
-        <p className="mt-2 text-gym-muted">{session.workout_plans?.name ?? "Scheda"}</p>
+        <h1 className="mt-2 text-3xl font-black">{relationName(session.workout_days, "Allenamento")}</h1>
+        <p className="mt-2 text-gym-muted">{relationName(session.workout_plans, "Scheda")}</p>
       </header>
 
       <Card>
@@ -73,8 +74,8 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
           <Card key={item.id} className={item.completed ? "border-gym-accent/60" : undefined}>
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-xs uppercase text-gym-accent">{item.exercises?.muscle_group ?? "Esercizio"}</p>
-                <h3 className="mt-1 text-xl font-black">{item.exercises?.name ?? "Esercizio"}</h3>
+                <p className="text-xs uppercase text-gym-accent">{firstRelation(item.exercises)?.muscle_group ?? "Esercizio"}</p>
+                <h3 className="mt-1 text-xl font-black">{relationName(item.exercises, "Esercizio")}</h3>
               </div>
               <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-bold">{item.completed ? "OK" : "No"}</span>
             </div>

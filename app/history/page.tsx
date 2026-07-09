@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { Card } from "@/components/ui/Card";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getSelectedProfileId } from "@/lib/profiles";
+import { relationName } from "@/lib/relations";
 import { SessionActions } from "@/components/history/SessionActions";
 import { formatAverage, formatCompactNumber, getSessionSummary as getSmartSessionSummary } from "@/lib/progress";
 
@@ -84,8 +85,8 @@ export default async function HistoryPage({ searchParams }: { searchParams?: Pro
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className={`text-xs font-bold uppercase ${getStatusColor(session.status)}`}>{getStatusLabel(session.status)}</p>
-                      <h2 className="mt-1 text-xl font-black">{session.workout_days?.name ?? "Allenamento"}</h2>
-                      <p className="mt-1 text-sm text-gym-muted">{session.workout_plans?.name ?? "Scheda"}</p>
+                      <h2 className="mt-1 text-xl font-black">{relationName(session.workout_days, "Allenamento")}</h2>
+                      <p className="mt-1 text-sm text-gym-muted">{relationName(session.workout_plans, "Scheda")}</p>
                       <p className="mt-1 text-sm text-gym-muted">{startedAt}</p>
                     </div>
                     <span className="rounded-full bg-white/10 px-3 py-1 text-sm font-bold">{summary.completedSets}/{summary.totalSets}</span>

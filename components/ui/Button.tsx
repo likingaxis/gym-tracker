@@ -2,9 +2,9 @@
 
 import { clsx } from "clsx";
 import { motion, useReducedMotion } from "framer-motion";
-import type { ButtonHTMLAttributes } from "react";
+import type { HTMLMotionProps } from "framer-motion";
 
-export function Button({ className, ...props }: ButtonHTMLAttributes<HTMLButtonElement>) {
+export function Button({ className, ...props }: HTMLMotionProps<"button">) {
   const reduceMotion = useReducedMotion();
 
   return (

@@ -6,6 +6,7 @@ import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getSelectedProfileId } from "@/lib/profiles";
+import { relationName } from "@/lib/relations";
 import { formatAverage, formatCompactNumber, getSessionSummary } from "@/lib/progress";
 
 type CalendarSearchParams = {
@@ -147,8 +148,8 @@ export default async function CalendarHistoryPage({ searchParams }: { searchPara
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className={`text-xs font-bold uppercase ${getStatusText(session.status)}`}>{getStatusLabel(session.status)}</p>
-                      <h3 className="mt-1 text-lg font-black">{session.workout_days?.name ?? "Allenamento"}</h3>
-                      <p className="mt-1 text-xs text-gym-muted">{formatTime(session.started_at)} · {session.workout_plans?.name ?? "Scheda"}</p>
+                      <h3 className="mt-1 text-lg font-black">{relationName(session.workout_days, "Allenamento")}</h3>
+                      <p className="mt-1 text-xs text-gym-muted">{formatTime(session.started_at)} · {relationName(session.workout_plans, "Scheda")}</p>
                     </div>
                     <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-bold">{summary.completedSets}/{summary.totalSets}</span>
                   </div>

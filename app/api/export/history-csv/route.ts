@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { firstRelation, relationName } from "@/lib/relations";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getSelectedProfileId } from "@/lib/profiles";
 
@@ -57,9 +58,9 @@ function buildCsvRows(profileName: string, sessions: any[]) {
       if (sets.length === 0) {
         rows.push({
           ...baseSessionRow(profileName, session),
-          exercise_name: sessionExercise.exercises?.name ?? "",
-          muscle_group: sessionExercise.exercises?.muscle_group ?? "",
-          exercise_db_id: sessionExercise.exercises?.exercise_db_id ?? "",
+          exercise_name: relationName(sessionExercise.exercises, ""),
+          muscle_group: firstRelation(sessionExercise.exercises)?.muscle_group ?? "",
+          exercise_db_id: firstRelation(sessionExercise.exercises)?.exercise_db_id ?? "",
           exercise_completed: sessionExercise.completed ?? false,
           personal_notes: sessionExercise.personal_notes ?? "",
           set_number: "",
@@ -75,9 +76,9 @@ function buildCsvRows(profileName: string, sessions: any[]) {
       for (const set of sets.sort((a: any, b: any) => Number(a.set_number ?? 0) - Number(b.set_number ?? 0))) {
         rows.push({
           ...baseSessionRow(profileName, session),
-          exercise_name: sessionExercise.exercises?.name ?? "",
-          muscle_group: sessionExercise.exercises?.muscle_group ?? "",
-          exercise_db_id: sessionExercise.exercises?.exercise_db_id ?? "",
+          exercise_name: relationName(sessionExercise.exercises, ""),
+          muscle_group: firstRelation(sessionExercise.exercises)?.muscle_group ?? "",
+          exercise_db_id: firstRelation(sessionExercise.exercises)?.exercise_db_id ?? "",
           exercise_completed: sessionExercise.completed ?? false,
           personal_notes: sessionExercise.personal_notes ?? "",
           set_number: set.set_number ?? "",
@@ -101,9 +102,9 @@ function baseSessionRow(profileName: string, session: any) {
     session_status: session.status,
     started_at: session.started_at,
     completed_at: session.completed_at ?? "",
-    workout_plan: session.workout_plans?.name ?? "",
-    workout_month: session.workout_plans?.month ?? "",
-    workout_day: session.workout_days?.name ?? "",
+    workout_plan: relationName(session.workout_plans, ""),
+    workout_month: firstRelation(session.workout_plans)?.month ?? "",
+    workout_day: relationName(session.workout_days, ""),
     general_notes: session.general_notes ?? ""
   };
 }

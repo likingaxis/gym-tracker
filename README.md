@@ -115,3 +115,26 @@ npm run dev
 - miglioramento grafici e record;
 - rifinitura finale MVP;
 - test e stabilizzazione verso `v1.0`.
+
+## v0.17.4 - Vercel build fix
+
+Questa patch parte dalla v0.17 originale con Framer Motion e aggiunge:
+
+- fix TypeScript per `app/api/workout-sessions/route.ts` durante `next build` su Vercel;
+- `allowedDevOrigins` in `next.config.ts` per il test da telefono in rete locale;
+- versione pacchetto aggiornata a `0.17.4`.
+
+Nessuna migration Supabase richiesta.
+
+## v0.17.6 - Fix relazioni Supabase nel build Vercel
+
+Questa patch mantiene la v0.17 con animazioni e corregge altri errori TypeScript emersi durante `next build` su Vercel.
+
+Correzioni:
+
+- gestione compatibile delle relazioni Supabase che in TypeScript possono essere viste come array;
+- fix per `workout_days`, `workout_plans` ed `exercises` nelle pagine Home, Storico, Calendario, dettaglio sessione ed export CSV;
+- aggiunto helper `lib/relations.ts` con `firstRelation` e `relationName`;
+- versione pacchetto aggiornata a `0.17.6`.
+
+Database: nessuna nuova migration.

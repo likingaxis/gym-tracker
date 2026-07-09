@@ -9,6 +9,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getSelectedProfileId } from "@/lib/profiles";
 import { SessionActions } from "@/components/history/SessionActions";
 import { buildProgressOverview, formatCompactNumber, getSessionSummary, type SessionLike } from "@/lib/progress";
+import { relationName } from "@/lib/relations";
 
 async function getSelectedProfile(profileId: string) {
   try {
@@ -41,6 +42,13 @@ async function getActivePlan(profileId: string) {
   }
 }
 
+type OpenSession = {
+  id: string;
+  workout_day_id?: string | null;
+  started_at: string;
+  workout_days?: { name?: string | null } | Array<{ name?: string | null }> | null;
+};
+
 async function getOpenSession(profileId: string) {
   try {
     const supabase = createServerSupabaseClient();
@@ -52,7 +60,7 @@ async function getOpenSession(profileId: string) {
       .order("started_at", { ascending: false })
       .limit(1)
       .maybeSingle();
-    return session;
+    return session as OpenSession | null;
   } catch {
     return null;
   }
@@ -116,7 +124,7 @@ export default async function DashboardPage() {
       ) : openSession?.workout_day_id ? (
         <Card className="border-gym-accent/50 bg-gym-accent/10 shadow-glow">
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-gym-accent">Allenamento in corso</p>
-          <h2 className="mt-2 text-2xl font-black">{openSession.workout_days?.name ?? "Allenamento"}</h2>
+          <h2 className="mt-2 text-2xl font-black">{relationName(openSession.workout_days, "Allenamento")}</h2>
           <p className="mt-1 text-sm text-gym-muted">
             Iniziato {new Date(openSession.started_at).toLocaleString("it-IT", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
           </p>
@@ -142,7 +150,7 @@ export default async function DashboardPage() {
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-gym-accent">Ultimo allenamento</p>
           <div className="mt-2 flex items-start justify-between gap-3">
             <div>
-              <h2 className="text-xl font-black">{lastSession.workout_days?.name ?? "Allenamento"}</h2>
+              <h2 className="text-xl font-black">{relationName(lastSession.workout_days, "Allenamento")}</h2>
               <p className="mt-1 text-sm text-gym-muted">{formatDate(lastSession.started_at)} · {getSessionSummary(lastSession).completedSets} serie · {formatCompactNumber(getSessionSummary(lastSession).volume)} kg volume</p>
             </div>
             <Link href={`/history/${lastSession.id}`} className="rounded-2xl bg-white/10 px-3 py-2 text-xs font-bold text-slate-200">Dettaglio</Link>

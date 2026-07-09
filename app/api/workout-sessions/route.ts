@@ -180,12 +180,23 @@ type CurrentExercise = {
   reps?: string | null;
 };
 
+type PreviousExerciseRef = {
+  id?: string | null;
+  name?: string | null;
+  exercise_db_id?: string | null;
+};
+
+type PreviousSessionExercise = {
+  exercise_id?: string | null;
+  // Supabase can infer joined rows as either an object or an array depending on
+  // generated relationship typing. At runtime this relation is expected to be a
+  // single exercise, but accepting both shapes keeps `next build` strict-mode safe.
+  exercises?: PreviousExerciseRef | PreviousExerciseRef[] | null;
+  exercise_sets?: Array<{ set_number?: number | null; weight?: string | null }> | null;
+};
+
 type PreviousSession = {
-  session_exercises?: Array<{
-    exercise_id?: string | null;
-    exercises?: { id?: string | null; name?: string | null; exercise_db_id?: string | null } | null;
-    exercise_sets?: Array<{ set_number?: number | null; weight?: string | null }> | null;
-  }> | null;
+  session_exercises?: PreviousSessionExercise[] | null;
 };
 
 function buildPreviousWeightsByExercise(
@@ -218,12 +229,12 @@ function findPreviousExerciseSets(exercise: CurrentExercise, previousSessions: P
     const sessionExercises = session.session_exercises ?? [];
 
     const byExerciseDbId = exerciseDbId
-      ? sessionExercises.find((item) => item.exercises?.exercise_db_id?.trim() === exerciseDbId)
+      ? sessionExercises.find((item) => getPreviousExerciseRef(item)?.exercise_db_id?.trim() === exerciseDbId)
       : undefined;
     if (byExerciseDbId?.exercise_sets?.some((set) => set.weight?.trim())) return byExerciseDbId;
 
     const byName = normalizedName
-      ? sessionExercises.find((item) => normalizeExerciseName(item.exercises?.name) === normalizedName)
+      ? sessionExercises.find((item) => normalizeExerciseName(getPreviousExerciseRef(item)?.name) === normalizedName)
       : undefined;
     if (byName?.exercise_sets?.some((set) => set.weight?.trim())) return byName;
 
@@ -232,6 +243,11 @@ function findPreviousExerciseSets(exercise: CurrentExercise, previousSessions: P
   }
 
   return null;
+}
+
+function getPreviousExerciseRef(item: PreviousSessionExercise) {
+  const linkedExercise = item.exercises;
+  return Array.isArray(linkedExercise) ? linkedExercise[0] : linkedExercise;
 }
 
 function normalizeExerciseName(value: string | null | undefined) {

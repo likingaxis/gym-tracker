@@ -115,7 +115,7 @@ export function ImportUploader() {
         body: formData,
       });
 
-      setStatus("Sto preparando l’anteprima...");
+      setStatus("Sto cercando candidati ExerciseDB reali...");
       const data = await readJsonResponse(response);
 
       if (!response.ok || !data?.success) {
@@ -204,7 +204,7 @@ export function ImportUploader() {
             <div>
               <p className="text-sm font-semibold text-gym-info">Genera con AI</p>
               <h2 className="mt-1 text-2xl font-extrabold">PDF, DOCX, foto o testo</h2>
-              <p className="mt-2 text-sm text-gym-muted">Carica la scheda del trainer. L’app genera un JSON da controllare prima dell’import.</p>
+              <p className="mt-2 text-sm text-gym-muted">Carica la scheda del trainer. L’app genera un JSON, cerca candidati ExerciseDB e applica GIF solo se Gemini sceglie un match sicuro.</p>
             </div>
           </div>
           <input

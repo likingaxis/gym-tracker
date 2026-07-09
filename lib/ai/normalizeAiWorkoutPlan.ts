@@ -1,9 +1,24 @@
 import { normalizeWorkoutPlanJson } from "@/lib/import/cleanWorkoutPlan";
 import { workoutPlanImportSchema } from "@/lib/validation/workoutPlanSchema";
-import { findExerciseDbMatch } from "@/lib/ai/matchExerciseDb";
+import { findExerciseDbMatch, type ExerciseDbCandidate } from "@/lib/ai/matchExerciseDb";
 
 type AiWarning = { path: string; message: string };
 type AiError = { path: string; message: string };
+
+type CandidateSelectionRequest = {
+  key: string;
+  exercise: Record<string, any>;
+  candidates: ExerciseDbCandidate[];
+};
+
+type CandidateSelection = {
+  key: string;
+  selected_exercise_db_id: string;
+  confidence: "high" | "medium" | "low";
+  reason: string;
+};
+
+type CandidateSelector = (requests: CandidateSelectionRequest[]) => Promise<CandidateSelection[]>;
 
 function isRecord(value: unknown): value is Record<string, any> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -42,7 +57,7 @@ function ensureRequiredShape(input: unknown) {
       order: positiveNumber(exercise?.order, exerciseIndex + 1),
       name: exercise?.name || `Esercizio ${exerciseIndex + 1}`,
       exercise_db_query: exercise?.exercise_db_query ?? "",
-      exercise_db_id: "",
+      exercise_db_id: exercise?.exercise_db_id ?? "",
       exercise_db_name: "",
       exercise_db_confidence: "",
       muscle_group: exercise?.muscle_group ?? "",
@@ -61,61 +76,152 @@ function ensureRequiredShape(input: unknown) {
       target_muscle_hint: exercise?.target_muscle_hint,
       body_part_hint: exercise?.body_part_hint,
       movement_pattern: exercise?.movement_pattern,
+      movement_patterns: exercise?.movement_patterns,
+      position_hint: exercise?.position_hint,
+      grip_hint: exercise?.grip_hint,
+      bench_angle_hint: exercise?.bench_angle_hint,
+      side_hint: exercise?.side_hint,
     })) : [],
   }));
 
   return plan;
 }
 
-function formatCandidateReason(matchName: string, confidence: string) {
-  if (confidence === "medium") {
-    return `Possibile match ExerciseDB da controllare: ${matchName}. La GIF non e' stata applicata automaticamente.`;
-  }
-  return "Nessuna corrispondenza sicura trovata nel catalogo ExerciseDB.";
+function applyCandidate(exercise: any, candidate: ExerciseDbCandidate, confidence: "high" | "medium") {
+  exercise.exercise_db_id = candidate.exercise_db_id;
+  exercise.exercise_db_name = candidate.name;
+  exercise.exercise_db_confidence = confidence;
+  exercise.media_url = candidate.gifUrl;
 }
 
-function applyExerciseDbMatches(plan: any, warnings: AiWarning[]) {
+async function applyExerciseDbMatches(plan: any, warnings: AiWarning[], selectCandidates?: CandidateSelector) {
   if (!isRecord(plan) || !Array.isArray(plan.days)) return plan;
+
+  let unmatchedCount = 0;
+  let exactCount = 0;
+  let aiMatchedCount = 0;
+  let candidateReviewCount = 0;
+  const requests: CandidateSelectionRequest[] = [];
+  const requestMap = new Map<string, { exercise: any; candidates: ExerciseDbCandidate[] }>();
 
   plan.days.forEach((day: any, dayIndex: number) => {
     if (!Array.isArray(day.exercises)) return;
 
     day.exercises.forEach((exercise: any, exerciseIndex: number) => {
       const result = findExerciseDbMatch(exercise);
-      const path = `days.${dayIndex}.exercises.${exerciseIndex}`;
-      const bestCandidate = result.candidates[0];
 
-      if (result.item) {
+      if (result.item && result.confidence === "high") {
         exercise.exercise_db_id = result.item.exercise_db_id;
         exercise.exercise_db_name = result.item.name;
         exercise.exercise_db_confidence = "high";
         exercise.media_url = result.item.gifUrl;
+        exactCount += 1;
         return;
       }
 
       exercise.exercise_db_id = "";
       exercise.media_url = "";
-      exercise.exercise_db_name = bestCandidate?.name ?? "";
-      exercise.exercise_db_confidence = result.confidence === "medium" ? "medium" : "low";
+      exercise.exercise_db_name = "";
+      exercise.exercise_db_confidence = "low";
 
-      warnings.push({
-        path,
-        message: bestCandidate
-          ? `${exercise.name || "Esercizio"}: ${formatCandidateReason(bestCandidate.name, result.confidence)}`
-          : `${exercise.name || "Esercizio"}: nessun candidato ExerciseDB rilevante trovato.`,
-      });
+      if (selectCandidates && result.candidates.length > 0) {
+        const key = `${dayIndex}.${exerciseIndex}`;
+        const request = {
+          key,
+          exercise: {
+            name: exercise.name,
+            exercise_db_query: exercise.exercise_db_query,
+            alternative_queries: exercise.alternative_queries,
+            equipment_hint: exercise.equipment_hint,
+            target_muscle_hint: exercise.target_muscle_hint,
+            body_part_hint: exercise.body_part_hint,
+            movement_pattern: exercise.movement_pattern,
+            movement_patterns: exercise.movement_patterns,
+            position_hint: exercise.position_hint,
+            grip_hint: exercise.grip_hint,
+            bench_angle_hint: exercise.bench_angle_hint,
+            side_hint: exercise.side_hint,
+          },
+          candidates: result.candidates.slice(0, 8),
+        };
+        requests.push(request);
+        requestMap.set(key, { exercise, candidates: request.candidates });
+      }
     });
   });
+
+  if (selectCandidates && requests.length > 0) {
+    try {
+      const selections = await selectCandidates(requests);
+      const byKey = new Map(selections.map((selection) => [selection.key, selection]));
+
+      requests.forEach((request) => {
+        const selection = byKey.get(request.key);
+        const stored = requestMap.get(request.key);
+        if (!selection || !stored) return;
+
+        const selectedId = selection.selected_exercise_db_id;
+        const candidate = stored.candidates.find((item) => item.exercise_db_id === selectedId);
+
+        if (candidate && selection.confidence === "high") {
+          applyCandidate(stored.exercise, candidate, "high");
+          aiMatchedCount += 1;
+          return;
+        }
+
+        if (candidate && selection.confidence === "medium") {
+          stored.exercise.exercise_db_name = candidate.name;
+          stored.exercise.exercise_db_confidence = "medium";
+          candidateReviewCount += 1;
+        }
+      });
+    } catch (error) {
+      warnings.push({
+        path: "exercise_db",
+        message: `Selezione AI dei candidati ExerciseDB non riuscita: ${error instanceof Error ? error.message : "errore sconosciuto"}.`,
+      });
+    }
+  }
+
+  plan.days.forEach((day: any) => {
+    if (!Array.isArray(day.exercises)) return;
+    day.exercises.forEach((exercise: any) => {
+      if (!String(exercise?.exercise_db_id ?? "").trim() && !String(exercise?.media_url ?? "").trim()) {
+        unmatchedCount += 1;
+      }
+    });
+  });
+
+  if (exactCount > 0 || aiMatchedCount > 0) {
+    warnings.push({
+      path: "exercise_db",
+      message: `${exactCount + aiMatchedCount} GIF applicate dal catalogo ExerciseDB dopo validazione backend.`,
+    });
+  }
+
+  if (candidateReviewCount > 0) {
+    warnings.push({
+      path: "exercise_db",
+      message: `${candidateReviewCount} esercizi hanno un candidato simile ma non abbastanza sicuro: non ho applicato la GIF automaticamente.`,
+    });
+  }
+
+  if (unmatchedCount > 0) {
+    warnings.push({
+      path: "exercise_db",
+      message: `${unmatchedCount} esercizi sono rimasti senza GIF automatica. In v0.23.5 Gemini legge il CSV ExerciseDB completo, ma il backend applica solo ID/GIF validi presenti nel catalogo.`,
+    });
+  }
 
   return plan;
 }
 
-export function normalizeAndValidateAiWorkoutPlan(input: unknown) {
+export async function normalizeAndValidateAiWorkoutPlan(input: unknown, selectCandidates?: CandidateSelector) {
   const warnings: AiWarning[] = [];
   const errors: AiError[] = [];
 
   const shaped = ensureRequiredShape(input);
-  const matched = applyExerciseDbMatches(shaped, warnings);
+  const matched = await applyExerciseDbMatches(shaped, warnings, selectCandidates);
   const cleaned = normalizeWorkoutPlanJson(matched);
   warnings.push(...cleaned.warnings);
   errors.push(...cleaned.errors);

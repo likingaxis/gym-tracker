@@ -22,7 +22,7 @@ function createSummary(plan: any) {
   const daysCount = Array.isArray(plan?.days) ? plan.days.length : 0;
   const exercises = Array.isArray(plan?.days) ? plan.days.flatMap((day: any) => Array.isArray(day.exercises) ? day.exercises : []) : [];
   const matched = exercises.filter((exercise: any) => String(exercise?.exercise_db_id ?? "").trim() || String(exercise?.media_url ?? "").trim()).length;
-  const review = exercises.filter((exercise: any) => String(exercise?.exercise_db_confidence ?? "") === "medium").length;
+  const review = exercises.filter((exercise: any) => String(exercise?.exercise_db_confidence ?? "").trim() === "medium").length;
   const catalog = getExerciseDbCatalogMeta();
   return {
     days_count: daysCount,
@@ -43,14 +43,10 @@ function createUnmatched(plan: any) {
     return day.exercises
       .filter((exercise: any) => !String(exercise?.exercise_db_id ?? "").trim() && !String(exercise?.media_url ?? "").trim())
       .map((exercise: any) => {
-        const candidate = String(exercise?.exercise_db_name ?? "").trim();
-        const confidence = String(exercise?.exercise_db_confidence ?? "").trim();
         return {
           day: day.name,
           name: exercise.name,
-          reason: candidate && confidence === "medium"
-            ? `Possibile GIF da controllare: ${candidate}. Non applicata automaticamente.`
-            : "Nessuna corrispondenza sicura trovata nel catalogo ExerciseDB.",
+          reason: "GIF non applicata automaticamente: Gemini non ha trovato nel CSV ExerciseDB una corrispondenza sicura.",
         };
       });
   });
@@ -92,10 +88,11 @@ export async function POST(request: Request) {
       prompt,
       text: extracted.text,
       file: extracted.file,
+      includeExerciseDbCsv: true,
     });
 
     const parsedJson = parseAiJson(raw);
-    const result = normalizeAndValidateAiWorkoutPlan(parsedJson);
+    const result = await normalizeAndValidateAiWorkoutPlan(parsedJson);
 
     if (!result.success) {
       return NextResponse.json({
@@ -118,7 +115,7 @@ export async function POST(request: Request) {
     if (summary.unmatched_exercises_count > 0) {
       warnings.unshift({
         path: "exercise_db",
-        message: `${summary.unmatched_exercises_count} esercizi senza GIF sicura. ${summary.review_exercises_count ?? 0} hanno un possibile candidato da controllare.`,
+        message: `${summary.unmatched_exercises_count} esercizi senza GIF automatica. In v0.23.5 Gemini legge il CSV ExerciseDB completo, ma il backend applica solo ID/GIF validi presenti nel catalogo.`,
       });
     }
 

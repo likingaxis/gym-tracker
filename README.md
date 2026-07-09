@@ -1,114 +1,168 @@
-# Gym Tracker App v0.23.1
+# Gym Tracker App v0.23.5
 
-PWA mobile-first per gestire schede palestra personali con profili, PIN, import scheda, allenamento guidato, timer, storico, calendario, progressi, backup e import AI.
+PWA mobile-first per gestire schede palestra personali con profili, import scheda, allenamento guidato, storico, progressi, timer e backup.
 
-## Novita v0.23.1
+## Novita v0.23.5
 
-Questa versione migliora la v0.23 e usa davvero il catalogo ExerciseDB da 1500 esercizi per ridurre GIF sbagliate e match inventati.
+Questa versione rende l'import AI piu' controllato e piu' veloce da leggere per Gemini.
 
-- Integrato catalogo ExerciseDB strutturato:
+La pipeline ora e':
 
-```txt
+```text
+Gemini legge la scheda
+Gemini produce query + intento dell'esercizio
+Backend cerca nel catalogo completo locale ExerciseDB
+Backend crea una mini-lista short di 5-8 candidati reali
+Gemini sceglie solo tra quei candidati short
+Backend copia exercise_db_id e gifUrl dal catalogo completo
+```
+
+## Catalogo ExerciseDB
+
+Sono inclusi tre file dati:
+
+```text
 data/exercisedb-catalog.json
 ```
 
-- Incluso anche il CSV sorgente:
+Catalogo completo usato dal backend come fonte ufficiale per ID e GIF.
 
-```txt
+```text
+data/exercisedb-catalog-short.json
+```
+
+Versione compatta del catalogo. Non contiene URL e usa campi brevi:
+
+```text
+id = exercise_db_id
+n = nome esercizio
+eq = attrezzatura
+bp = body part
+tm = target muscle
+sec = muscoli secondari
+pat = movement pattern
+aka = alias inglesi/italiani
+```
+
+```text
 data/exercisedb-index-compact.csv
 ```
 
-- Matching locale piu intelligente su:
-  - nome esercizio;
-  - aliases inglesi;
-  - aliases italiani;
-  - attrezzatura;
-  - body part;
-  - muscolo target;
-  - pattern di movimento;
-  - search_text.
-- Il modello AI non sceglie direttamente `exercise_db_id` o `media_url`.
-- `exercise_db_id` e `media_url` vengono copiati solo dal catalogo ExerciseDB.
-- Se il match e' alto, la GIF viene applicata automaticamente.
-- Se il match e' medio, viene mostrato come possibile candidato da controllare e la GIF non viene applicata automaticamente.
-- Se il match e' basso, l'esercizio resta senza GIF.
-- `trainer_notes` ora e' dedicato ai consigli pratici di esecuzione, non ai dubbi di matching.
-- Il prompt passa esplicitamente il mese corrente al modello.
-- Preview Import aggiornata con conteggio esercizi da controllare e dimensione catalogo.
+CSV sorgente di riferimento.
 
-## Funzione AI Import
+## Matching AI prudente
 
-La pagina Import supporta:
+Gemini non riceve tutto il CSV da 1500 righe.
 
-- PDF
-- DOCX
-- PNG/JPG/JPEG/WEBP
-- TXT
-- JSON
+Il backend filtra il catalogo e passa a Gemini solo pochi candidati reali in formato short. Questo riduce confusione, costo e rischio di GIF sbagliate.
 
-Endpoint server-side:
+La GIF viene applicata solo se Gemini sceglie un candidato con confidenza alta.
 
-```txt
-app/api/ai/convert-workout-plan/route.ts
+Se la confidenza e' media o bassa:
+
+```text
+exercise_db_id = ""
+media_url = ""
 ```
 
-Flusso:
+Meglio nessuna GIF che una GIF sbagliata.
 
-```txt
-file trainer -> AI server-side -> JSON normalizzato -> matching ExerciseDB locale -> preview -> conferma utente -> /api/import-workout-plan
+## Prompt migliorato
+
+Il prompt chiede a Gemini di interpretare l'esercizio per caratteristiche, non solo per traduzione letterale:
+
+- movimento principale;
+- attrezzatura;
+- distretto;
+- muscolo target;
+- posizione;
+- presa;
+- inclinazione panca;
+- lato/arto.
+
+Esempi gestiti meglio:
+
+```text
+Stacchi regular -> barbell deadlift
+Lat pull down machine -> machine/lever lat pulldown
+Tirate su panca a 30 gradi supino -> reverse grip incline bench row / chest supported incline row
+Sitted calf machine -> seated calf raise machine
+Leg curl -> leg curl machine
 ```
 
-L'import finale continua a passare da:
+`trainer_notes` resta dedicato solo a consigli pratici di esecuzione.
 
-```txt
-/api/import-workout-plan
+## Import AI
+
+La pagina Import mantiene due modalita':
+
+```text
+Genera con AI
+Importa JSON gia' pronto
 ```
 
-## Variabili ambiente
+Supporta:
 
-In locale crea o aggiorna `.env.local`:
+```text
+PDF
+DOCX
+PNG / JPG / JPEG / WEBP
+TXT
+JSON
+```
+
+Variabili ambiente necessarie:
 
 ```env
-NEXT_PUBLIC_SUPABASE_URL=...
-NEXT_PUBLIC_SUPABASE_ANON_KEY=...
-
 AI_PROVIDER=gemini
 GEMINI_API_KEY=...
 GEMINI_MODEL=gemini-2.5-flash
 ```
 
-Su Vercel aggiungi le stesse variabili in Project Settings -> Environment Variables.
+Le chiavi AI non devono mai iniziare con `NEXT_PUBLIC_`.
 
-Importante: le chiavi AI non devono mai iniziare con `NEXT_PUBLIC_`.
+## Aggiornamento
 
-## Aggiornamento da v0.23
+Copia questa versione sopra la cartella attuale senza cancellare:
 
-Copia i file sopra la cartella attuale senza cancellare:
-
-```txt
+```text
 node_modules
 .env.local
 package-lock.json
 .git
 ```
 
-La dipendenza `mammoth` era gia' stata aggiunta in v0.23. Se hai gia' fatto `npm install` con la v0.23, non servono nuove dipendenze.
-
-Poi esegui:
+Poi:
 
 ```powershell
 npm run dev
 ```
 
-Poi, se tutto funziona:
+Se tutto funziona:
 
 ```powershell
 npm run build
 git add .
-git commit -m "v0.23.1 ExerciseDB smart matching"
+git commit -m "v0.23.5 CSV completo ExerciseDB AI"
 git push
 ```
 
 ## Database
 
 Nessuna nuova migration Supabase.
+
+## Dipendenze
+
+Nessuna nuova dipendenza rispetto alla v0.23.
+
+
+## v0.23.5 — CSV completo ExerciseDB per Gemini
+
+Questa versione semplifica il flusso AI Import: Gemini riceve la scheda e il CSV ExerciseDB completo, senza catalogo short e senza selezione tra candidati filtrati.
+
+Regole di sicurezza mantenute:
+
+- `exercise_db_id` viene accettato solo se esiste nel catalogo locale.
+- `media_url` viene sempre sovrascritto dal backend usando il `gifUrl` ufficiale della stessa riga ExerciseDB.
+- Se Gemini non trova una corrispondenza sicura nel CSV, l'esercizio resta senza GIF.
+- Supabase salva solo dopo preview e conferma utente.

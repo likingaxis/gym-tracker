@@ -1,4 +1,43 @@
+# Gym Tracker App v0.18.1
+
+Patch UI/UX per rendere più pulita la sessione attiva.
+
+## Novità v0.18.1
+
+- Rimossa dalla Home la card grande "Allenamento in corso": ora la sessione attiva vive nel mini player basso.
+- Timer recupero trasformato in player basso sopra la bottom navigation.
+- Header progresso nella sessione reso più compatto: giorno, serie, percentuale e stato salvataggio in una barra sottile.
+- Nessuna funzionalità rimossa.
+- Nessuna nuova migration Supabase.
+
+---
+
 # Gym Tracker App
+
+## v0.18.1 - Mini player allenamento e card più compatta
+
+Questa versione migliora l'uso reale durante l'allenamento senza modificare il database.
+
+Novità principali:
+
+- mini player persistente dell'allenamento in corso sopra la bottom navigation;
+- tap sul mini player o icona play per riprendere subito la sessione;
+- menu del mini player con azioni protette per completare o annullare la sessione;
+- registro serie completate più compatto nella card esercizio;
+- dettaglio serie completate apribile/chiudibile come accordion;
+- timer recupero chiudibile con bottone `Chiudi`;
+- chiusura timer senza modificare lo stato della serie o dell'allenamento;
+- nessuna nuova migration Supabase.
+
+Aggiornamento consigliato dalla v0.17.8:
+
+```powershell
+npm run build
+git add .
+git commit -m "v0.18 mini player allenamento"
+git push
+```
+
 
 `v0.17 — animazioni premium e smoothness`
 

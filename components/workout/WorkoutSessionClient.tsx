@@ -14,6 +14,7 @@ import {
   RotateCcw,
   Save,
   TimerReset,
+  X,
 } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -45,6 +46,8 @@ type Exercise = {
 
 type Day = {
   id: string;
+  name?: string | null;
+  description?: string | null;
   workout_plan_id: string;
   exercises: Exercise[];
 };
@@ -377,6 +380,10 @@ export function WorkoutSessionClient({ day }: Props) {
     );
   }
 
+  function closeTimer() {
+    setActiveTimer(null);
+  }
+
   function resetTimer() {
     setActiveTimer((current) =>
       current
@@ -448,23 +455,28 @@ export function WorkoutSessionClient({ day }: Props) {
 
   return (
     <div className="space-y-4">
-      <Card className="sticky top-24 z-20 border-gym-accent/30 bg-gym-card/95 backdrop-blur">
+      <div className="sticky top-20 z-20 rounded-2xl border border-white/10 bg-gym-card/90 px-3 py-2 shadow-lg shadow-black/20 backdrop-blur">
         <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-sm text-gym-muted">Progresso serie</p>
-            <p className="text-xl font-black">
-              {completedSets}/{totalSets} serie completate
-            </p>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-xs font-black text-white">{day.name ?? "Allenamento"}</p>
+            <div className="mt-1 flex items-center gap-2 text-[0.7rem] font-bold text-gym-muted">
+              <span>{completedSets}/{totalSets} serie</span>
+              <span aria-hidden="true">·</span>
+              <span>{progress}%</span>
+              <span aria-hidden="true">·</span>
+              <span className={saving ? "text-gym-accent" : "text-slate-400"}>
+                {saving ? "Salvataggio..." : "Salvato"}
+              </span>
+            </div>
           </div>
-          <span className="rounded-full bg-gym-accent px-3 py-1 text-sm font-black text-slate-950">
+          <span className="rounded-full bg-gym-accent/15 px-2.5 py-1 text-xs font-black text-gym-accent">
             {progress}%
           </span>
         </div>
-<AnimatedProgressBar value={progress} />
-        <p className="mt-3 flex items-center gap-2 text-xs text-gym-muted">
-          <Save size={14} /> {saving ? "Salvataggio..." : status}
-        </p>
-      </Card>
+        <div className="mt-2">
+          <AnimatedProgressBar value={progress} />
+        </div>
+      </div>
 
       <AnimatePresence initial={false}>
         {activeTimer ? (
@@ -474,6 +486,7 @@ export function WorkoutSessionClient({ day }: Props) {
             onPause={pauseTimer}
             onResume={resumeTimer}
             onReset={resetTimer}
+            onClose={closeTimer}
             onAdjust={adjustTimer}
           />
         ) : null}
@@ -571,6 +584,7 @@ function TrackableExerciseCard({
   const [open, setOpen] = useState(false);
   const [notesOpen, setNotesOpen] = useState(false);
   const [forceExpanded, setForceExpanded] = useState(false);
+  const [completedLogOpen, setCompletedLogOpen] = useState(false);
   const reduceMotion = useReducedMotion();
 
   if (!draft) {
@@ -718,26 +732,13 @@ function TrackableExerciseCard({
         )}
         </AnimatePresence>
 
-        <div className="mt-4 space-y-2 rounded-3xl bg-black/20 p-3">
-          <p className="text-xs font-bold uppercase tracking-[0.2em] text-gym-muted">Serie</p>
-          {draft.sets.map((set) => (
-            <motion.div
-              key={set.set_number}
-              layout
-              animate={reduceMotion ? undefined : { scale: set.set_number === nextSetNumber ? 1.01 : 1 }}
-              transition={{ duration: 0.16, ease: "easeOut" }}
-              className={`flex items-center justify-between gap-3 rounded-2xl px-3 py-2 text-sm ${set.completed ? "bg-gym-accent/10 text-slate-100" : set.set_number === nextSetNumber ? "bg-white/10 text-white" : "text-gym-muted"}`}
-            >
-              <span className="font-bold">{set.completed ? "✓" : set.set_number === nextSetNumber ? "Ora" : ""} Serie {set.set_number}</span>
-              <span className="text-right text-xs">
-                {set.completed || set.weight || set.reps || set.rpe ? `${set.weight ? `${set.weight} kg` : "kg -"} · ${set.reps || "reps -"}${set.rpe ? ` · RPE ${set.rpe}` : ""}` : "da fare"}
-              </span>
-              {set.completed ? (
-                <button type="button" onClick={() => onSetChange(set.set_number, { completed: false })} className="rounded-xl bg-white/10 px-2 py-1 text-[10px] font-bold text-slate-200">Modifica</button>
-              ) : null}
-            </motion.div>
-          ))}
-        </div>
+        <CompactSetLog
+          sets={draft.sets}
+          nextSetNumber={nextSetNumber}
+          open={completedLogOpen}
+          onToggle={() => setCompletedLogOpen((value) => !value)}
+          onEditCompleted={(setNumber) => onSetChange(setNumber, { completed: false })}
+        />
 
         <div className="mt-4 grid grid-cols-2 gap-2">
           <button type="button" onClick={onStartTimer} className="flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-white/10 px-4 py-3 text-sm font-black text-slate-100">
@@ -785,6 +786,84 @@ function TrackableExerciseCard({
   );
 }
 
+
+function CompactSetLog({
+  sets,
+  nextSetNumber,
+  open,
+  onToggle,
+  onEditCompleted,
+}: {
+  sets: SetDraft[];
+  nextSetNumber: number | null;
+  open: boolean;
+  onToggle: () => void;
+  onEditCompleted: (setNumber: number) => void;
+}) {
+  const completedSets = sets.filter((set) => set.completed);
+  const pendingSets = sets.filter((set) => !set.completed);
+
+  return (
+    <div className="mt-4 rounded-3xl bg-black/20 p-3">
+      <button
+        type="button"
+        onClick={onToggle}
+        disabled={completedSets.length === 0}
+        className="flex w-full items-center justify-between gap-3 rounded-2xl px-1 py-1 text-left disabled:cursor-default"
+      >
+        <span className="text-sm font-black text-slate-100">
+          {completedSets.length > 0
+            ? `✓ ${completedSets.length} ${completedSets.length === 1 ? "serie completata" : "serie completate"}`
+            : "Nessuna serie completata"}
+        </span>
+        {completedSets.length > 0 ? (
+          <span className="text-gym-muted">{open ? <ChevronUp size={18} /> : <ChevronDown size={18} />}</span>
+        ) : null}
+      </button>
+
+      <AnimatedAccordion open={open && completedSets.length > 0}>
+        <div className="mt-2 space-y-1.5">
+          {completedSets.map((set) => (
+            <div key={set.set_number} className="flex items-center justify-between gap-2 rounded-2xl bg-gym-accent/10 px-3 py-2 text-xs text-slate-100">
+              <span className="font-black">✓ S{set.set_number}</span>
+              <span className="min-w-0 flex-1 truncate text-right font-bold text-slate-300">
+                {formatSetSummary(set)}
+              </span>
+              <button
+                type="button"
+                onClick={() => onEditCompleted(set.set_number)}
+                className="rounded-xl bg-white/10 px-2 py-1 text-[10px] font-bold text-slate-200"
+              >
+                Modifica
+              </button>
+            </div>
+          ))}
+        </div>
+      </AnimatedAccordion>
+
+      {pendingSets.length > 0 ? (
+        <div className="mt-3 flex flex-wrap gap-2 text-xs font-bold text-gym-muted">
+          {pendingSets.map((set) => (
+            <span
+              key={set.set_number}
+              className={`rounded-full px-3 py-1.5 ${set.set_number === nextSetNumber ? "bg-white/15 text-white" : "bg-white/5"}`}
+            >
+              {set.set_number === nextSetNumber ? "Ora" : "Da fare"} S{set.set_number}
+            </span>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function formatSetSummary(set: SetDraft) {
+  const reps = set.reps?.trim() || "-";
+  const weight = set.weight?.trim() ? `${set.weight.trim()}kg` : "-kg";
+  const rpe = set.rpe?.trim() ? ` · RPE${set.rpe.trim()}` : "";
+  return `${reps} × ${weight}${rpe}`;
+}
+
 function QuickNoteChips({ onAdd }: { onAdd: (text: string) => void }) {
   const notes = [
     "Duro.",
@@ -815,53 +894,49 @@ function StickyTimer({
   onPause,
   onResume,
   onReset,
+  onClose,
   onAdjust,
 }: {
   timer: ActiveTimer;
   onPause: () => void;
   onResume: () => void;
   onReset: () => void;
+  onClose: () => void;
   onAdjust: (deltaSeconds: number) => void;
 }) {
   const reduceMotion = useReducedMotion();
 
   return (
     <motion.div
-      initial={reduceMotion ? false : { opacity: 0, y: -10, scale: 0.98 }}
+      initial={reduceMotion ? false : { opacity: 0, y: 24, scale: 0.98 }}
       animate={reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }}
-      exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -10, scale: 0.98 }}
+      exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 24, scale: 0.98 }}
       transition={{ duration: 0.22, ease: "easeOut" }}
-      className="sticky top-[196px] z-20"
+      className="fixed inset-x-0 bottom-[88px] z-40 mx-auto max-w-md px-4"
     >
-    <Card
-      className={`${timer.finished ? "border-gym-accent shadow-glow" : "border-white/10"}`}
-    >
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <p className="text-xs uppercase tracking-wide text-gym-muted">
-            Timer recupero
-          </p>
-          <p className="line-clamp-1 text-sm font-bold text-slate-300">
-            {timer.exerciseName}
+      <div className={`${timer.finished ? "border-gym-accent shadow-glow" : "border-white/10"} rounded-[1.35rem] border bg-gym-panel/95 p-3 shadow-2xl shadow-black/40 backdrop-blur supports-[padding:max(0px)]:mb-[max(0px,env(safe-area-inset-bottom))]`}>
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-gym-accent">
+              {timer.finished ? "Recupero finito" : "Recupero"}
+            </p>
+            <p className="mt-0.5 truncate text-sm font-bold text-slate-300">
+              {timer.exerciseName}
+            </p>
+          </div>
+          <p className="shrink-0 text-3xl font-black text-gym-accent">
+            {formatCountdown(timer.remainingSeconds)}
           </p>
         </div>
-        <p className="text-3xl font-black text-gym-accent">
-          {formatCountdown(timer.remainingSeconds)}
-        </p>
+        <TimerControls
+          timer={timer}
+          onPause={onPause}
+          onResume={onResume}
+          onReset={onReset}
+          onClose={onClose}
+          onAdjust={onAdjust}
+        />
       </div>
-      {timer.finished ? (
-        <p className="mt-2 rounded-2xl bg-gym-accent/15 p-2 text-center text-sm font-black text-gym-accent">
-          Recupero terminato
-        </p>
-      ) : null}
-      <TimerControls
-        timer={timer}
-        onPause={onPause}
-        onResume={onResume}
-        onReset={onReset}
-        onAdjust={onAdjust}
-      />
-    </Card>
     </motion.div>
   );
 }
@@ -872,6 +947,7 @@ function TimerControls({
   onPause,
   onResume,
   onReset,
+  onClose,
   onAdjust,
 }: {
   timer: ActiveTimer;
@@ -879,10 +955,11 @@ function TimerControls({
   onPause: () => void;
   onResume: () => void;
   onReset: () => void;
+  onClose: () => void;
   onAdjust: (deltaSeconds: number) => void;
 }) {
   return (
-    <div className="mt-3 grid grid-cols-4 gap-2">
+    <div className="mt-3 grid grid-cols-3 gap-2">
       {timer.isRunning ? (
         <motion.button type="button" onClick={onPause} whileTap={{ scale: 0.96 }} className="flex min-h-11 items-center justify-center rounded-2xl bg-white/10 px-3 py-2 text-xs font-black">
           Pausa
@@ -893,9 +970,11 @@ function TimerControls({
         </motion.button>
       )}
       <motion.button type="button" onClick={() => onAdjust(15)} whileTap={{ scale: 0.96 }} className="min-h-11 rounded-2xl bg-white/10 px-3 py-2 text-xs font-black">+15s</motion.button>
-      <motion.button type="button" onClick={() => onAdjust(-9999)} whileTap={{ scale: 0.96 }} className="min-h-11 rounded-2xl bg-white/10 px-3 py-2 text-xs font-black">Salta</motion.button>
-      <motion.button type="button" onClick={onReset} whileTap={{ scale: 0.96 }} className="flex min-h-11 items-center justify-center rounded-2xl bg-white/5 px-3 py-2 text-xs font-bold text-gym-muted">
-        Reset
+      <motion.button type="button" onClick={onClose} whileTap={{ scale: 0.96 }} className="flex min-h-11 items-center justify-center gap-1 rounded-2xl bg-white/10 px-3 py-2 text-xs font-black" aria-label="Chiudi timer recupero">
+        <X size={14} /> Chiudi
+      </motion.button>
+      <motion.button type="button" onClick={onReset} whileTap={{ scale: 0.96 }} className="col-span-3 min-h-10 rounded-2xl bg-white/5 px-3 py-2 text-xs font-bold text-gym-muted">
+        Reset timer
       </motion.button>
     </div>
   );

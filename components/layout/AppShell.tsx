@@ -5,13 +5,15 @@ import { usePathname } from "next/navigation";
 import { motion, useReducedMotion } from "framer-motion";
 import { Dumbbell, History, Home, TrendingUp } from "lucide-react";
 import { MotionPage } from "@/components/motion/MotionPage";
+import { ActiveWorkoutMiniPlayer } from "@/components/layout/ActiveWorkoutMiniPlayer";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   return (
-    <main className="mx-auto flex min-h-dvh max-w-md flex-col bg-gym-bg pb-24">
+    <main className="mx-auto flex min-h-dvh max-w-md flex-col bg-gym-bg pb-60">
       <div className="flex-1 px-4 py-5">
         <MotionPage>{children}</MotionPage>
       </div>
+      <ActiveWorkoutMiniPlayer />
       <nav className="fixed inset-x-0 bottom-0 z-50 mx-auto max-w-md border-t border-white/10 bg-gym-panel/95 px-4 py-3 backdrop-blur">
         <div className="grid grid-cols-4 gap-2 text-xs text-slate-300">
           <NavItem href="/" icon={<Home size={20} />} label="Home" />

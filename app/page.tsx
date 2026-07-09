@@ -7,7 +7,6 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getSelectedProfileId } from "@/lib/profiles";
-import { SessionActions } from "@/components/history/SessionActions";
 import { buildProgressOverview, formatCompactNumber, getSessionSummary, type SessionLike } from "@/lib/progress";
 import { relationName } from "@/lib/relations";
 
@@ -42,30 +41,6 @@ async function getActivePlan(profileId: string) {
   }
 }
 
-type OpenSession = {
-  id: string;
-  workout_day_id?: string | null;
-  started_at: string;
-  workout_days?: { name?: string | null } | Array<{ name?: string | null }> | null;
-};
-
-async function getOpenSession(profileId: string) {
-  try {
-    const supabase = createServerSupabaseClient();
-    const { data: session } = await supabase
-      .from("workout_sessions")
-      .select("id, workout_day_id, started_at, workout_days(name)")
-      .eq("status", "in_progress")
-      .eq("profile_id", profileId)
-      .order("started_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    return session as OpenSession | null;
-  } catch {
-    return null;
-  }
-}
-
 async function getCompletedSessions(profileId: string) {
   try {
     const supabase = createServerSupabaseClient();
@@ -86,10 +61,9 @@ export default async function DashboardPage() {
   const profileId = await getSelectedProfileId();
   if (!profileId) redirect("/profiles");
 
-  const [profile, plan, openSession, completedSessions] = await Promise.all([
+  const [profile, plan, completedSessions] = await Promise.all([
     getSelectedProfile(profileId),
     getActivePlan(profileId),
-    getOpenSession(profileId),
     getCompletedSessions(profileId),
   ]);
 
@@ -120,17 +94,6 @@ export default async function DashboardPage() {
           <Link href="/import">
             <Button className="mt-4 w-full py-4">Importa nuova scheda</Button>
           </Link>
-        </Card>
-      ) : openSession?.workout_day_id ? (
-        <Card className="border-gym-accent/50 bg-gym-accent/10 shadow-glow">
-          <p className="text-xs font-bold uppercase tracking-[0.2em] text-gym-accent">Allenamento in corso</p>
-          <h2 className="mt-2 text-2xl font-black">{relationName(openSession.workout_days, "Allenamento")}</h2>
-          <p className="mt-1 text-sm text-gym-muted">
-            Iniziato {new Date(openSession.started_at).toLocaleString("it-IT", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
-          </p>
-          <div className="mt-4">
-            <SessionActions sessionId={openSession.id} workoutDayId={openSession.workout_day_id} status="in_progress" compact />
-          </div>
         </Card>
       ) : recommendedDay ? (
         <Card className="border-gym-accent/40 bg-gradient-to-br from-gym-card to-gym-panel shadow-sm">

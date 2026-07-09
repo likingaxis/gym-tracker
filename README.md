@@ -1,65 +1,114 @@
-# Gym Tracker App v0.18.3
+# Gym Tracker App v0.23.1
 
-PWA mobile-first per gestire schede palestra personali, allenamenti, storico, calendario, progressi, backup e profili con PIN.
+PWA mobile-first per gestire schede palestra personali con profili, PIN, import scheda, allenamento guidato, timer, storico, calendario, progressi, backup e import AI.
 
-## Novità v0.18.3
+## Novita v0.23.1
 
-- Polish UI/UX visuale senza rimuovere funzionalità.
-- Palette più leggibile e semantica:
-  - verde per azioni positive e completamento;
-  - blu per informazioni, timer e sessione attiva;
-  - rosso per azioni distruttive;
-  - superfici scure più differenziate.
-- Card con varianti visive: default, primary, subtle, active, info, danger.
-- Meno uso di titoli uppercase e `font-black`, per ridurre l'effetto "tutto urla".
-- Bottom navigation nascosta durante la schermata allenamento attivo (`/workout/[dayId]`).
-- Timer basso più pulito:
-  - Pausa/Riprendi;
-  - +15s;
-  - Chiudi;
-  - rimosso Reset timer dalla vista principale.
-- Mini player sessione attiva meno verde e più elegante.
-- Header progresso allenamento più compatto e meno ripetitivo.
-- Registro serie ancora più minimale: riepilogo completate/da fare invece dei chip per ogni serie futura.
-- Backup e zona pericolosa più leggibili a livello colore.
-- GIF esercizi lasciate come in v0.18.1: compatte, centrate e non tagliate.
+Questa versione migliora la v0.23 e usa davvero il catalogo ExerciseDB da 1500 esercizi per ridurre GIF sbagliate e match inventati.
 
-## Aggiornamento da v0.18.1
+- Integrato catalogo ExerciseDB strutturato:
 
-Copia i file sopra la tua cartella attuale senza cancellare:
+```txt
+data/exercisedb-catalog.json
+```
 
-- `node_modules`
-- `.env.local`
-- `package-lock.json`
-- `.git`
+- Incluso anche il CSV sorgente:
+
+```txt
+data/exercisedb-index-compact.csv
+```
+
+- Matching locale piu intelligente su:
+  - nome esercizio;
+  - aliases inglesi;
+  - aliases italiani;
+  - attrezzatura;
+  - body part;
+  - muscolo target;
+  - pattern di movimento;
+  - search_text.
+- Il modello AI non sceglie direttamente `exercise_db_id` o `media_url`.
+- `exercise_db_id` e `media_url` vengono copiati solo dal catalogo ExerciseDB.
+- Se il match e' alto, la GIF viene applicata automaticamente.
+- Se il match e' medio, viene mostrato come possibile candidato da controllare e la GIF non viene applicata automaticamente.
+- Se il match e' basso, l'esercizio resta senza GIF.
+- `trainer_notes` ora e' dedicato ai consigli pratici di esecuzione, non ai dubbi di matching.
+- Il prompt passa esplicitamente il mese corrente al modello.
+- Preview Import aggiornata con conteggio esercizi da controllare e dimensione catalogo.
+
+## Funzione AI Import
+
+La pagina Import supporta:
+
+- PDF
+- DOCX
+- PNG/JPG/JPEG/WEBP
+- TXT
+- JSON
+
+Endpoint server-side:
+
+```txt
+app/api/ai/convert-workout-plan/route.ts
+```
+
+Flusso:
+
+```txt
+file trainer -> AI server-side -> JSON normalizzato -> matching ExerciseDB locale -> preview -> conferma utente -> /api/import-workout-plan
+```
+
+L'import finale continua a passare da:
+
+```txt
+/api/import-workout-plan
+```
+
+## Variabili ambiente
+
+In locale crea o aggiorna `.env.local`:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=...
+NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+
+AI_PROVIDER=gemini
+GEMINI_API_KEY=...
+GEMINI_MODEL=gemini-2.5-flash
+```
+
+Su Vercel aggiungi le stesse variabili in Project Settings -> Environment Variables.
+
+Importante: le chiavi AI non devono mai iniziare con `NEXT_PUBLIC_`.
+
+## Aggiornamento da v0.23
+
+Copia i file sopra la cartella attuale senza cancellare:
+
+```txt
+node_modules
+.env.local
+package-lock.json
+.git
+```
+
+La dipendenza `mammoth` era gia' stata aggiunta in v0.23. Se hai gia' fatto `npm install` con la v0.23, non servono nuove dipendenze.
 
 Poi esegui:
 
-```bash
+```powershell
 npm run dev
 ```
 
-Per pubblicare:
+Poi, se tutto funziona:
 
-```bash
+```powershell
 npm run build
 git add .
-git commit -m "v0.18.3 bottom nav and CTA separation"
+git commit -m "v0.23.1 ExerciseDB smart matching"
 git push
 ```
 
 ## Database
 
 Nessuna nuova migration Supabase.
-
-## Note
-
-La v0.18.3 non cambia le logiche dati e non aggiunge nuove dipendenze.
-
-
-## Fix v0.18.3
-
-- Bottom navigation mantenuta visibile anche durante l'allenamento attivo.
-- Timer basso spostato sopra la navbar per non sovrapporsi.
-- CTA finale allenamento separata visivamente da `Completa serie`: ora usa stile info/outline e testo `Chiudi allenamento`.
-- `Completa serie` resta l'unica CTA verde piena dentro la card esercizio.

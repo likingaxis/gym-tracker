@@ -84,7 +84,7 @@ export function SessionActions({ sessionId, workoutDayId, status, compact = fals
               onClick={() => runAction("complete")}
               className="rounded-2xl bg-white/10 px-4 py-3 text-sm font-bold text-slate-100 transition active:scale-[0.98] disabled:opacity-50"
             >
-              {pendingAction === "complete" ? "Completo..." : "Completa"}
+              {pendingAction === "complete" ? "Completamento..." : "Completa"}
             </button>
             <button
               type="button"

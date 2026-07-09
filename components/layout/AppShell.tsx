@@ -17,7 +17,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <nav className="fixed inset-x-0 bottom-0 z-50 mx-auto max-w-md border-t border-white/10 bg-gym-panel/95 px-4 py-3 backdrop-blur">
         <div className="grid grid-cols-4 gap-2 text-xs text-slate-300">
           <NavItem href="/" icon={<Home size={20} />} label="Home" />
-          <NavItem href="/workout" icon={<Dumbbell size={20} />} label="Allenati" />
+          <NavItem href="/workout" icon={<Dumbbell size={20} />} label="Scheda" />
           <NavItem href="/history" icon={<History size={20} />} label="Storico" />
           <NavItem href="/progress" icon={<TrendingUp size={20} />} label="Progressi" />
         </div>

@@ -1,6 +1,6 @@
 {
   "name": "gym-tracker-app",
-  "version": "0.18.3",
+  "version": "0.23.1",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -18,7 +18,8 @@
     "react": "latest",
     "react-dom": "latest",
     "zod": "latest",
-    "framer-motion": "latest"
+    "framer-motion": "latest",
+    "mammoth": "latest"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "latest",

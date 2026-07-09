@@ -8,19 +8,13 @@ import {
   ChevronDown,
   ChevronUp,
   ImageIcon,
-  Pause,
-  Play,
   PlayCircle,
-  RotateCcw,
-  Save,
   TimerReset,
   X,
 } from "lucide-react";
 import { Card } from "@/components/ui/Card";
-import { Button } from "@/components/ui/Button";
 import { formatCountdown, formatRestTime } from "@/lib/utils/time";
 import { AnimatedAccordion } from "@/components/motion/AnimatedAccordion";
-import { AnimatedProgressBar } from "@/components/motion/AnimatedProgressBar";
 
 type Exercise = {
   id: string;
@@ -67,6 +61,8 @@ type ExerciseDraft = {
   exercise_id: string;
   completed: boolean;
   personal_notes: string;
+  personal_notes_source: "previous" | "manual" | "empty";
+  personal_notes_inherited_at?: string | null;
   sets: SetDraft[];
 };
 
@@ -77,6 +73,7 @@ type ActiveTimer = {
   remainingSeconds: number;
   isRunning: boolean;
   finished: boolean;
+  targetEndAt: number | null;
 };
 
 type Props = {
@@ -92,6 +89,8 @@ export function WorkoutSessionClient({ day }: Props) {
   const [saving, setSaving] = useState(false);
   const [completing, setCompleting] = useState(false);
   const [activeTimer, setActiveTimer] = useState<ActiveTimer | null>(null);
+  const [progressOpen, setProgressOpen] = useState(false);
+  const [guidelinesOpen, setGuidelinesOpen] = useState(false);
   const firstSaveSkipped = useRef(false);
   const hasVibratedForTimer = useRef(false);
   const exerciseRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -138,6 +137,12 @@ export function WorkoutSessionClient({ day }: Props) {
           exercise_id: exercise.id,
           completed: existing?.completed ?? false,
           personal_notes: existing?.personal_notes ?? "",
+          personal_notes_source: getPersonalNotesSource(
+            existing?.personal_notes,
+            existing?.personal_notes_inherited,
+          ),
+          personal_notes_inherited_at:
+            existing?.personal_notes_inherited_at ?? null,
           sets: Array.from({ length: setCount }, (_item, index) => {
             const current = existingSets.find(
               (set: any) => set.set_number === index + 1,
@@ -151,7 +156,10 @@ export function WorkoutSessionClient({ day }: Props) {
               set_number: index + 1,
               reps: savedReps || plannedReps[index] || "",
               weight: current?.weight ?? "",
-              weight_source: getWeightSource(current?.weight_source, current?.weight),
+              weight_source: getWeightSource(
+                current?.weight_source,
+                current?.weight,
+              ),
               rpe: current?.rpe?.toString() ?? "",
               completed: current?.completed ?? false,
             };
@@ -208,23 +216,37 @@ export function WorkoutSessionClient({ day }: Props) {
   }, [drafts, generalNotes, sessionId]);
 
   useEffect(() => {
-    if (!activeTimer?.isRunning || activeTimer.remainingSeconds <= 0) return;
+    if (!activeTimer?.isRunning || !activeTimer.targetEndAt) return;
 
-    const interval = window.setInterval(() => {
+    const syncTimer = () => {
       setActiveTimer((current) => {
-        if (!current || !current.isRunning) return current;
-        const nextRemaining = Math.max(0, current.remainingSeconds - 1);
+        if (!current || !current.isRunning || !current.targetEndAt)
+          return current;
+        const nextRemaining = Math.max(
+          0,
+          Math.ceil((current.targetEndAt - Date.now()) / 1000),
+        );
         return {
           ...current,
           remainingSeconds: nextRemaining,
           isRunning: nextRemaining > 0,
           finished: nextRemaining === 0,
+          targetEndAt: nextRemaining > 0 ? current.targetEndAt : null,
         };
       });
-    }, 1000);
+    };
 
-    return () => window.clearInterval(interval);
-  }, [activeTimer?.isRunning, activeTimer?.remainingSeconds]);
+    syncTimer();
+    const interval = window.setInterval(syncTimer, 1000);
+    window.addEventListener("focus", syncTimer);
+    document.addEventListener("visibilitychange", syncTimer);
+
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener("focus", syncTimer);
+      document.removeEventListener("visibilitychange", syncTimer);
+    };
+  }, [activeTimer?.isRunning, activeTimer?.targetEndAt]);
 
   useEffect(() => {
     if (!activeTimer?.finished) {
@@ -259,13 +281,30 @@ export function WorkoutSessionClient({ day }: Props) {
     totalSets > 0 ? Math.round((completedSets / totalSets) * 100) : 0;
 
   function updateDraft(exerciseId: string, patch: Partial<ExerciseDraft>) {
-    setDrafts((current) => ({
-      ...current,
-      [exerciseId]: {
-        ...current[exerciseId],
-        ...patch,
-      },
-    }));
+    setDrafts((current) => {
+      const currentDraft = current[exerciseId];
+      if (!currentDraft) return current;
+      const notePatch = Object.prototype.hasOwnProperty.call(
+        patch,
+        "personal_notes",
+      )
+        ? {
+            personal_notes_source: patch.personal_notes?.trim()
+              ? ("manual" as const)
+              : ("empty" as const),
+            personal_notes_inherited_at: null,
+          }
+        : {};
+
+      return {
+        ...current,
+        [exerciseId]: {
+          ...currentDraft,
+          ...patch,
+          ...notePatch,
+        },
+      };
+    });
   }
 
   function updateSet(
@@ -286,7 +325,11 @@ export function WorkoutSessionClient({ day }: Props) {
         nextSets = nextSets.map((set) => {
           if (set.set_number <= setNumber) return set;
           if (set.weight.trim()) return set;
-          return { ...set, weight: patch.weight ?? "", weight_source: "manual" };
+          return {
+            ...set,
+            weight: patch.weight ?? "",
+            weight_source: "manual",
+          };
         });
       }
 
@@ -346,7 +389,14 @@ export function WorkoutSessionClient({ day }: Props) {
           ...draft,
           sets: draft.sets.map((set) =>
             set.set_number === setNumber
-              ? { ...set, weight: previous.weight, weight_source: previous.weight_source === "previous" ? "previous" : "manual" }
+              ? {
+                  ...set,
+                  weight: previous.weight,
+                  weight_source:
+                    previous.weight_source === "previous"
+                      ? "previous"
+                      : "manual",
+                }
               : set,
           ),
         },
@@ -363,19 +413,35 @@ export function WorkoutSessionClient({ day }: Props) {
       remainingSeconds: total,
       isRunning: true,
       finished: false,
+      targetEndAt: Date.now() + total * 1000,
     });
   }
 
   function pauseTimer() {
-    setActiveTimer((current) =>
-      current ? { ...current, isRunning: false } : current,
-    );
+    setActiveTimer((current) => {
+      if (!current) return current;
+      const nextRemaining = current.targetEndAt
+        ? Math.max(0, Math.ceil((current.targetEndAt - Date.now()) / 1000))
+        : current.remainingSeconds;
+      return {
+        ...current,
+        remainingSeconds: nextRemaining,
+        isRunning: false,
+        finished: nextRemaining === 0,
+        targetEndAt: null,
+      };
+    });
   }
 
   function resumeTimer() {
     setActiveTimer((current) =>
       current && current.remainingSeconds > 0
-        ? { ...current, isRunning: true, finished: false }
+        ? {
+            ...current,
+            isRunning: true,
+            finished: false,
+            targetEndAt: Date.now() + current.remainingSeconds * 1000,
+          }
         : current,
     );
   }
@@ -392,6 +458,7 @@ export function WorkoutSessionClient({ day }: Props) {
             remainingSeconds: current.defaultSeconds,
             isRunning: false,
             finished: false,
+            targetEndAt: null,
           }
         : current,
     );
@@ -400,15 +467,18 @@ export function WorkoutSessionClient({ day }: Props) {
   function adjustTimer(deltaSeconds: number) {
     setActiveTimer((current) => {
       if (!current) return current;
-      const nextRemaining = Math.max(
-        0,
-        current.remainingSeconds + deltaSeconds,
-      );
+      const baseRemaining =
+        current.isRunning && current.targetEndAt
+          ? Math.max(0, Math.ceil((current.targetEndAt - Date.now()) / 1000))
+          : current.remainingSeconds;
+      const nextRemaining = Math.max(0, baseRemaining + deltaSeconds);
+      const isRunning = nextRemaining > 0 ? current.isRunning : false;
       return {
         ...current,
         remainingSeconds: nextRemaining,
-        isRunning: nextRemaining > 0 ? current.isRunning : false,
+        isRunning,
         finished: nextRemaining === 0,
+        targetEndAt: isRunning ? Date.now() + nextRemaining * 1000 : null,
       };
     });
   }
@@ -424,7 +494,7 @@ export function WorkoutSessionClient({ day }: Props) {
     }
 
     setCompleting(true);
-    setStatus("Completo la sessione...");
+    setStatus("Completo allenamento...");
 
     try {
       await fetch(`/api/workout-sessions/${sessionId}`, {
@@ -455,23 +525,54 @@ export function WorkoutSessionClient({ day }: Props) {
 
   return (
     <div className="space-y-4">
-      <div className="sticky top-3 z-20 rounded-2xl border border-white/10 bg-gym-panel/95 px-3 py-2 shadow-lg shadow-black/25 backdrop-blur">
-        <div className="min-w-0">
-          <p className="truncate text-sm font-extrabold text-white">{day.name ?? "Allenamento"}</p>
-          <div className="mt-1 flex items-center gap-2 text-[0.72rem] font-semibold text-gym-muted">
-            <span>{completedSets}/{totalSets} serie completate</span>
-            <span aria-hidden="true">·</span>
-            <span>{progress}%</span>
-            <span aria-hidden="true">·</span>
-            <span className={saving ? "text-gym-info" : "text-slate-400"}>
-              {saving ? "Salvataggio..." : "Salvato"}
-            </span>
-          </div>
-        </div>
-        <div className="mt-2">
-          <AnimatedProgressBar value={progress} />
-        </div>
+      <div className="fixed right-4 top-[calc(env(safe-area-inset-top)+4.25rem)] z-50">
+        <WorkoutProgressButton
+          progress={progress}
+          completedSets={completedSets}
+          totalSets={totalSets}
+          onClick={() => setProgressOpen(true)}
+        />
       </div>
+
+      <Card variant="subtle" className="p-3 pr-20">
+        <h1 className="line-clamp-2 text-xl font-extrabold leading-tight">
+          {day.name ?? "Allenamento"}
+        </h1>
+        {day.description ? (
+          <div className="mt-3">
+            <button
+              type="button"
+              onClick={() => setGuidelinesOpen((value) => !value)}
+              className="flex w-full items-center justify-between rounded-2xl bg-white/[0.05] px-3 py-2 text-sm font-bold text-slate-200"
+            >
+              <span>Linee guida</span>
+              {guidelinesOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+            </button>
+            <AnimatedAccordion open={guidelinesOpen}>
+              <p className="mt-2 rounded-2xl bg-black/20 p-3 text-sm leading-relaxed text-gym-muted">
+                {day.description}
+              </p>
+            </AnimatedAccordion>
+          </div>
+        ) : null}
+      </Card>
+
+      <WorkoutProgressSheet
+        open={progressOpen}
+        onClose={() => setProgressOpen(false)}
+        dayName={day.name ?? "Allenamento"}
+        exercises={day.exercises}
+        drafts={drafts}
+        completedSets={completedSets}
+        totalSets={totalSets}
+        progress={progress}
+        saving={saving}
+        onGoCurrent={() => {
+          setProgressOpen(false);
+          goToNextIncompleteExercise();
+        }}
+        onCompleteSession={completeSession}
+      />
 
       <AnimatePresence initial={false}>
         {activeTimer ? (
@@ -532,7 +633,7 @@ export function WorkoutSessionClient({ day }: Props) {
         />
       </Card>
 
-      <div className={`${activeTimer ? "bottom-44" : "bottom-24"} sticky z-10 rounded-[1.35rem] border border-white/10 bg-gym-panel/95 p-2 shadow-2xl shadow-black/30 backdrop-blur`}>
+      <Card variant="subtle" className="mb-6">
         <button
           onClick={completeSession}
           disabled={!sessionId || completing}
@@ -540,11 +641,189 @@ export function WorkoutSessionClient({ day }: Props) {
         >
           {completing ? "Sto chiudendo..." : "Chiudi allenamento"}
         </button>
-        <p className="mt-1 px-2 text-center text-[0.68rem] font-semibold text-gym-muted">
-          Azione finale della sessione, separata dalle serie.
-        </p>
-      </div>
+      </Card>
     </div>
+  );
+}
+
+
+function WorkoutProgressButton({
+  progress,
+  completedSets,
+  totalSets,
+  onClick,
+}: {
+  progress: number;
+  completedSets: number;
+  totalSets: number;
+  onClick: () => void;
+}) {
+  const reduceMotion = useReducedMotion();
+  const radius = 18;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference - (Math.min(100, Math.max(0, progress)) / 100) * circumference;
+  const isComplete = progress >= 100;
+
+  return (
+    <motion.button
+      type="button"
+      onClick={onClick}
+      whileTap={reduceMotion ? undefined : { scale: 0.96 }}
+      className="relative flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-gym-active text-center shadow-info"
+      aria-label="Apri dettaglio andamento allenamento"
+    >
+      <svg className="h-12 w-12 -rotate-90" viewBox="0 0 48 48" aria-hidden="true">
+        <circle
+          cx="24"
+          cy="24"
+          r={radius}
+          fill="none"
+          stroke="rgba(255,255,255,0.14)"
+          strokeWidth="5"
+        />
+        <motion.circle
+          cx="24"
+          cy="24"
+          r={radius}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="5"
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          animate={{ strokeDashoffset: offset }}
+          transition={{ duration: reduceMotion ? 0 : 0.35, ease: "easeOut" }}
+          className="text-gym-accent"
+        />
+      </svg>
+      <span className="absolute inset-0 flex items-center justify-center text-xs font-extrabold text-white">
+        {isComplete ? "✓" : `${progress}%`}
+      </span>
+      <span className="sr-only">
+        {completedSets}/{totalSets} serie
+      </span>
+    </motion.button>
+  );
+}
+
+function WorkoutProgressSheet({
+  open,
+  onClose,
+  dayName,
+  exercises,
+  drafts,
+  completedSets,
+  totalSets,
+  progress,
+  saving,
+  onGoCurrent,
+  onCompleteSession,
+}: {
+  open: boolean;
+  onClose: () => void;
+  dayName: string;
+  exercises: Exercise[];
+  drafts: Record<string, ExerciseDraft>;
+  completedSets: number;
+  totalSets: number;
+  progress: number;
+  saving: boolean;
+  onGoCurrent: () => void;
+  onCompleteSession: () => void;
+}) {
+  const reduceMotion = useReducedMotion();
+
+  return (
+    <AnimatePresence>
+      {open ? (
+        <motion.div
+          className="fixed inset-0 z-[70] flex items-end justify-center bg-black/55 px-4 pb-4 backdrop-blur-sm"
+          initial={reduceMotion ? false : { opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={onClose}
+        >
+          <motion.div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Andamento"
+            className="max-h-[82dvh] w-full max-w-md overflow-y-auto rounded-[2rem] border border-white/10 bg-gym-panel p-4 shadow-2xl shadow-black/50"
+            initial={reduceMotion ? false : { y: 40, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 40, opacity: 0 }}
+            transition={{ duration: 0.24, ease: "easeOut" }}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-bold text-gym-info">Andamento</p>
+                <h2 className="mt-1 text-xl font-extrabold leading-tight">{dayName}</h2>
+                <p className="mt-1 text-sm text-gym-muted">
+                  {completedSets}/{totalSets} serie · {progress}% · {saving ? "Salvataggio..." : "Salvato"}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={onClose}
+                className="rounded-full bg-white/10 p-2 text-slate-200"
+                aria-label="Chiudi dettaglio andamento"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="mt-4 space-y-2">
+              {exercises.map((exercise) => {
+                const draft = drafts[exercise.id];
+                const total = Math.max(1, Number(exercise.sets ?? draft?.sets.length ?? 1));
+                const completed = draft?.sets.filter((set) => set.completed).length ?? 0;
+                const status = completed >= total ? "completed" : completed > 0 ? "active" : "todo";
+                return (
+                  <div
+                    key={exercise.id}
+                    className="flex items-center gap-3 rounded-2xl bg-white/[0.045] px-3 py-2"
+                  >
+                    <span
+                      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-extrabold ${
+                        status === "completed"
+                          ? "bg-gym-accent text-slate-950"
+                          : status === "active"
+                            ? "bg-gym-info/20 text-gym-info"
+                            : "bg-white/10 text-gym-muted"
+                      }`}
+                    >
+                      {status === "completed" ? "✓" : status === "active" ? "●" : "○"}
+                    </span>
+                    <span className="min-w-0 flex-1 truncate text-sm font-bold text-slate-100">
+                      {exercise.name}
+                    </span>
+                    <span className="text-sm font-extrabold text-gym-muted">
+                      {completed}/{total}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={onGoCurrent}
+                className="rounded-2xl bg-gym-info px-4 py-3 text-sm font-extrabold text-slate-950 shadow-info"
+              >
+                Vai all’attuale
+              </button>
+              <button
+                type="button"
+                onClick={onCompleteSession}
+                className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm font-extrabold text-slate-100"
+              >
+                Chiudi allenamento
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
+      ) : null}
+    </AnimatePresence>
   );
 }
 
@@ -596,7 +875,8 @@ function TrackableExerciseCard({
   }
 
   const completedSets = draft.sets.filter((set) => set.completed).length;
-  const timerForThisExercise = activeTimer?.exerciseId === exercise.id ? activeTimer : null;
+  const timerForThisExercise =
+    activeTimer?.exerciseId === exercise.id ? activeTimer : null;
   const nextSet = draft.sets.find((set) => !set.completed) ?? null;
   const nextSetNumber = nextSet?.set_number ?? null;
 
@@ -616,16 +896,31 @@ function TrackableExerciseCard({
               <CheckCircle2 size={30} fill="currentColor" />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-xs font-semibold text-gym-accent">Completato</p>
-              <h3 className="line-clamp-2 text-xl font-extrabold leading-tight">{exercise.name}</h3>
-              <p className="text-sm text-slate-300">{completedSets}/{draft.sets.length} serie · {exercise.muscle_group ?? "Esercizio"}</p>
+              <p className="text-xs font-semibold text-gym-accent">
+                Completato
+              </p>
+              <h3 className="line-clamp-2 text-xl font-extrabold leading-tight">
+                {exercise.name}
+              </h3>
+              <p className="text-sm text-slate-300">
+                {completedSets}/{draft.sets.length} serie ·{" "}
+                {exercise.muscle_group ?? "Esercizio"}
+              </p>
             </div>
           </div>
           <div className="mt-3 grid grid-cols-2 gap-2">
-            <button type="button" onClick={onGoNext} className="rounded-2xl bg-gym-accent px-4 py-3 text-sm font-extrabold text-slate-950">
+            <button
+              type="button"
+              onClick={onGoNext}
+              className="rounded-2xl bg-gym-accent px-4 py-3 text-sm font-extrabold text-slate-950"
+            >
               Prossimo
             </button>
-            <button type="button" onClick={() => setForceExpanded(true)} className="rounded-2xl bg-white/10 px-4 py-3 text-sm font-extrabold text-slate-200">
+            <button
+              type="button"
+              onClick={() => setForceExpanded(true)}
+              className="rounded-2xl bg-white/10 px-4 py-3 text-sm font-extrabold text-slate-200"
+            >
               Modifica
             </button>
           </div>
@@ -640,96 +935,159 @@ function TrackableExerciseCard({
       layout
       initial={reduceMotion ? false : { opacity: 0, y: 12, scale: 0.985 }}
       animate={reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }}
-      transition={{ duration: 0.22, ease: "easeOut", delay: reduceMotion ? 0 : Math.min(index * 0.035, 0.12) }}
+      transition={{
+        duration: 0.22,
+        ease: "easeOut",
+        delay: reduceMotion ? 0 : Math.min(index * 0.035, 0.12),
+      }}
     >
       <Card variant={draft.completed ? "primary" : "default"}>
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-xs font-semibold text-gym-soft">{exercise.muscle_group ?? "Esercizio"}</p>
-            <h3 className="mt-1 line-clamp-2 text-2xl font-extrabold leading-tight">{exercise.name}</h3>
-            <p className="mt-2 text-sm font-bold text-slate-300">
-              {exercise.sets ?? "-"} serie x {exercise.reps ?? "-"} · Recupero {formatRestTime(exercise.rest_seconds)}
+            <p className="text-xs font-semibold text-gym-soft">
+              {exercise.muscle_group ?? "Esercizio"}
             </p>
-            {exercise.target_rpe ? <p className="mt-1 text-xs font-semibold text-gym-info">RPE target: {exercise.target_rpe}</p> : null}
+            <h3 className="mt-1 line-clamp-2 text-2xl font-extrabold leading-tight">
+              {exercise.name}
+            </h3>
+            <p className="mt-2 text-sm font-bold text-slate-300">
+              {exercise.sets ?? "-"} serie x {exercise.reps ?? "-"} · Recupero{" "}
+              {formatRestTime(exercise.rest_seconds)}
+            </p>
+            {exercise.target_rpe ? (
+              <p className="mt-1 text-xs font-semibold text-gym-info">
+                RPE target: {exercise.target_rpe}
+              </p>
+            ) : null}
           </div>
-          <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-extrabold ${draft.completed ? "bg-gym-accent text-slate-950" : "bg-white/10 text-slate-200"}`}>
-            {completedSets}/{draft.sets.length}
-          </span>
         </div>
 
         {draft.completed && forceExpanded ? (
-          <button type="button" onClick={() => setForceExpanded(false)} className="mt-3 w-full rounded-2xl bg-white/10 px-4 py-3 text-sm font-extrabold text-slate-200">
+          <button
+            type="button"
+            onClick={() => setForceExpanded(false)}
+            className="mt-3 w-full rounded-2xl bg-white/10 px-4 py-3 text-sm font-extrabold text-slate-200"
+          >
             Richiudi card completata
           </button>
         ) : null}
 
-        <MediaPreview mediaUrl={exercise.media_url} name={exercise.name} exerciseDbName={exercise.exercise_db_name} exerciseDbScore={exercise.exercise_db_match_score} />
+        <MediaPreview
+          mediaUrl={exercise.media_url}
+          name={exercise.name}
+          exerciseDbName={exercise.exercise_db_name}
+          exerciseDbScore={exercise.exercise_db_match_score}
+        />
 
         <AnimatePresence mode="wait">
-        {nextSet ? (
-          <motion.div
-            key={nextSet.set_number}
-            initial={reduceMotion ? false : { opacity: 0, y: 8, scale: 0.99 }}
-            animate={reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }}
-            exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -6 }}
-            transition={{ duration: 0.18, ease: "easeOut" }}
-            className="mt-4 rounded-[1.5rem] border border-gym-accent/35 bg-emerald-400/[0.08] p-4 shadow-sm"
-          >
-            <p className="text-xs font-extrabold text-gym-accent">Prossima serie</p>
-            <div className="mt-2 flex items-center justify-between gap-3">
-              <h4 className="text-2xl font-extrabold">Serie {nextSet.set_number} di {draft.sets.length}</h4>
-              {timerForThisExercise ? <span className="rounded-full bg-black/25 px-3 py-1 text-xs font-bold text-slate-200">Timer {formatCountdown(timerForThisExercise.remainingSeconds)}</span> : null}
-            </div>
-            {nextSet.weight ? (
-              <p className="mt-2 text-sm text-slate-300">
-                {nextSet.weight_source === "previous" ? "Ultima volta" : "Oggi"}: <strong>{nextSet.weight} kg</strong>{nextSet.reps ? ` x ${nextSet.reps}` : ""}
-              </p>
-            ) : (
-              <p className="mt-2 text-sm text-gym-muted">Inserisci il carico della serie.</p>
-            )}
-
-            <div className="mt-4">
-              <Field
-                label="Kg"
-                value={nextSet.weight}
-                inputMode="decimal"
-                sourceLabel={getWeightSourceLabel(nextSet.weight_source, nextSet.weight)}
-                mutedValue={nextSet.weight_source === "previous"}
-                big
-                onChange={(value) => onSetChange(nextSet.set_number, { weight: value, weight_source: value.trim() ? "manual" : "empty" })}
-              />
-            </div>
-            <div className="mt-3 grid grid-cols-2 gap-3">
-              <Field label="Reps" value={nextSet.reps} inputMode="text" onChange={(value) => onSetChange(nextSet.set_number, { reps: value })} />
-              <Field label="RPE" value={nextSet.rpe} inputMode="numeric" onChange={(value) => onSetChange(nextSet.set_number, { rpe: clampRpeInput(value) })} />
-            </div>
-
-            {nextSet.set_number > 1 ? (
-              <button type="button" onClick={() => onCopyPreviousWeight(nextSet.set_number)} className="mt-3 rounded-2xl bg-white/10 px-4 py-3 text-sm font-bold text-slate-200">
-                Usa kg serie precedente
-              </button>
-            ) : null}
-
-            <motion.button
-              type="button"
-              onClick={() => onCompleteSet(nextSet.set_number)}
-              whileTap={reduceMotion ? undefined : { scale: 0.97 }}
-              transition={{ duration: 0.12 }}
-              className="mt-4 w-full rounded-2xl bg-gym-accent px-4 py-4 text-base font-extrabold text-slate-950 shadow-glow"
+          {nextSet ? (
+            <motion.div
+              key={nextSet.set_number}
+              initial={reduceMotion ? false : { opacity: 0, y: 8, scale: 0.99 }}
+              animate={
+                reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }
+              }
+              exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -6 }}
+              transition={{ duration: 0.18, ease: "easeOut" }}
+              className="mt-4 rounded-[1.5rem] border border-gym-accent/35 bg-emerald-400/[0.08] p-4 shadow-sm"
             >
-              Completa serie {nextSet.set_number}
-            </motion.button>
-          </motion.div>
-        ) : (
-          <motion.div
-            key="all-done"
-            initial={reduceMotion ? false : { opacity: 0, scale: 0.98 }}
-            animate={reduceMotion ? { opacity: 1 } : { opacity: 1, scale: 1 }}
-            className="mt-4 rounded-3xl bg-gym-accent/10 p-4 text-center"
-          >
-            <p className="font-extrabold text-gym-accent">Tutte le serie sono completate.</p>
-          </motion.div>
-        )}
+              <div className="flex items-center justify-between gap-3">
+                <h4 className="text-2xl font-extrabold">
+                  Serie {nextSet.set_number} di {draft.sets.length}
+                </h4>
+                {timerForThisExercise ? (
+                  <span className="rounded-full bg-black/25 px-3 py-1 text-xs font-bold text-slate-200">
+                    Timer{" "}
+                    {formatCountdown(timerForThisExercise.remainingSeconds)}
+                  </span>
+                ) : null}
+              </div>
+              {nextSet.weight ? (
+                <p className="mt-2 text-sm text-slate-300">
+                  {nextSet.weight_source === "previous"
+                    ? "Ultima volta"
+                    : "Oggi"}
+                  : <strong>{nextSet.weight} kg</strong>
+                  {nextSet.reps ? ` x ${nextSet.reps}` : ""}
+                </p>
+              ) : (
+                <p className="mt-2 text-sm text-gym-muted">
+                  Inserisci il carico della serie.
+                </p>
+              )}
+
+              <div className="mt-4">
+                <Field
+                  label="Kg"
+                  value={nextSet.weight}
+                  inputMode="decimal"
+                  sourceLabel={getWeightSourceLabel(
+                    nextSet.weight_source,
+                    nextSet.weight,
+                  )}
+                  mutedValue={nextSet.weight_source === "previous"}
+                  big
+                  onChange={(value) =>
+                    onSetChange(nextSet.set_number, {
+                      weight: value,
+                      weight_source: value.trim() ? "manual" : "empty",
+                    })
+                  }
+                />
+              </div>
+              <div className="mt-3 grid grid-cols-2 gap-3">
+                <Field
+                  label="Reps"
+                  value={nextSet.reps}
+                  inputMode="text"
+                  onChange={(value) =>
+                    onSetChange(nextSet.set_number, { reps: value })
+                  }
+                />
+                <Field
+                  label="RPE"
+                  value={nextSet.rpe}
+                  inputMode="numeric"
+                  onChange={(value) =>
+                    onSetChange(nextSet.set_number, {
+                      rpe: clampRpeInput(value),
+                    })
+                  }
+                />
+              </div>
+
+              {nextSet.set_number > 1 ? (
+                <button
+                  type="button"
+                  onClick={() => onCopyPreviousWeight(nextSet.set_number)}
+                  className="mt-3 rounded-2xl bg-white/10 px-4 py-3 text-sm font-bold text-slate-200"
+                >
+                  Usa kg precedente
+                </button>
+              ) : null}
+
+              <motion.button
+                type="button"
+                onClick={() => onCompleteSet(nextSet.set_number)}
+                whileTap={reduceMotion ? undefined : { scale: 0.97 }}
+                transition={{ duration: 0.12 }}
+                className="mt-4 w-full rounded-2xl bg-gym-accent px-4 py-4 text-base font-extrabold text-slate-950 shadow-glow"
+              >
+                Completa serie
+              </motion.button>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="all-done"
+              initial={reduceMotion ? false : { opacity: 0, scale: 0.98 }}
+              animate={reduceMotion ? { opacity: 1 } : { opacity: 1, scale: 1 }}
+              className="mt-4 rounded-3xl bg-gym-accent/10 p-4 text-center"
+            >
+              <p className="font-extrabold text-gym-accent">
+                Tutte le serie sono completate.
+              </p>
+            </motion.div>
+          )}
         </AnimatePresence>
 
         <CompactSetLog
@@ -737,55 +1095,137 @@ function TrackableExerciseCard({
           nextSetNumber={nextSetNumber}
           open={completedLogOpen}
           onToggle={() => setCompletedLogOpen((value) => !value)}
-          onEditCompleted={(setNumber) => onSetChange(setNumber, { completed: false })}
+          onEditCompleted={(setNumber) =>
+            onSetChange(setNumber, { completed: false })
+          }
         />
 
         <div className="mt-4 grid grid-cols-2 gap-2">
-          <button type="button" onClick={onStartTimer} className="flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-white/10 px-4 py-3 text-sm font-extrabold text-slate-100">
-            <TimerReset size={18} /> {timerForThisExercise ? `Recupero ${formatCountdown(timerForThisExercise.remainingSeconds)}` : "Avvia recupero"}
+          <button
+            type="button"
+            onClick={onStartTimer}
+            className="flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-white/10 px-4 py-3 text-sm font-extrabold text-slate-100"
+          >
+            <TimerReset size={18} />{" "}
+            {timerForThisExercise
+              ? `Recupero ${formatCountdown(timerForThisExercise.remainingSeconds)}`
+              : "Avvia recupero"}
           </button>
           {exercise.video_url ? (
-            <a href={exercise.video_url} target="_blank" rel="noreferrer" className="flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-white/10 px-4 py-3 text-sm font-extrabold">
+            <a
+              href={exercise.video_url}
+              target="_blank"
+              rel="noreferrer"
+              className="flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-white/10 px-4 py-3 text-sm font-extrabold"
+            >
               <PlayCircle size={18} /> Video
             </a>
           ) : null}
         </div>
 
         <div className="mt-4 grid grid-cols-2 gap-2">
-          <button type="button" onClick={() => setNotesOpen((value) => !value)} className="rounded-2xl bg-black/20 px-4 py-3 text-sm font-extrabold text-slate-200">
-            {draft.personal_notes ? "Modifica nota" : "+ Nota"}
+          <button
+            type="button"
+            onClick={() => setNotesOpen((value) => !value)}
+            className="rounded-2xl bg-black/20 px-4 py-3 text-sm font-extrabold text-slate-200"
+          >
+            {draft.personal_notes ? "Nota" : "+ Nota"}
           </button>
-          <button type="button" onClick={() => setOpen((value) => !value)} className="rounded-2xl bg-black/20 px-4 py-3 text-sm font-extrabold text-slate-200">
+          <button
+            type="button"
+            onClick={() => setOpen((value) => !value)}
+            className="rounded-2xl bg-black/20 px-4 py-3 text-sm font-extrabold text-slate-200"
+          >
             {open ? "Nascondi tecnica" : "Tecnica"}
           </button>
         </div>
 
-        <AnimatedAccordion open={notesOpen || Boolean(draft.personal_notes)}>
+        {draft.personal_notes && !notesOpen ? (
+          <button
+            type="button"
+            onClick={() => setNotesOpen(true)}
+            className="mt-3 w-full rounded-2xl bg-black/20 p-3 text-left"
+          >
+            <p className="text-xs font-bold text-gym-muted">
+              {draft.personal_notes_source === "previous" ? "Nota ultima volta" : "Nota"}
+            </p>
+            <p className={`mt-1 line-clamp-2 text-sm ${draft.personal_notes_source === "previous" ? "text-slate-400" : "text-slate-200"}`}>
+              “{draft.personal_notes}”
+            </p>
+          </button>
+        ) : null}
+
+        <AnimatedAccordion open={notesOpen}>
           <div className="mt-3 rounded-2xl bg-black/20 p-3">
             <label className="block">
-              <span className="mb-1 block text-xs font-bold text-gym-muted">Note personali</span>
-              <textarea value={draft.personal_notes} onChange={(event) => onChange({ personal_notes: event.target.value })} placeholder="Sensazioni, dolore, tecnica, carico da aumentare..." className="min-h-20 w-full rounded-2xl border border-white/10 bg-gym-bg px-3 py-3 text-sm placeholder:text-slate-500" />
+              <span className="mb-1 flex items-center justify-between gap-2 text-xs font-bold text-gym-muted">
+                <span>{draft.personal_notes_source === "previous" ? "Nota ultima volta" : "Nota"}</span>
+                {draft.personal_notes_source === "previous" ? (
+                  <span className="rounded-full bg-white/10 px-2 py-1 text-[10px] font-extrabold text-slate-400">
+                    Ripresa dall’ultima volta
+                    {formatInheritedNoteDate(draft.personal_notes_inherited_at)}
+                  </span>
+                ) : null}
+              </span>
+              <textarea
+                value={draft.personal_notes}
+                onChange={(event) =>
+                  onChange({ personal_notes: event.target.value })
+                }
+                placeholder="Sensazioni, dolore, tecnica, carico da aumentare..."
+                className={`min-h-20 w-full rounded-2xl border px-3 py-3 text-sm placeholder:text-slate-500 ${
+                  draft.personal_notes_source === "previous"
+                    ? "border-white/10 bg-white/[0.04] text-slate-400"
+                    : "border-white/10 bg-gym-bg text-white"
+                }`}
+              />
             </label>
-            <QuickNoteChips onAdd={(text) => {
-              const separator = draft.personal_notes.trim() ? " " : "";
-              onChange({ personal_notes: `${draft.personal_notes}${separator}${text}` });
-            }} />
+            {draft.personal_notes_source === "previous" ? (
+              <p className="mt-2 text-xs font-medium text-gym-muted">
+                Modificala o cancellala se oggi è cambiata.
+              </p>
+            ) : null}
+            <QuickNoteChips
+              onAdd={(text) => {
+                const separator = draft.personal_notes.trim() ? " " : "";
+                onChange({
+                  personal_notes: `${draft.personal_notes}${separator}${text}`,
+                });
+              }}
+            />
           </div>
         </AnimatedAccordion>
 
         <AnimatedAccordion open={open}>
           <div className="mt-3 space-y-3 rounded-2xl bg-black/20 p-3 text-sm text-slate-200">
-            {exercise.technique_notes ? <p><strong>Tecnica:</strong> {exercise.technique_notes}</p> : null}
-            {exercise.tips ? <p><strong>Consigli:</strong> {exercise.tips}</p> : null}
-            {exercise.trainer_notes ? <p><strong>Note PT:</strong> {exercise.trainer_notes}</p> : null}
-            {!exercise.technique_notes && !exercise.tips && !exercise.trainer_notes ? <p className="text-gym-muted">Nessun consiglio tecnico inserito per questo esercizio.</p> : null}
+            {exercise.technique_notes ? (
+              <p>
+                <strong>Tecnica:</strong> {exercise.technique_notes}
+              </p>
+            ) : null}
+            {exercise.tips ? (
+              <p>
+                <strong>Consigli:</strong> {exercise.tips}
+              </p>
+            ) : null}
+            {exercise.trainer_notes ? (
+              <p>
+                <strong>Note PT:</strong> {exercise.trainer_notes}
+              </p>
+            ) : null}
+            {!exercise.technique_notes &&
+            !exercise.tips &&
+            !exercise.trainer_notes ? (
+              <p className="text-gym-muted">
+                Nessuna tecnica inserita.
+              </p>
+            ) : null}
           </div>
         </AnimatedAccordion>
       </Card>
     </motion.div>
   );
 }
-
 
 function CompactSetLog({
   sets,
@@ -801,7 +1241,7 @@ function CompactSetLog({
   onEditCompleted: (setNumber: number) => void;
 }) {
   const completedSets = sets.filter((set) => set.completed);
-  const pendingSets = sets.filter((set) => !set.completed);
+  if (completedSets.length === 0) return null;
 
   return (
     <div className="mt-4 rounded-3xl bg-black/20 p-3">
@@ -814,17 +1254,22 @@ function CompactSetLog({
         <span className="text-sm font-extrabold text-slate-100">
           {completedSets.length > 0
             ? `✓ ${completedSets.length} ${completedSets.length === 1 ? "serie completata" : "serie completate"}`
-            : "Nessuna serie completata"}
+            : ""}
         </span>
         {completedSets.length > 0 ? (
-          <span className="text-gym-muted">{open ? <ChevronUp size={18} /> : <ChevronDown size={18} />}</span>
+          <span className="text-gym-muted">
+            {open ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+          </span>
         ) : null}
       </button>
 
       <AnimatedAccordion open={open && completedSets.length > 0}>
         <div className="mt-2 space-y-1.5">
           {completedSets.map((set) => (
-            <div key={set.set_number} className="flex items-center justify-between gap-2 rounded-2xl bg-gym-accent/10 px-3 py-2 text-xs text-slate-100">
+            <div
+              key={set.set_number}
+              className="flex items-center justify-between gap-2 rounded-2xl bg-gym-accent/10 px-3 py-2 text-xs text-slate-100"
+            >
               <span className="font-extrabold">✓ S{set.set_number}</span>
               <span className="min-w-0 flex-1 truncate text-right font-bold text-slate-300">
                 {formatSetSummary(set)}
@@ -840,12 +1285,6 @@ function CompactSetLog({
           ))}
         </div>
       </AnimatedAccordion>
-
-      {pendingSets.length > 0 ? (
-        <p className="mt-2 text-xs font-semibold text-gym-muted">
-          {completedSets.length} completate · {pendingSets.length} da fare{nextSetNumber ? ` · ora S${nextSetNumber}` : ""}
-        </p>
-      ) : null}
     </div>
   );
 }
@@ -907,7 +1346,9 @@ function StickyTimer({
       transition={{ duration: 0.22, ease: "easeOut" }}
       className="fixed inset-x-0 bottom-24 z-40 mx-auto max-w-md px-4"
     >
-      <div className={`${timer.finished ? "border-gym-accent shadow-glow" : "border-gym-info/25 shadow-info"} rounded-[1.35rem] border bg-gym-panel/95 p-3 shadow-2xl shadow-black/40 backdrop-blur supports-[padding:max(0px)]:mb-[max(0px,env(safe-area-inset-bottom))]`}>
+      <div
+        className={`${timer.finished ? "border-gym-accent shadow-glow" : "border-gym-info/25 shadow-info"} rounded-[1.35rem] border bg-gym-panel/95 p-3 shadow-2xl shadow-black/40 backdrop-blur supports-[padding:max(0px)]:mb-[max(0px,env(safe-area-inset-bottom))]`}
+      >
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0 flex-1">
             <p className="text-xs font-extrabold text-gym-info">
@@ -952,16 +1393,39 @@ function TimerControls({
   return (
     <div className="mt-3 grid grid-cols-3 gap-2">
       {timer.isRunning ? (
-        <motion.button type="button" onClick={onPause} whileTap={{ scale: 0.96 }} className="flex min-h-11 items-center justify-center rounded-2xl bg-white/10 px-3 py-2 text-xs font-extrabold text-slate-100">
+        <motion.button
+          type="button"
+          onClick={onPause}
+          whileTap={{ scale: 0.96 }}
+          className="flex min-h-11 items-center justify-center rounded-2xl bg-white/10 px-3 py-2 text-xs font-extrabold text-slate-100"
+        >
           Pausa
         </motion.button>
       ) : (
-        <motion.button type="button" onClick={onResume} whileTap={{ scale: 0.96 }} className="flex min-h-11 items-center justify-center rounded-2xl bg-gym-info px-3 py-2 text-xs font-extrabold text-slate-950 shadow-info">
+        <motion.button
+          type="button"
+          onClick={onResume}
+          whileTap={{ scale: 0.96 }}
+          className="flex min-h-11 items-center justify-center rounded-2xl bg-gym-info px-3 py-2 text-xs font-extrabold text-slate-950 shadow-info"
+        >
           Riprendi
         </motion.button>
       )}
-      <motion.button type="button" onClick={() => onAdjust(15)} whileTap={{ scale: 0.96 }} className="min-h-11 rounded-2xl bg-white/10 px-3 py-2 text-xs font-extrabold text-slate-100">+15s</motion.button>
-      <motion.button type="button" onClick={onClose} whileTap={{ scale: 0.96 }} className="flex min-h-11 items-center justify-center gap-1 rounded-2xl bg-white/10 px-3 py-2 text-xs font-extrabold text-slate-100" aria-label="Chiudi timer recupero">
+      <motion.button
+        type="button"
+        onClick={() => onAdjust(15)}
+        whileTap={{ scale: 0.96 }}
+        className="min-h-11 rounded-2xl bg-white/10 px-3 py-2 text-xs font-extrabold text-slate-100"
+      >
+        +15s
+      </motion.button>
+      <motion.button
+        type="button"
+        onClick={onClose}
+        whileTap={{ scale: 0.96 }}
+        className="flex min-h-11 items-center justify-center gap-1 rounded-2xl bg-white/10 px-3 py-2 text-xs font-extrabold text-slate-100"
+        aria-label="Chiudi timer recupero"
+      >
         <X size={14} /> Chiudi
       </motion.button>
     </div>
@@ -1002,7 +1466,8 @@ function MediaPreview({
         </div>
         {exerciseDbName ? (
           <div className="mt-2 text-center text-xs text-gym-muted">
-            GIF ExerciseDB: <span className="font-bold text-slate-200">{exerciseDbName}</span>
+            GIF ExerciseDB:{" "}
+            <span className="font-bold text-slate-200">{exerciseDbName}</span>
             {exerciseDbScore ? ` · match ${exerciseDbScore}/100` : ""}
           </div>
         ) : null}
@@ -1066,6 +1531,22 @@ function Field({
   );
 }
 
+function getPersonalNotesSource(
+  note: unknown,
+  inherited: unknown,
+): "previous" | "manual" | "empty" {
+  const hasNote = typeof note === "string" && note.trim().length > 0;
+  if (!hasNote) return "empty";
+  return inherited ? "previous" : "manual";
+}
+
+function formatInheritedNoteDate(value: string | null | undefined) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return ` · ${date.toLocaleDateString("it-IT", { day: "2-digit", month: "short" })}`;
+}
+
 function toApiPayload(draft: ExerciseDraft) {
   return {
     id: draft.id,
@@ -1122,12 +1603,18 @@ function isDirectImageUrl(url: string) {
   return /\.(png|jpe?g|gif|webp|avif)(\?.*)?$/i.test(url);
 }
 
-function getWeightSource(source: unknown, weight: unknown): "previous" | "manual" | "empty" {
+function getWeightSource(
+  source: unknown,
+  weight: unknown,
+): "previous" | "manual" | "empty" {
   if (!weight || String(weight).trim() === "") return "empty";
   return source === "previous" ? "previous" : "manual";
 }
 
-function getWeightSourceLabel(source: "previous" | "manual" | "empty", weight: string) {
+function getWeightSourceLabel(
+  source: "previous" | "manual" | "empty",
+  weight: string,
+) {
   if (!weight.trim()) return undefined;
   if (source === "previous") return "ultima volta";
   if (source === "manual") return "oggi";

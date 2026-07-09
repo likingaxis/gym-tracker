@@ -155,7 +155,7 @@ export function ActiveWorkoutMiniPlayer() {
               disabled={Boolean(pending)}
               className="rounded-2xl bg-gym-accent px-3 py-3 text-xs font-extrabold text-slate-950 disabled:opacity-60"
             >
-              {pending === "complete" ? "Completo..." : "Completa"}
+              {pending === "complete" ? "Completamento..." : "Completa"}
             </button>
             <button
               type="button"

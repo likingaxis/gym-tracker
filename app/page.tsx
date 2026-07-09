@@ -2,13 +2,20 @@ export const dynamic = "force-dynamic";
 
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Settings } from "lucide-react";
+import { CalendarDays, Clock3, Dumbbell, FileText, PlayCircle, Settings, TrendingUp } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getSelectedProfileId } from "@/lib/profiles";
-import { buildProgressOverview, formatCompactNumber, getSessionSummary, type SessionLike } from "@/lib/progress";
+import {
+  buildExerciseProgress,
+  buildProgressOverview,
+  getRecentImprovements,
+  getSessionSummary,
+  type SessionLike,
+} from "@/lib/progress";
 import { relationName } from "@/lib/relations";
+import { formatDayCount, formatExerciseCount, formatWorkoutCount, formatSetCount } from "@/lib/utils/copy";
 
 async function getSelectedProfile(profileId: string) {
   try {
@@ -50,7 +57,7 @@ async function getCompletedSessions(profileId: string) {
       .eq("profile_id", profileId)
       .eq("status", "completed")
       .order("started_at", { ascending: false })
-      .limit(50);
+      .limit(80);
     return (data ?? []) as SessionLike[];
   } catch {
     return [];
@@ -69,7 +76,11 @@ export default async function DashboardPage() {
 
   const days = [...(plan?.workout_days ?? [])].sort((a: any, b: any) => a.day_order - b.day_order);
   const overview = buildProgressOverview(completedSessions);
+  const exercises = buildExerciseProgress(completedSessions);
+  const improvements = getRecentImprovements(exercises);
+  const firstImprovement = improvements[0] ?? null;
   const lastSession = completedSessions[0] ?? null;
+  const exerciseCount = days.reduce((total: number, day: any) => total + (day.exercises?.length ?? 0), 0);
   const lastByDay = buildLastSessionByDay(completedSessions);
   const recommendedDay = getRecommendedDay(days, lastByDay);
 
@@ -79,7 +90,7 @@ export default async function DashboardPage() {
         <div>
           <p className="text-sm font-semibold text-gym-info">Home</p>
           <h1 className="mt-2 text-3xl font-extrabold">Ciao {profile?.name ?? "atleta"} {profile?.avatar_emoji ?? "🏋️"}</h1>
-          <p className="mt-1 text-sm text-gym-muted">Cosa facciamo oggi?</p>
+          <p className="mt-1 text-sm text-gym-muted">Ultimo workout, progressi e scheda attiva.</p>
         </div>
         <Link href="/settings" className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/10 text-slate-200" aria-label="Impostazioni">
           <Settings size={20} />
@@ -88,91 +99,99 @@ export default async function DashboardPage() {
 
       {!plan ? (
         <Card variant="primary">
-          <p className="text-xs font-semibold text-gym-info">Primo passo</p>
-          <h2 className="mt-2 text-2xl font-extrabold">Nessuna scheda attiva</h2>
-          <p className="mt-2 text-gym-muted">Importa il JSON della tua scheda mensile per iniziare ad allenarti.</p>
+          <p className="text-sm font-semibold text-gym-info">Scheda</p>
+          <h2 className="mt-2 text-2xl font-extrabold">Carica la tua scheda</h2>
+          <p className="mt-2 text-gym-muted">Importa il JSON creato da ChatGPT per iniziare.</p>
           <Link href="/import">
-            <Button className="mt-4 w-full py-4">Importa nuova scheda</Button>
-          </Link>
-        </Card>
-      ) : recommendedDay ? (
-        <Card variant="primary">
-          <p className="text-xs font-semibold text-gym-info">Consigliato oggi</p>
-          <h2 className="mt-2 text-2xl font-extrabold">{recommendedDay.name}</h2>
-          <p className="mt-1 text-sm text-gym-muted">
-            {lastByDay.get(recommendedDay.id) ? `Ultima volta: ${formatDate(lastByDay.get(recommendedDay.id)?.started_at)}` : "Mai completato"} · {recommendedDay.exercises?.length ?? 0} esercizi
-          </p>
-          <Link href={`/workout/${recommendedDay.id}`}>
-            <Button className="mt-4 w-full py-4 text-base">Inizia allenamento</Button>
+            <Button className="mt-4 w-full py-4">Carica scheda</Button>
           </Link>
         </Card>
       ) : null}
 
-      {lastSession ? (
-        <Card>
-          <p className="text-xs font-semibold text-gym-info">Ultimo allenamento</p>
-          <div className="mt-2 flex items-start justify-between gap-3">
-            <div>
-              <h2 className="text-xl font-extrabold">{relationName(lastSession.workout_days, "Allenamento")}</h2>
-              <p className="mt-1 text-sm text-gym-muted">{formatDate(lastSession.started_at)} · {getSessionSummary(lastSession).completedSets} serie · {formatCompactNumber(getSessionSummary(lastSession).volume)} kg volume</p>
-            </div>
-            <Link href={`/history/${lastSession.id}`} className="rounded-2xl bg-white/10 px-3 py-2 text-xs font-bold text-slate-200">Dettaglio</Link>
-          </div>
-        </Card>
-      ) : null}
+      <div className="grid grid-cols-2 gap-3">
+        {lastSession ? (
+          <Link href={`/history/${lastSession.id}`} className="block">
+            <Card variant="subtle" className="h-full transition active:scale-[0.99]">
+              <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-2xl bg-white/10 text-slate-300"><Clock3 size={16} /></div>
+              <p className="text-sm font-semibold text-gym-muted">Ultimo</p>
+              <h2 className="mt-1 line-clamp-2 text-lg font-extrabold">{relationName(lastSession.workout_days, "Allenamento")}</h2>
+              <p className="mt-2 text-xs text-gym-muted">{formatDate(lastSession.started_at)} · {formatSetCount(getSessionSummary(lastSession).completedSets)}</p>
+            </Card>
+          </Link>
+        ) : (
+          <Card variant="subtle" className="h-full">
+            <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-2xl bg-white/10 text-slate-300"><Clock3 size={16} /></div>
+            <p className="text-sm font-semibold text-gym-muted">Ultimo</p>
+            <p className="mt-2 text-sm text-gym-muted">Completa una sessione per vedere lo storico.</p>
+          </Card>
+        )}
+
+        <Link href="/progress" className="block">
+          <Card variant="info" className="h-full transition active:scale-[0.99]">
+            <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-2xl bg-sky-400/15 text-sky-200"><TrendingUp size={16} /></div>
+            <p className="text-sm font-semibold text-gym-info">Progressi</p>
+            {firstImprovement ? (
+              <>
+                <h2 className="mt-1 line-clamp-2 text-lg font-extrabold">+{firstImprovement.diff.toFixed(1).replace(".", ",")} kg</h2>
+                <p className="mt-2 line-clamp-2 text-xs text-gym-muted">su {firstImprovement.name}</p>
+              </>
+            ) : (
+              <>
+                <h2 className="mt-1 text-lg font-extrabold">{overview.sessionsThisWeek.length ? formatWorkoutCount(overview.sessionsThisWeek.length) : "Nessun dato"}</h2>
+                <p className="mt-2 text-xs text-gym-muted">7 giorni</p>
+              </>
+            )}
+          </Card>
+        </Link>
+      </div>
 
       {plan ? (
         <Card>
           <div className="flex items-start justify-between gap-3">
-            <div>
+            <div className="min-w-0">
+              <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-2xl bg-white/10 text-slate-300"><FileText size={16} /></div>
               <p className="text-sm text-gym-muted">Scheda attiva</p>
-              <h2 className="mt-1 text-2xl font-extrabold">{plan.name}</h2>
-              <p className="text-sm text-gym-muted">{plan.month} · {days.length} giorni · {days.reduce((total: number, day: any) => total + (day.exercises?.length ?? 0), 0)} esercizi</p>
+              <h2 className="mt-1 line-clamp-2 text-xl font-extrabold">{plan.name}</h2>
+              <p className="text-sm text-gym-muted">{formatDayCount(days.length)} · {formatExerciseCount(exerciseCount)}</p>
             </div>
-            <Link href="/import" className="rounded-2xl bg-white/10 px-3 py-2 text-xs font-bold text-slate-200">Importa</Link>
-          </div>
-          <div className="mt-4 grid grid-cols-2 gap-2 text-center text-xs">
-            <MiniStat label="Ultimi 7 giorni" value={`${overview.sessionsThisWeek.length}`} hint="allenamenti" />
-            <MiniStat label="Serie" value={`${overview.totalSetsThisWeek}`} hint="ultimi 7g" />
+            <Link href="/import" className="shrink-0 rounded-2xl bg-white/10 px-3 py-2 text-xs font-bold text-slate-200">Importa</Link>
           </div>
         </Card>
       ) : null}
 
       {plan ? (
-        <section className="space-y-3">
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="text-xl font-extrabold">Giorni scheda</h2>
-            <Link href="/workout" className="text-sm font-bold text-gym-info">Vedi tutti</Link>
+        <Card variant="subtle">
+          <div className="mb-3 flex h-8 w-8 items-center justify-center rounded-2xl bg-white/10 text-slate-300"><CalendarDays size={16} /></div>
+          <p className="text-sm font-semibold text-gym-muted">Settimana</p>
+          <div className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+            <p className="text-xl font-extrabold text-slate-100">{formatWorkoutCount(overview.sessionsThisWeek.length)}</p>
+            <span className="text-gym-muted">·</span>
+            <p className="text-xl font-extrabold text-slate-100">{formatSetCount(overview.totalSetsThisWeek)}</p>
           </div>
-          {days.slice(0, 3).map((day: any) => {
-            const last = lastByDay.get(day.id);
-            return (
-              <Link key={day.id} href={`/workout/${day.id}`} className="block">
-                <Card className="transition active:scale-[0.99]">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="text-xs font-semibold text-gym-muted">Giorno {day.day_order}</p>
-                      <h3 className="text-lg font-extrabold">{day.name}</h3>
-                      <p className="mt-1 text-xs font-bold text-slate-400">{last ? `Ultima volta: ${formatDate(last.started_at)}` : "Mai completato"}</p>
-                    </div>
-                    <span className="rounded-full bg-white/10 px-3 py-1 text-sm">{day.exercises?.length ?? 0}</span>
-                  </div>
-                </Card>
-              </Link>
-            );
-          })}
-        </section>
+          <p className="mt-1 text-xs text-gym-muted">ultimi 7 giorni</p>
+        </Card>
       ) : null}
-    </div>
-  );
-}
 
-function MiniStat({ label, value, hint }: { label: string; value: string; hint: string }) {
-  return (
-    <div className="rounded-2xl bg-black/20 p-3">
-      <p className="text-gym-muted">{label}</p>
-      <p className="mt-1 truncate text-lg font-extrabold text-slate-100">{value}</p>
-      <p className="text-[0.65rem] text-slate-500">{hint}</p>
+      {plan && recommendedDay ? (
+        <Card variant="primary">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-2xl bg-gym-accent/15 text-gym-accent"><PlayCircle size={20} /></div>
+              <p className="text-sm font-semibold text-gym-accent">Giorno consigliato</p>
+              <h2 className="mt-1 line-clamp-2 text-2xl font-extrabold">{recommendedDay.name}</h2>
+              <p className="mt-2 text-sm text-gym-muted">
+                {lastByDay.get(recommendedDay.id) ? `Ultima volta ${formatDate(lastByDay.get(recommendedDay.id)?.started_at)}` : "Mai completato"}
+                <span className="mx-2 text-slate-600">·</span>
+                {formatExerciseCount(recommendedDay.exercises?.length ?? 0)}
+              </p>
+            </div>
+          </div>
+          <Link href={`/workout/${recommendedDay.id}`}>
+            <Button className="mt-4 w-full py-4">Inizia</Button>
+          </Link>
+        </Card>
+      ) : null}
+
     </div>
   );
 }

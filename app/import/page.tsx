@@ -12,9 +12,9 @@ export default async function ImportPage() {
   return (
     <div className="space-y-5">
       <header>
-        <p className="text-sm font-semibold text-gym-info">Import</p>
+        <p className="text-sm font-semibold text-gym-info">Carica scheda</p>
         <h1 className="mt-2 text-3xl font-extrabold">Nuova scheda</h1>
-        <p className="mt-2 text-gym-muted">Carica un JSON con giorni, esercizi, consigli e link video.</p>
+        <p className="mt-2 text-gym-muted">Genera una scheda da PDF, DOCX, foto o testo. Oppure importa un JSON già pronto.</p>
         <Link href="/profiles" className="mt-3 inline-block rounded-2xl bg-white/10 px-3 py-2 text-sm font-bold text-slate-200">Cambia profilo</Link>
       </header>
       <ImportUploader />

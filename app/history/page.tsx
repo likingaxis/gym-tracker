@@ -1,13 +1,16 @@
 export const dynamic = "force-dynamic";
 
 import Link from "next/link";
+import { CalendarDays, History as HistoryIcon } from "lucide-react";
 import { redirect } from "next/navigation";
 import { Card } from "@/components/ui/Card";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getSelectedProfileId } from "@/lib/profiles";
 import { relationName } from "@/lib/relations";
 import { SessionActions } from "@/components/history/SessionActions";
-import { formatAverage, formatCompactNumber, getSessionSummary as getSmartSessionSummary } from "@/lib/progress";
+import { formatCompactNumber, getSessionSummary as getSmartSessionSummary } from "@/lib/progress";
+import { formatSetCount, formatWorkoutCount } from "@/lib/utils/copy";
 
 type Filter = "completed" | "in_progress" | "abandoned" | "all";
 
@@ -38,45 +41,56 @@ export default async function HistoryPage({ searchParams }: { searchParams?: Pro
   const rawFilter = params.status;
   const filter: Filter = rawFilter === "all" || rawFilter === "in_progress" || rawFilter === "abandoned" ? rawFilter : "completed";
   const sessions = await getSessions(profileId, filter);
+  const weekSessions = sessions.filter((session: any) => {
+    const started = new Date(session.started_at).getTime();
+    return Number.isFinite(started) && Date.now() - started <= 7 * 24 * 60 * 60 * 1000;
+  });
+  const weekSets = weekSessions.reduce((total: number, session: any) => total + getSmartSessionSummary(session).completedSets, 0);
 
   return (
     <div className="space-y-5">
       <header>
         <p className="text-sm font-semibold text-gym-info">Storico</p>
         <h1 className="mt-2 text-3xl font-extrabold">Allenamenti recenti</h1>
-        <p className="mt-2 text-gym-muted">Di default vedi gli allenamenti completati. Usa i filtri solo per sessioni in corso, annullate o di test.</p>
+        <p className="mt-2 text-gym-muted">Tocca una sessione per aprire il riepilogo.</p>
       </header>
 
       <div className="grid grid-cols-2 gap-2 text-sm">
-        <Link href="/history" className="rounded-2xl bg-gym-accent px-3 py-3 text-center font-extrabold text-slate-950 shadow-glow">Lista</Link>
-        <Link href="/history/calendar" className="rounded-2xl bg-white/10 px-3 py-3 text-center font-bold text-slate-200">Calendario</Link>
+        <Link href="/history" className="flex items-center justify-center gap-2 rounded-2xl bg-gym-accent px-3 py-3 text-center font-extrabold text-slate-950 shadow-glow"><HistoryIcon size={15} /> Lista</Link>
+        <Link href="/history/calendar" className="flex items-center justify-center gap-2 rounded-2xl bg-white/10 px-3 py-3 text-center font-bold text-slate-200"><CalendarDays size={15} /> Calendario</Link>
       </div>
 
-      <details className="rounded-2xl bg-white/5 p-3 text-sm">
-        <summary className="cursor-pointer font-extrabold text-slate-200">Filtri avanzati</summary>
-        <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-          <FilterLink href="/history" active={filter === "completed"} label="Completati" />
-          <FilterLink href="/history?status=in_progress" active={filter === "in_progress"} label="In corso" />
-          <FilterLink href="/history?status=abandoned" active={filter === "abandoned"} label="Annullati" />
-          <FilterLink href="/history?status=all" active={filter === "all"} label="Tutti" />
+      <Card variant="subtle" className="p-3">
+        <div className="flex items-center justify-between gap-3 text-sm">
+          <div>
+            <p className="font-bold text-slate-200">Questa settimana</p>
+            <p className="text-gym-muted">{formatWorkoutCount(weekSessions.length)} · {formatSetCount(weekSets)}</p>
+          </div>
+          <details className="relative text-right">
+            <summary className="cursor-pointer rounded-2xl bg-white/10 px-3 py-2 text-xs font-bold text-slate-200">Filtra</summary>
+            <div className="absolute right-0 z-20 mt-2 grid w-44 gap-2 rounded-3xl border border-white/10 bg-gym-panel p-2 shadow-card">
+              <FilterLink href="/history" active={filter === "completed"} label="Completati" />
+              <FilterLink href="/history?status=in_progress" active={filter === "in_progress"} label="In corso" />
+              <FilterLink href="/history?status=abandoned" active={filter === "abandoned"} label="Annullati" />
+              <FilterLink href="/history?status=all" active={filter === "all"} label="Tutti" />
+            </div>
+          </details>
         </div>
-      </details>
+      </Card>
 
       {sessions.length === 0 ? (
-        <Card>
-          <h2 className="text-xl font-extrabold">Nessuna sessione qui</h2>
-          <p className="mt-2 text-gym-muted">Cambia filtro oppure apri un giorno di allenamento dalla dashboard.</p>
-        </Card>
+        <EmptyState
+          icon={<HistoryIcon size={20} />}
+          title="Nessun allenamento"
+          description="Completa una sessione per vedere lo storico."
+        />
       ) : (
         <div className="space-y-3">
           {sessions.map((session: any) => {
             const summary = getSmartSessionSummary(session);
-            const startedAt = new Date(session.started_at).toLocaleString("it-IT", {
+            const startedAt = new Date(session.started_at).toLocaleDateString("it-IT", {
               day: "2-digit",
-              month: "2-digit",
-              year: "numeric",
-              hour: "2-digit",
-              minute: "2-digit"
+              month: "short",
             });
 
             return (
@@ -84,29 +98,28 @@ export default async function HistoryPage({ searchParams }: { searchParams?: Pro
                 <Link href={`/history/${session.id}`} className="block transition active:scale-[0.99]">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className={`text-xs font-bold uppercase ${getStatusColor(session.status)}`}>{getStatusLabel(session.status)}</p>
+                      <p className={`text-xs font-bold ${getStatusColor(session.status)}`}>{getStatusLabel(session.status)}</p>
                       <h2 className="mt-1 text-xl font-extrabold">{relationName(session.workout_days, "Allenamento")}</h2>
-                      <p className="mt-1 text-sm text-gym-muted">{relationName(session.workout_plans, "Scheda")}</p>
-                      <p className="mt-1 text-sm text-gym-muted">{startedAt}</p>
+                      <p className="mt-1 text-sm text-gym-muted">{startedAt} · {relationName(session.workout_plans, "Scheda")}</p>
+                      <p className="mt-2 text-sm text-slate-300">{summary.completedSets}/{summary.totalSets} serie · {formatCompactNumber(summary.volume)} kg</p>
                     </div>
-                    <span className="rounded-full bg-white/10 px-3 py-1 text-sm font-bold">{summary.completedSets}/{summary.totalSets}</span>
-                  </div>
-                  <div className="mt-3 grid grid-cols-2 gap-2 text-center text-xs sm:grid-cols-4">
-                    <MiniStat label="Esercizi" value={`${summary.completedExercises}/${summary.totalExercises}`} />
-                    <MiniStat label="Serie" value={`${summary.completedSets}/${summary.totalSets}`} />
-                    <MiniStat label="Volume" value={`${formatCompactNumber(summary.volume)} kg`} />
-                    <MiniStat label="RPE" value={formatAverage(summary.averageRpe)} />
+                    <span className="rounded-full bg-white/10 px-3 py-1 text-sm font-bold">Dettaglio</span>
                   </div>
                 </Link>
 
-                <div className="mt-3 border-t border-white/10 pt-3">
-                  <SessionActions
-                    sessionId={session.id}
-                    workoutDayId={session.workout_day_id}
-                    status={session.status}
-                    compact
-                  />
-                </div>
+                {session.status !== "completed" ? (
+                  <details className="mt-3 border-t border-white/10 pt-3 text-sm">
+                    <summary className="cursor-pointer font-bold text-slate-300">Azioni</summary>
+                    <div className="mt-3">
+                      <SessionActions
+                        sessionId={session.id}
+                        workoutDayId={session.workout_day_id}
+                        status={session.status}
+                        compact
+                      />
+                    </div>
+                  </details>
+                ) : null}
               </Card>
             );
           })}
@@ -122,21 +135,12 @@ function FilterLink({ href, active, label }: { href: string; active: boolean; la
       href={href}
       className={
         active
-          ? "rounded-2xl bg-gym-accent px-3 py-3 text-center font-extrabold text-slate-950 shadow-glow"
-          : "rounded-2xl bg-white/10 px-3 py-3 text-center font-bold text-slate-200"
+          ? "rounded-2xl bg-gym-accent px-3 py-2 text-center text-xs font-extrabold text-slate-950"
+          : "rounded-2xl bg-white/10 px-3 py-2 text-center text-xs font-bold text-slate-200"
       }
     >
       {label}
     </Link>
-  );
-}
-
-function MiniStat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-2xl bg-black/20 p-2">
-      <p className="text-gym-muted">{label}</p>
-      <p className="font-extrabold text-slate-100">{value}</p>
-    </div>
   );
 }
 

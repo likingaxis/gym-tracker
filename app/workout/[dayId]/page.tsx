@@ -28,15 +28,5 @@ export default async function WorkoutDayPage({ params }: { params: Promise<{ day
     exercises: [...(day.exercises ?? [])].sort((a: any, b: any) => a.exercise_order - b.exercise_order)
   };
 
-  return (
-    <div className="space-y-4">
-      <header className="sticky top-0 z-20 -mx-4 bg-gym-bg/95 px-4 py-3 backdrop-blur">
-        <p className="text-sm font-semibold text-gym-info">Allenamento</p>
-        <h1 className="mt-1 text-3xl font-extrabold">{day.name}</h1>
-        {day.description ? <p className="mt-1 text-sm text-gym-muted">{day.description}</p> : null}
-      </header>
-
-      <WorkoutSessionClient day={sortedDay} />
-    </div>
-  );
+  return <WorkoutSessionClient day={sortedDay} />;
 }

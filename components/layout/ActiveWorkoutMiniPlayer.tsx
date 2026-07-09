@@ -109,7 +109,7 @@ export function ActiveWorkoutMiniPlayer() {
       transition={{ duration: 0.22, ease: "easeOut" }}
       className="fixed inset-x-0 bottom-[88px] z-40 mx-auto max-w-md px-4"
     >
-      <div className="relative rounded-[1.35rem] border border-gym-accent/25 bg-gym-panel/95 p-3 shadow-2xl shadow-black/40 backdrop-blur supports-[padding:max(0px)]:mb-[max(0px,env(safe-area-inset-bottom))]">
+      <div className="relative rounded-[1.35rem] border border-white/10 bg-gym-panel/95 p-3 shadow-2xl shadow-black/40 backdrop-blur supports-[padding:max(0px)]:mb-[max(0px,env(safe-area-inset-bottom))]">
         <div className="flex items-center gap-3">
           <Link
             href={`/workout/${session.workout_day_id}`}
@@ -117,12 +117,12 @@ export function ActiveWorkoutMiniPlayer() {
             aria-label="Riprendi allenamento"
           >
             <div className="flex items-center gap-2">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-gym-accent text-slate-950">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-gym-info text-slate-950 shadow-info">
                 <Play size={18} fill="currentColor" />
               </span>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-black text-white">🏋️ {dayName}</p>
-                <p className="text-xs font-bold text-gym-muted">
+                <p className="truncate text-sm font-extrabold text-white">🏋️ {dayName}</p>
+                <p className="text-xs font-semibold text-gym-muted">
                   {summary.completed}/{summary.total} serie · {summary.progress}%
                 </p>
               </div>
@@ -153,7 +153,7 @@ export function ActiveWorkoutMiniPlayer() {
               type="button"
               onClick={() => runAction("complete")}
               disabled={Boolean(pending)}
-              className="rounded-2xl bg-gym-accent px-3 py-3 text-xs font-black text-slate-950 disabled:opacity-60"
+              className="rounded-2xl bg-gym-accent px-3 py-3 text-xs font-extrabold text-slate-950 disabled:opacity-60"
             >
               {pending === "complete" ? "Completo..." : "Completa"}
             </button>
@@ -161,7 +161,7 @@ export function ActiveWorkoutMiniPlayer() {
               type="button"
               onClick={() => runAction("abandon")}
               disabled={Boolean(pending)}
-              className="rounded-2xl bg-red-500/15 px-3 py-3 text-xs font-black text-red-100 disabled:opacity-60"
+              className="rounded-2xl border border-red-400/25 bg-red-500/10 px-3 py-3 text-xs font-extrabold text-red-100 disabled:opacity-60"
             >
               {pending === "abandon" ? "Annullamento..." : "Annulla"}
             </button>

@@ -455,23 +455,18 @@ export function WorkoutSessionClient({ day }: Props) {
 
   return (
     <div className="space-y-4">
-      <div className="sticky top-20 z-20 rounded-2xl border border-white/10 bg-gym-card/90 px-3 py-2 shadow-lg shadow-black/20 backdrop-blur">
-        <div className="flex items-center justify-between gap-3">
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-xs font-black text-white">{day.name ?? "Allenamento"}</p>
-            <div className="mt-1 flex items-center gap-2 text-[0.7rem] font-bold text-gym-muted">
-              <span>{completedSets}/{totalSets} serie</span>
-              <span aria-hidden="true">·</span>
-              <span>{progress}%</span>
-              <span aria-hidden="true">·</span>
-              <span className={saving ? "text-gym-accent" : "text-slate-400"}>
-                {saving ? "Salvataggio..." : "Salvato"}
-              </span>
-            </div>
+      <div className="sticky top-3 z-20 rounded-2xl border border-white/10 bg-gym-panel/95 px-3 py-2 shadow-lg shadow-black/25 backdrop-blur">
+        <div className="min-w-0">
+          <p className="truncate text-sm font-extrabold text-white">{day.name ?? "Allenamento"}</p>
+          <div className="mt-1 flex items-center gap-2 text-[0.72rem] font-semibold text-gym-muted">
+            <span>{completedSets}/{totalSets} serie completate</span>
+            <span aria-hidden="true">·</span>
+            <span>{progress}%</span>
+            <span aria-hidden="true">·</span>
+            <span className={saving ? "text-gym-info" : "text-slate-400"}>
+              {saving ? "Salvataggio..." : "Salvato"}
+            </span>
           </div>
-          <span className="rounded-full bg-gym-accent/15 px-2.5 py-1 text-xs font-black text-gym-accent">
-            {progress}%
-          </span>
         </div>
         <div className="mt-2">
           <AnimatedProgressBar value={progress} />
@@ -537,13 +532,18 @@ export function WorkoutSessionClient({ day }: Props) {
         />
       </Card>
 
-      <button
-        onClick={completeSession}
-        disabled={!sessionId || completing}
-        className="sticky bottom-24 z-10 w-full rounded-2xl bg-gym-accent px-4 py-4 text-lg font-black text-slate-950 shadow-glow disabled:opacity-50"
-      >
-        {completing ? "Completamento..." : "Completa allenamento"}
-      </button>
+      <div className={`${activeTimer ? "bottom-44" : "bottom-24"} sticky z-10 rounded-[1.35rem] border border-white/10 bg-gym-panel/95 p-2 shadow-2xl shadow-black/30 backdrop-blur`}>
+        <button
+          onClick={completeSession}
+          disabled={!sessionId || completing}
+          className="w-full rounded-2xl border border-gym-info/25 bg-gym-info/10 px-4 py-3 text-sm font-extrabold text-gym-info transition active:scale-[0.98] disabled:opacity-50"
+        >
+          {completing ? "Sto chiudendo..." : "Chiudi allenamento"}
+        </button>
+        <p className="mt-1 px-2 text-center text-[0.68rem] font-semibold text-gym-muted">
+          Azione finale della sessione, separata dalle serie.
+        </p>
+      </div>
     </div>
   );
 }
@@ -610,22 +610,22 @@ function TrackableExerciseCard({
         exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -8 }}
         transition={{ duration: 0.24, ease: "easeOut" }}
       >
-        <Card className="border-gym-accent/70 bg-gym-accent/10 shadow-glow">
+        <Card variant="primary">
           <div className="flex items-center gap-3">
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gym-accent text-slate-950">
               <CheckCircle2 size={30} fill="currentColor" />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-xs uppercase tracking-wide text-gym-accent">Completato</p>
-              <h3 className="line-clamp-2 text-xl font-black leading-tight">{exercise.name}</h3>
+              <p className="text-xs font-semibold text-gym-accent">Completato</p>
+              <h3 className="line-clamp-2 text-xl font-extrabold leading-tight">{exercise.name}</h3>
               <p className="text-sm text-slate-300">{completedSets}/{draft.sets.length} serie · {exercise.muscle_group ?? "Esercizio"}</p>
             </div>
           </div>
           <div className="mt-3 grid grid-cols-2 gap-2">
-            <button type="button" onClick={onGoNext} className="rounded-2xl bg-gym-accent px-4 py-3 text-sm font-black text-slate-950">
+            <button type="button" onClick={onGoNext} className="rounded-2xl bg-gym-accent px-4 py-3 text-sm font-extrabold text-slate-950">
               Prossimo
             </button>
-            <button type="button" onClick={() => setForceExpanded(true)} className="rounded-2xl bg-white/10 px-4 py-3 text-sm font-black text-slate-200">
+            <button type="button" onClick={() => setForceExpanded(true)} className="rounded-2xl bg-white/10 px-4 py-3 text-sm font-extrabold text-slate-200">
               Modifica
             </button>
           </div>
@@ -642,23 +642,23 @@ function TrackableExerciseCard({
       animate={reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }}
       transition={{ duration: 0.22, ease: "easeOut", delay: reduceMotion ? 0 : Math.min(index * 0.035, 0.12) }}
     >
-      <Card className={draft.completed ? "border-gym-accent/70 bg-gym-accent/5 shadow-glow" : undefined}>
+      <Card variant={draft.completed ? "primary" : "default"}>
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-xs uppercase tracking-wide text-gym-accent">{exercise.muscle_group ?? "Esercizio"}</p>
-            <h3 className="mt-1 line-clamp-2 text-2xl font-black leading-tight">{exercise.name}</h3>
+            <p className="text-xs font-semibold text-gym-soft">{exercise.muscle_group ?? "Esercizio"}</p>
+            <h3 className="mt-1 line-clamp-2 text-2xl font-extrabold leading-tight">{exercise.name}</h3>
             <p className="mt-2 text-sm font-bold text-slate-300">
               {exercise.sets ?? "-"} serie x {exercise.reps ?? "-"} · Recupero {formatRestTime(exercise.rest_seconds)}
             </p>
-            {exercise.target_rpe ? <p className="mt-1 text-xs font-bold text-gym-accent">RPE target: {exercise.target_rpe}</p> : null}
+            {exercise.target_rpe ? <p className="mt-1 text-xs font-semibold text-gym-info">RPE target: {exercise.target_rpe}</p> : null}
           </div>
-          <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-black ${draft.completed ? "bg-gym-accent text-slate-950" : "bg-white/10 text-slate-200"}`}>
+          <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-extrabold ${draft.completed ? "bg-gym-accent text-slate-950" : "bg-white/10 text-slate-200"}`}>
             {completedSets}/{draft.sets.length}
           </span>
         </div>
 
         {draft.completed && forceExpanded ? (
-          <button type="button" onClick={() => setForceExpanded(false)} className="mt-3 w-full rounded-2xl bg-gym-accent/15 px-4 py-3 text-sm font-black text-gym-accent">
+          <button type="button" onClick={() => setForceExpanded(false)} className="mt-3 w-full rounded-2xl bg-white/10 px-4 py-3 text-sm font-extrabold text-slate-200">
             Richiudi card completata
           </button>
         ) : null}
@@ -673,11 +673,11 @@ function TrackableExerciseCard({
             animate={reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }}
             exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -6 }}
             transition={{ duration: 0.18, ease: "easeOut" }}
-            className="mt-4 rounded-[1.5rem] border border-gym-accent/60 bg-gym-accent/10 p-4 shadow-sm"
+            className="mt-4 rounded-[1.5rem] border border-gym-accent/35 bg-emerald-400/[0.08] p-4 shadow-sm"
           >
-            <p className="text-xs font-black uppercase tracking-[0.22em] text-gym-accent">Prossima serie</p>
+            <p className="text-xs font-extrabold text-gym-accent">Prossima serie</p>
             <div className="mt-2 flex items-center justify-between gap-3">
-              <h4 className="text-2xl font-black">Serie {nextSet.set_number} di {draft.sets.length}</h4>
+              <h4 className="text-2xl font-extrabold">Serie {nextSet.set_number} di {draft.sets.length}</h4>
               {timerForThisExercise ? <span className="rounded-full bg-black/25 px-3 py-1 text-xs font-bold text-slate-200">Timer {formatCountdown(timerForThisExercise.remainingSeconds)}</span> : null}
             </div>
             {nextSet.weight ? (
@@ -715,7 +715,7 @@ function TrackableExerciseCard({
               onClick={() => onCompleteSet(nextSet.set_number)}
               whileTap={reduceMotion ? undefined : { scale: 0.97 }}
               transition={{ duration: 0.12 }}
-              className="mt-4 w-full rounded-2xl bg-gym-accent px-4 py-4 text-base font-black text-slate-950 shadow-glow"
+              className="mt-4 w-full rounded-2xl bg-gym-accent px-4 py-4 text-base font-extrabold text-slate-950 shadow-glow"
             >
               Completa serie {nextSet.set_number}
             </motion.button>
@@ -727,7 +727,7 @@ function TrackableExerciseCard({
             animate={reduceMotion ? { opacity: 1 } : { opacity: 1, scale: 1 }}
             className="mt-4 rounded-3xl bg-gym-accent/10 p-4 text-center"
           >
-            <p className="font-black text-gym-accent">Tutte le serie sono completate.</p>
+            <p className="font-extrabold text-gym-accent">Tutte le serie sono completate.</p>
           </motion.div>
         )}
         </AnimatePresence>
@@ -741,21 +741,21 @@ function TrackableExerciseCard({
         />
 
         <div className="mt-4 grid grid-cols-2 gap-2">
-          <button type="button" onClick={onStartTimer} className="flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-white/10 px-4 py-3 text-sm font-black text-slate-100">
+          <button type="button" onClick={onStartTimer} className="flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-white/10 px-4 py-3 text-sm font-extrabold text-slate-100">
             <TimerReset size={18} /> {timerForThisExercise ? `Recupero ${formatCountdown(timerForThisExercise.remainingSeconds)}` : "Avvia recupero"}
           </button>
           {exercise.video_url ? (
-            <a href={exercise.video_url} target="_blank" rel="noreferrer" className="flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-white/10 px-4 py-3 text-sm font-black">
+            <a href={exercise.video_url} target="_blank" rel="noreferrer" className="flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-white/10 px-4 py-3 text-sm font-extrabold">
               <PlayCircle size={18} /> Video
             </a>
           ) : null}
         </div>
 
         <div className="mt-4 grid grid-cols-2 gap-2">
-          <button type="button" onClick={() => setNotesOpen((value) => !value)} className="rounded-2xl bg-black/20 px-4 py-3 text-sm font-black text-slate-200">
+          <button type="button" onClick={() => setNotesOpen((value) => !value)} className="rounded-2xl bg-black/20 px-4 py-3 text-sm font-extrabold text-slate-200">
             {draft.personal_notes ? "Modifica nota" : "+ Nota"}
           </button>
-          <button type="button" onClick={() => setOpen((value) => !value)} className="rounded-2xl bg-black/20 px-4 py-3 text-sm font-black text-slate-200">
+          <button type="button" onClick={() => setOpen((value) => !value)} className="rounded-2xl bg-black/20 px-4 py-3 text-sm font-extrabold text-slate-200">
             {open ? "Nascondi tecnica" : "Tecnica"}
           </button>
         </div>
@@ -811,7 +811,7 @@ function CompactSetLog({
         disabled={completedSets.length === 0}
         className="flex w-full items-center justify-between gap-3 rounded-2xl px-1 py-1 text-left disabled:cursor-default"
       >
-        <span className="text-sm font-black text-slate-100">
+        <span className="text-sm font-extrabold text-slate-100">
           {completedSets.length > 0
             ? `✓ ${completedSets.length} ${completedSets.length === 1 ? "serie completata" : "serie completate"}`
             : "Nessuna serie completata"}
@@ -825,7 +825,7 @@ function CompactSetLog({
         <div className="mt-2 space-y-1.5">
           {completedSets.map((set) => (
             <div key={set.set_number} className="flex items-center justify-between gap-2 rounded-2xl bg-gym-accent/10 px-3 py-2 text-xs text-slate-100">
-              <span className="font-black">✓ S{set.set_number}</span>
+              <span className="font-extrabold">✓ S{set.set_number}</span>
               <span className="min-w-0 flex-1 truncate text-right font-bold text-slate-300">
                 {formatSetSummary(set)}
               </span>
@@ -842,16 +842,9 @@ function CompactSetLog({
       </AnimatedAccordion>
 
       {pendingSets.length > 0 ? (
-        <div className="mt-3 flex flex-wrap gap-2 text-xs font-bold text-gym-muted">
-          {pendingSets.map((set) => (
-            <span
-              key={set.set_number}
-              className={`rounded-full px-3 py-1.5 ${set.set_number === nextSetNumber ? "bg-white/15 text-white" : "bg-white/5"}`}
-            >
-              {set.set_number === nextSetNumber ? "Ora" : "Da fare"} S{set.set_number}
-            </span>
-          ))}
-        </div>
+        <p className="mt-2 text-xs font-semibold text-gym-muted">
+          {completedSets.length} completate · {pendingSets.length} da fare{nextSetNumber ? ` · ora S${nextSetNumber}` : ""}
+        </p>
       ) : null}
     </div>
   );
@@ -912,19 +905,19 @@ function StickyTimer({
       animate={reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }}
       exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 24, scale: 0.98 }}
       transition={{ duration: 0.22, ease: "easeOut" }}
-      className="fixed inset-x-0 bottom-[88px] z-40 mx-auto max-w-md px-4"
+      className="fixed inset-x-0 bottom-24 z-40 mx-auto max-w-md px-4"
     >
-      <div className={`${timer.finished ? "border-gym-accent shadow-glow" : "border-white/10"} rounded-[1.35rem] border bg-gym-panel/95 p-3 shadow-2xl shadow-black/40 backdrop-blur supports-[padding:max(0px)]:mb-[max(0px,env(safe-area-inset-bottom))]`}>
+      <div className={`${timer.finished ? "border-gym-accent shadow-glow" : "border-gym-info/25 shadow-info"} rounded-[1.35rem] border bg-gym-panel/95 p-3 shadow-2xl shadow-black/40 backdrop-blur supports-[padding:max(0px)]:mb-[max(0px,env(safe-area-inset-bottom))]`}>
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-gym-accent">
+            <p className="text-xs font-extrabold text-gym-info">
               {timer.finished ? "Recupero finito" : "Recupero"}
             </p>
             <p className="mt-0.5 truncate text-sm font-bold text-slate-300">
               {timer.exerciseName}
             </p>
           </div>
-          <p className="shrink-0 text-3xl font-black text-gym-accent">
+          <p className="shrink-0 text-3xl font-extrabold text-gym-info">
             {formatCountdown(timer.remainingSeconds)}
           </p>
         </div>
@@ -943,10 +936,8 @@ function StickyTimer({
 
 function TimerControls({
   timer,
-  compact = false,
   onPause,
   onResume,
-  onReset,
   onClose,
   onAdjust,
 }: {
@@ -961,20 +952,17 @@ function TimerControls({
   return (
     <div className="mt-3 grid grid-cols-3 gap-2">
       {timer.isRunning ? (
-        <motion.button type="button" onClick={onPause} whileTap={{ scale: 0.96 }} className="flex min-h-11 items-center justify-center rounded-2xl bg-white/10 px-3 py-2 text-xs font-black">
+        <motion.button type="button" onClick={onPause} whileTap={{ scale: 0.96 }} className="flex min-h-11 items-center justify-center rounded-2xl bg-white/10 px-3 py-2 text-xs font-extrabold text-slate-100">
           Pausa
         </motion.button>
       ) : (
-        <motion.button type="button" onClick={onResume} whileTap={{ scale: 0.96 }} className="flex min-h-11 items-center justify-center rounded-2xl bg-gym-accent px-3 py-2 text-xs font-black text-slate-950">
+        <motion.button type="button" onClick={onResume} whileTap={{ scale: 0.96 }} className="flex min-h-11 items-center justify-center rounded-2xl bg-gym-info px-3 py-2 text-xs font-extrabold text-slate-950 shadow-info">
           Riprendi
         </motion.button>
       )}
-      <motion.button type="button" onClick={() => onAdjust(15)} whileTap={{ scale: 0.96 }} className="min-h-11 rounded-2xl bg-white/10 px-3 py-2 text-xs font-black">+15s</motion.button>
-      <motion.button type="button" onClick={onClose} whileTap={{ scale: 0.96 }} className="flex min-h-11 items-center justify-center gap-1 rounded-2xl bg-white/10 px-3 py-2 text-xs font-black" aria-label="Chiudi timer recupero">
+      <motion.button type="button" onClick={() => onAdjust(15)} whileTap={{ scale: 0.96 }} className="min-h-11 rounded-2xl bg-white/10 px-3 py-2 text-xs font-extrabold text-slate-100">+15s</motion.button>
+      <motion.button type="button" onClick={onClose} whileTap={{ scale: 0.96 }} className="flex min-h-11 items-center justify-center gap-1 rounded-2xl bg-white/10 px-3 py-2 text-xs font-extrabold text-slate-100" aria-label="Chiudi timer recupero">
         <X size={14} /> Chiudi
-      </motion.button>
-      <motion.button type="button" onClick={onReset} whileTap={{ scale: 0.96 }} className="col-span-3 min-h-10 rounded-2xl bg-white/5 px-3 py-2 text-xs font-bold text-gym-muted">
-        Reset timer
       </motion.button>
     </div>
   );
@@ -1025,7 +1013,7 @@ function MediaPreview({
   return (
     <div className="mt-4 rounded-3xl border border-white/10 bg-black/20 p-4 text-center">
       <ImageIcon className="mx-auto text-gym-muted" size={32} />
-      <p className="mt-2 font-black">Media esercizio collegato</p>
+      <p className="mt-2 font-extrabold">Media esercizio collegato</p>
       <p className="mt-1 text-sm text-gym-muted">
         Il link non sembra una foto/GIF diretta.
       </p>
@@ -1067,7 +1055,7 @@ function Field({
         value={value}
         inputMode={inputMode ?? "text"}
         onChange={(event) => onChange(event.target.value)}
-        className={`w-full rounded-2xl border border-white/10 bg-gym-bg px-3 ${big ? "py-4 text-2xl" : "py-3 text-base"} font-black ${mutedValue ? "text-slate-400" : "text-white"}`}
+        className={`w-full rounded-2xl border border-white/10 bg-gym-bg px-3 ${big ? "py-4 text-2xl" : "py-3 text-base"} font-extrabold ${mutedValue ? "text-slate-400" : "text-white"}`}
       />
       {sourceLabel ? (
         <span className="mt-1 block text-[10px] font-bold uppercase tracking-wide text-gym-muted">

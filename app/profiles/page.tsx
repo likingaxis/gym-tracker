@@ -22,8 +22,8 @@ export default async function ProfilesPage() {
   return (
     <div className="space-y-6 py-6">
       <header className="text-center">
-        <p className="text-sm font-bold uppercase tracking-[0.3em] text-gym-accent">Profili</p>
-        <h1 className="mt-3 text-4xl font-black">Chi si allena oggi?</h1>
+        <p className="text-sm font-semibold text-gym-info">Profili</p>
+        <h1 className="mt-3 text-3xl font-extrabold">Chi si allena oggi?</h1>
         <p className="mt-2 text-gym-muted">
           Ogni profilo ha scheda, sessioni e storico separati.
         </p>

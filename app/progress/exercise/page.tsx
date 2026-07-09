@@ -46,7 +46,7 @@ export default async function ExerciseProgressPage({ searchParams }: { searchPar
       <div className="space-y-5">
         <Link href="/progress" className="inline-flex items-center gap-2 text-sm font-bold text-gym-accent"><ArrowLeft size={16} /> Progressi</Link>
         <Card>
-          <h1 className="text-2xl font-black">Esercizio non trovato</h1>
+          <h1 className="text-2xl font-extrabold">Esercizio non trovato</h1>
           <p className="mt-2 text-gym-muted">Torna ai progressi e scegli un esercizio disponibile.</p>
         </Card>
       </div>
@@ -71,8 +71,8 @@ export default async function ExerciseProgressPage({ searchParams }: { searchPar
       <Link href="/progress" className="inline-flex items-center gap-2 text-sm font-bold text-gym-accent"><ArrowLeft size={16} /> Progressi</Link>
 
       <header className="rounded-[2rem] border border-white/10 bg-gradient-to-br from-gym-card via-gym-panel to-black p-5">
-        <p className="text-sm font-bold uppercase tracking-[0.3em] text-gym-accent">Dettaglio esercizio</p>
-        <h1 className="mt-2 text-4xl font-black">{exercise.name}</h1>
+        <p className="text-sm font-semibold text-gym-info">Dettaglio esercizio</p>
+        <h1 className="mt-2 text-3xl font-extrabold">{exercise.name}</h1>
         <p className="mt-2 text-gym-muted">{exercise.muscleGroup} · {entries.length} sessioni registrate</p>
       </header>
 
@@ -86,8 +86,8 @@ export default async function ExerciseProgressPage({ searchParams }: { searchPar
       <Card className="border-gym-accent/20">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-gym-accent">Trend recente</p>
-            <h2 className="mt-1 text-2xl font-black">{trend.label}</h2>
+            <p className="text-xs font-semibold text-gym-info">Trend recente</p>
+            <h2 className="mt-1 text-2xl font-extrabold">{trend.label}</h2>
             <p className="text-sm text-gym-muted">Confronto tra le ultime due sessioni con peso numerico.</p>
           </div>
           <Trophy size={28} className={trend.direction === "up" ? "text-gym-accent" : "text-gym-muted"} />
@@ -95,23 +95,23 @@ export default async function ExerciseProgressPage({ searchParams }: { searchPar
       </Card>
 
       <Card>
-        <p className="text-xs font-bold uppercase tracking-[0.2em] text-gym-accent">Andamento peso</p>
-        <h2 className="mt-1 text-2xl font-black">Peso medio nel tempo</h2>
+        <p className="text-xs font-semibold text-gym-info">Andamento peso</p>
+        <h2 className="mt-1 text-2xl font-extrabold">Peso medio nel tempo</h2>
         <WeightLineChart entries={entries.slice(-10)} />
       </Card>
 
       <section className="space-y-3">
-        <h2 className="text-xl font-black">Storico dettagliato</h2>
+        <h2 className="text-xl font-extrabold">Storico dettagliato</h2>
         {entries.slice().reverse().map((entry) => (
           <Card key={`${entry.sessionId}-${entry.date}`}>
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-xs font-bold uppercase text-gym-accent">{formatShortDate(entry.date)}</p>
-                <p className="mt-1 text-lg font-black text-slate-100">{entry.repsLabel || "Reps non indicate"}</p>
+                <p className="mt-1 text-lg font-extrabold text-slate-100">{entry.repsLabel || "Reps non indicate"}</p>
                 <p className="text-sm text-gym-muted">Volume stimato: {formatCompactNumber(entry.volume)} kg · RPE medio {formatAverage(entry.averageRpe)}</p>
               </div>
               <div className="text-right">
-                <p className="text-xl font-black">{entry.averageWeight ? `${entry.averageWeight.toFixed(1).replace(".", ",")} kg` : "-"}</p>
+                <p className="text-xl font-extrabold">{entry.averageWeight ? `${entry.averageWeight.toFixed(1).replace(".", ",")} kg` : "-"}</p>
                 <p className="text-xs text-gym-muted">media</p>
               </div>
             </div>
@@ -127,7 +127,7 @@ function MiniStat({ label, value, hint }: { label: string; value: string; hint: 
   return (
     <Card className="p-3">
       <p className="text-xs text-gym-muted">{label}</p>
-      <p className="mt-1 text-2xl font-black text-slate-100">{value}</p>
+      <p className="mt-1 text-2xl font-extrabold text-slate-100">{value}</p>
       <p className="text-xs text-slate-500">{hint}</p>
     </Card>
   );

@@ -65,14 +65,14 @@ export default async function CalendarHistoryPage({ searchParams }: { searchPara
   return (
     <div className="space-y-5">
       <header className="rounded-[2rem] border border-white/10 bg-gradient-to-br from-gym-card to-gym-panel p-5">
-        <p className="text-sm font-bold uppercase tracking-[0.3em] text-gym-accent">Calendario</p>
-        <h1 className="mt-2 text-4xl font-black">Allenamenti</h1>
+        <p className="text-sm font-semibold text-gym-info">Calendario</p>
+        <h1 className="mt-2 text-3xl font-extrabold">Allenamenti</h1>
         <p className="mt-2 text-sm text-gym-muted">Guarda a colpo d’occhio quando ti sei allenato e apri il dettaglio del giorno.</p>
       </header>
 
       <div className="grid grid-cols-2 gap-2 text-sm">
         <Link href="/history" className="rounded-2xl bg-white/10 px-3 py-3 text-center font-bold text-slate-200">Lista</Link>
-        <Link href={`/history/calendar?month=${month}`} className="rounded-2xl bg-gym-accent px-3 py-3 text-center font-black text-slate-950 shadow-glow">Calendario</Link>
+        <Link href={`/history/calendar?month=${month}`} className="rounded-2xl bg-gym-accent px-3 py-3 text-center font-extrabold text-slate-950 shadow-glow">Calendario</Link>
       </div>
 
       <Card className="border-gym-accent/20">
@@ -81,8 +81,8 @@ export default async function CalendarHistoryPage({ searchParams }: { searchPara
             <ChevronLeft size={20} />
           </Link>
           <div className="text-center">
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-gym-accent">Mese</p>
-            <h2 className="text-2xl font-black capitalize">{formatMonthTitle(month)}</h2>
+            <p className="text-xs font-semibold text-gym-info">Mese</p>
+            <h2 className="text-2xl font-extrabold capitalize">{formatMonthTitle(month)}</h2>
           </div>
           <Link href={`/history/calendar?month=${nextMonth}`} className="rounded-2xl bg-white/10 p-3 text-slate-200" aria-label="Mese successivo">
             <ChevronRight size={20} />
@@ -111,7 +111,7 @@ export default async function CalendarHistoryPage({ searchParams }: { searchPara
                 href={`/history/calendar?month=${month}&day=${day.key}`}
                 className={getDayClass(day.inMonth, isSelected, isToday, daySessions.length > 0)}
               >
-                <span className="text-sm font-black">{day.date.getDate()}</span>
+                <span className="text-sm font-extrabold">{day.date.getDate()}</span>
                 <span className="mt-1 flex min-h-2 justify-center gap-0.5">
                   {daySessions.slice(0, 3).map((session) => (
                     <span key={session.id} className={`h-1.5 w-1.5 rounded-full ${getStatusDot(session.status)}`} />
@@ -132,8 +132,8 @@ export default async function CalendarHistoryPage({ searchParams }: { searchPara
         <div className="flex items-center gap-3">
           <div className="rounded-2xl bg-white/10 p-3 text-gym-accent"><CalendarDays size={22} /></div>
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-gym-accent">Giorno selezionato</p>
-            <h2 className="text-2xl font-black">{formatFullDate(selectedDay)}</h2>
+            <p className="text-xs font-semibold text-gym-info">Giorno selezionato</p>
+            <h2 className="text-2xl font-extrabold">{formatFullDate(selectedDay)}</h2>
           </div>
         </div>
 
@@ -148,7 +148,7 @@ export default async function CalendarHistoryPage({ searchParams }: { searchPara
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className={`text-xs font-bold uppercase ${getStatusText(session.status)}`}>{getStatusLabel(session.status)}</p>
-                      <h3 className="mt-1 text-lg font-black">{relationName(session.workout_days, "Allenamento")}</h3>
+                      <h3 className="mt-1 text-lg font-extrabold">{relationName(session.workout_days, "Allenamento")}</h3>
                       <p className="mt-1 text-xs text-gym-muted">{formatTime(session.started_at)} · {relationName(session.workout_plans, "Scheda")}</p>
                     </div>
                     <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-bold">{summary.completedSets}/{summary.totalSets}</span>
@@ -188,7 +188,7 @@ function MiniStat({ label, value, hint }: { label: string; value: string; hint: 
   return (
     <div className="rounded-2xl bg-black/20 p-3">
       <p className="text-gym-muted">{label}</p>
-      <p className="mt-1 truncate text-base font-black text-slate-100">{value}</p>
+      <p className="mt-1 truncate text-base font-extrabold text-slate-100">{value}</p>
       <p className="text-[0.65rem] text-slate-500">{hint}</p>
     </div>
   );

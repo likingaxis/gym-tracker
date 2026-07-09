@@ -51,8 +51,8 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
   return (
     <div className="space-y-5">
       <header>
-        <p className="text-sm font-bold uppercase tracking-[0.3em] text-gym-accent">Dettaglio</p>
-        <h1 className="mt-2 text-3xl font-black">{relationName(session.workout_days, "Allenamento")}</h1>
+        <p className="text-sm font-semibold text-gym-info">Dettaglio</p>
+        <h1 className="mt-2 text-3xl font-extrabold">{relationName(session.workout_days, "Allenamento")}</h1>
         <p className="mt-2 text-gym-muted">{relationName(session.workout_plans, "Scheda")}</p>
       </header>
 
@@ -69,13 +69,13 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
       </Card>
 
       <section className="space-y-3">
-        <h2 className="text-xl font-black">Esercizi</h2>
+        <h2 className="text-xl font-extrabold">Esercizi</h2>
         {exercises.map((item: any) => (
           <Card key={item.id} className={item.completed ? "border-gym-accent/60" : undefined}>
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-xs uppercase text-gym-accent">{firstRelation(item.exercises)?.muscle_group ?? "Esercizio"}</p>
-                <h3 className="mt-1 text-xl font-black">{relationName(item.exercises, "Esercizio")}</h3>
+                <p className="text-xs font-semibold text-gym-muted">{firstRelation(item.exercises)?.muscle_group ?? "Esercizio"}</p>
+                <h3 className="mt-1 text-xl font-extrabold">{relationName(item.exercises, "Esercizio")}</h3>
               </div>
               <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-bold">{item.completed ? "OK" : "No"}</span>
             </div>
@@ -97,7 +97,7 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
       </section>
 
       <Card>
-        <h2 className="mb-3 text-xl font-black">Gestione sessione</h2>
+        <h2 className="mb-3 text-xl font-extrabold">Gestione sessione</h2>
         <SessionActions
           sessionId={session.id}
           workoutDayId={session.workout_day_id}
@@ -118,7 +118,7 @@ function Info({ label, value }: { label: string; value: string | number }) {
   return (
     <div className="rounded-2xl bg-black/20 p-2 text-center">
       <p className="text-xs text-gym-muted">{label}</p>
-      <p className="font-black">{value}</p>
+      <p className="font-extrabold">{value}</p>
     </div>
   );
 }

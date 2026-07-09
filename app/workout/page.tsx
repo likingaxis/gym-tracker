@@ -54,11 +54,11 @@ export default async function WorkoutIndexPage() {
     return (
       <div className="space-y-5">
         <header>
-          <p className="text-sm font-bold uppercase tracking-[0.3em] text-gym-accent">Allenati</p>
-          <h1 className="mt-2 text-4xl font-black">Scheda</h1>
+          <p className="text-sm font-semibold text-gym-info">Allenati</p>
+          <h1 className="mt-2 text-3xl font-extrabold">Scheda</h1>
         </header>
         <Card>
-          <h2 className="text-2xl font-black">Nessuna scheda attiva</h2>
+          <h2 className="text-2xl font-extrabold">Nessuna scheda attiva</h2>
           <p className="mt-2 text-gym-muted">Importa il JSON della tua scheda per iniziare.</p>
           <Link href="/import"><Button className="mt-4 w-full">Importa nuova scheda</Button></Link>
         </Card>
@@ -73,15 +73,15 @@ export default async function WorkoutIndexPage() {
   return (
     <div className="space-y-5">
       <header>
-        <p className="text-sm font-bold uppercase tracking-[0.3em] text-gym-accent">Allenati</p>
-        <h1 className="mt-2 text-4xl font-black">Scegli il giorno</h1>
+        <p className="text-sm font-semibold text-gym-info">Allenati</p>
+        <h1 className="mt-2 text-3xl font-extrabold">Scegli il giorno</h1>
         <p className="mt-2 text-gym-muted">{plan.name} · {plan.month}</p>
       </header>
 
       {recommended ? (
         <Card className="border-gym-accent/50 bg-gym-accent/10 shadow-glow">
-          <p className="text-xs font-bold uppercase tracking-[0.2em] text-gym-accent">Consigliato oggi</p>
-          <h2 className="mt-2 text-2xl font-black">{recommended.name}</h2>
+          <p className="text-xs font-semibold text-gym-info">Consigliato oggi</p>
+          <h2 className="mt-2 text-2xl font-extrabold">{recommended.name}</h2>
           <p className="mt-1 text-sm text-gym-muted">
             {lastByDay.get(recommended.id) ? `Ultima volta: ${formatDate(lastByDay.get(recommended.id)?.started_at)}` : "Mai completato"} · {recommended.exercises?.length ?? 0} esercizi
           </p>
@@ -91,7 +91,7 @@ export default async function WorkoutIndexPage() {
       ) : null}
 
       <section className="space-y-3">
-        <h2 className="text-xl font-black">Tutti i giorni</h2>
+        <h2 className="text-xl font-extrabold">Tutti i giorni</h2>
         {days.map((day: any) => {
           const last = lastByDay.get(day.id);
           const isRecommended = recommended?.id === day.id;
@@ -100,8 +100,8 @@ export default async function WorkoutIndexPage() {
               <Card className={isRecommended ? "border-gym-accent/40" : "transition active:scale-[0.99]"}>
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-xs uppercase text-gym-accent">Giorno {day.day_order}{isRecommended ? " · consigliato" : ""}</p>
-                    <h3 className="text-xl font-black">{day.name}</h3>
+                    <p className="text-xs font-semibold text-gym-muted">Giorno {day.day_order}{isRecommended ? " · consigliato" : ""}</p>
+                    <h3 className="text-xl font-extrabold">{day.name}</h3>
                     <p className="mt-1 text-sm text-gym-muted">{day.exercises?.length ?? 0} esercizi · {last ? `ultima volta ${formatDate(last.started_at)}` : "mai completato"}</p>
                     {day.description ? <p className="mt-2 line-clamp-2 text-sm text-slate-500">{day.description}</p> : null}
                   </div>

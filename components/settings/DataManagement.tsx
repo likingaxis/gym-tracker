@@ -84,7 +84,7 @@ export function DataManagement({ profileName }: DataManagementProps) {
       <div className="grid gap-3">
         <a
           href="/api/export/history-csv"
-          className="rounded-2xl bg-gym-accent px-4 py-3 text-center text-sm font-black text-slate-950 shadow-glow transition active:scale-[0.98]"
+          className="rounded-2xl bg-gym-info px-4 py-3 text-center text-sm font-extrabold text-slate-950 shadow-info transition active:scale-[0.98]"
         >
           Esporta storico CSV
         </a>
@@ -96,7 +96,7 @@ export function DataManagement({ profileName }: DataManagementProps) {
         </a>
       </div>
 
-      <div className="rounded-2xl border border-white/10 bg-black/20 p-3 text-xs leading-5 text-gym-muted">
+      <div className="rounded-2xl border border-gym-info/20 bg-blue-500/[0.06] p-3 text-xs leading-5 text-gym-muted">
         Il backup riguarda solo il profilo attivo: <strong className="text-slate-200">{profileName}</strong>. Prima di eliminare dati importanti, scarica sempre il backup JSON.
       </div>
 
@@ -104,7 +104,7 @@ export function DataManagement({ profileName }: DataManagementProps) {
       {error ? <p className="rounded-2xl border border-red-400/30 bg-red-500/10 p-3 text-sm text-red-100">{error}</p> : null}
 
       <details className="rounded-2xl border border-red-400/20 bg-red-500/5 p-3">
-        <summary className="cursor-pointer text-sm font-black text-red-100">Zona pericolosa: mostra azioni reset</summary>
+        <summary className="cursor-pointer text-sm font-extrabold text-red-100">Zona pericolosa: mostra azioni reset</summary>
         <div className="mt-3 space-y-3">
           {Object.entries(RESET_ACTIONS).map(([key, config]) => {
             const action = key as ResetAction;
@@ -112,7 +112,7 @@ export function DataManagement({ profileName }: DataManagementProps) {
               <div key={action} className="rounded-2xl border border-white/10 bg-black/20 p-3">
                 <div className="space-y-3">
                   <div>
-                    <h3 className="font-black text-slate-100">{config.label}</h3>
+                    <h3 className="font-extrabold text-slate-100">{config.label}</h3>
                     <p className="mt-1 text-xs leading-5 text-gym-muted">{config.description}</p>
                   </div>
                   <button
@@ -121,8 +121,8 @@ export function DataManagement({ profileName }: DataManagementProps) {
                     onClick={() => runReset(action)}
                     className={
                       config.danger
-                        ? "w-full rounded-2xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm font-black text-red-100 disabled:opacity-50"
-                        : "w-full rounded-2xl bg-white/10 px-4 py-3 text-sm font-black text-slate-100 disabled:opacity-50"
+                        ? "w-full rounded-2xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm font-extrabold text-red-100 disabled:opacity-50"
+                        : "w-full rounded-2xl bg-white/10 px-4 py-3 text-sm font-extrabold text-slate-100 disabled:opacity-50"
                     }
                   >
                     {pendingAction === action ? "Operazione in corso..." : config.label}

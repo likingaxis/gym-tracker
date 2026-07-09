@@ -59,8 +59,8 @@ export default async function ProgressPage() {
   return (
     <div className="space-y-5">
       <header className="rounded-[2rem] border border-white/10 bg-gradient-to-br from-gym-card via-gym-panel to-black p-5 shadow-sm">
-        <p className="text-sm font-bold uppercase tracking-[0.3em] text-gym-accent">Progressi</p>
-        <h1 className="mt-2 text-4xl font-black">Analisi allenamenti</h1>
+        <p className="text-sm font-semibold text-gym-info">Progressi</p>
+        <h1 className="mt-2 text-3xl font-extrabold">Analisi allenamenti</h1>
         <p className="mt-2 text-gym-muted">Trend, gruppi muscolari, carichi migliori e confronto mese su mese.</p>
       </header>
 
@@ -74,8 +74,8 @@ export default async function ProgressPage() {
       <Card className="border-gym-accent/20">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-gym-accent">Confronto mese</p>
-            <h2 className="mt-1 text-2xl font-black">Questo mese vs precedente</h2>
+            <p className="text-xs font-semibold text-gym-info">Confronto mese</p>
+            <h2 className="mt-1 text-2xl font-extrabold">Questo mese vs precedente</h2>
           </div>
           <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-bold">live</span>
         </div>
@@ -90,8 +90,8 @@ export default async function ProgressPage() {
         <Card>
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.2em] text-gym-accent">Grafico carico</p>
-              <h2 className="mt-1 text-2xl font-black">{topExercise.name}</h2>
+              <p className="text-xs font-semibold text-gym-info">Grafico carico</p>
+              <h2 className="mt-1 text-2xl font-extrabold">{topExercise.name}</h2>
               <p className="text-sm text-gym-muted">Peso medio registrato nelle ultime sessioni.</p>
             </div>
             <Link href={`/progress/exercise?key=${encodeURIComponent(topExercise.key)}`} className="rounded-2xl bg-white/10 px-3 py-2 text-xs font-bold text-slate-200">Dettaglio</Link>
@@ -100,7 +100,7 @@ export default async function ProgressPage() {
         </Card>
       ) : (
         <Card>
-          <h2 className="text-xl font-black">Ancora nessun grafico</h2>
+          <h2 className="text-xl font-extrabold">Ancora nessun grafico</h2>
           <p className="mt-2 text-gym-muted">Completa qualche allenamento con pesi numerici per vedere l’andamento.</p>
         </Card>
       )}
@@ -108,8 +108,8 @@ export default async function ProgressPage() {
       <Card>
         <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-gym-accent">Gruppi muscolari</p>
-            <h2 className="mt-1 text-2xl font-black">Distribuzione del mese</h2>
+            <p className="text-xs font-semibold text-gym-info">Gruppi muscolari</p>
+            <h2 className="mt-1 text-2xl font-extrabold">Distribuzione del mese</h2>
           </div>
           <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-bold">serie + volume</span>
         </div>
@@ -131,18 +131,18 @@ export default async function ProgressPage() {
       </Card>
 
       <Card>
-        <p className="text-xs font-bold uppercase tracking-[0.2em] text-gym-accent">Miglioramenti recenti</p>
-        <h2 className="mt-1 text-2xl font-black">Carichi in crescita</h2>
+        <p className="text-xs font-semibold text-gym-info">Miglioramenti recenti</p>
+        <h2 className="mt-1 text-2xl font-extrabold">Carichi in crescita</h2>
         {improvements.length ? (
           <div className="mt-4 space-y-2">
             {improvements.map((item) => (
               <div key={item.name} className="rounded-2xl bg-black/20 p-3">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="font-black text-slate-100">{item.name}</p>
+                    <p className="font-extrabold text-slate-100">{item.name}</p>
                     <p className="text-xs text-gym-muted">{item.muscleGroup}</p>
                   </div>
-                  <p className="rounded-full bg-gym-accent/20 px-3 py-1 text-sm font-black text-gym-accent">+{item.diff.toFixed(1).replace(".", ",")} kg</p>
+                  <p className="rounded-full bg-gym-accent/20 px-3 py-1 text-sm font-extrabold text-gym-accent">+{item.diff.toFixed(1).replace(".", ",")} kg</p>
                 </div>
               </div>
             ))}
@@ -155,8 +155,8 @@ export default async function ProgressPage() {
       <Card>
         <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-gym-accent">Record esercizi</p>
-            <h2 className="mt-1 text-2xl font-black">Migliori carichi</h2>
+            <p className="text-xs font-semibold text-gym-info">Record esercizi</p>
+            <h2 className="mt-1 text-2xl font-extrabold">Migliori carichi</h2>
           </div>
           <TrendingUp size={22} className="text-gym-accent" />
         </div>
@@ -166,11 +166,11 @@ export default async function ProgressPage() {
               <Link key={record.key} href={`/progress/exercise?key=${encodeURIComponent(record.key)}`} className="block rounded-2xl bg-black/20 p-3 transition active:scale-[0.99]">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="font-black text-slate-100">{record.name}</p>
+                    <p className="font-extrabold text-slate-100">{record.name}</p>
                     <p className="text-xs text-gym-muted">{record.muscleGroup} · {record.sessions} sessioni</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-lg font-black text-slate-100">{record.bestWeight ? `${record.bestWeight.toFixed(1).replace(".", ",")} kg` : "-"}</p>
+                    <p className="text-lg font-extrabold text-slate-100">{record.bestWeight ? `${record.bestWeight.toFixed(1).replace(".", ",")} kg` : "-"}</p>
                     <p className={record.trend.direction === "up" ? "text-xs font-bold text-gym-accent" : "text-xs text-gym-muted"}>{record.trend.label}</p>
                   </div>
                 </div>
@@ -184,7 +184,7 @@ export default async function ProgressPage() {
 
       <section className="space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-black">Ultimi esercizi tracciati</h2>
+          <h2 className="text-xl font-extrabold">Ultimi esercizi tracciati</h2>
           <Link href="/history" className="text-sm font-bold text-gym-accent">Storico</Link>
         </div>
         {latestExercises.length ? latestExercises.map((exercise) => {
@@ -195,12 +195,12 @@ export default async function ProgressPage() {
               <Card className="transition active:scale-[0.99]">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-xs uppercase text-gym-accent">{exercise.muscleGroup}</p>
-                    <h3 className="text-xl font-black">{exercise.name}</h3>
+                    <p className="text-xs font-semibold text-gym-muted">{exercise.muscleGroup}</p>
+                    <h3 className="text-xl font-extrabold">{exercise.name}</h3>
                     <p className="mt-1 text-sm text-gym-muted">Ultima volta: {formatShortDate(last?.date)} · {last?.repsLabel || "reps n/d"}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-2xl font-black">{last?.averageWeight ? `${last.averageWeight.toFixed(1).replace(".", ",")} kg` : "-"}</p>
+                    <p className="text-2xl font-extrabold">{last?.averageWeight ? `${last.averageWeight.toFixed(1).replace(".", ",")} kg` : "-"}</p>
                     <p className={trend.direction === "up" ? "text-xs font-bold text-gym-accent" : "text-xs text-gym-muted"}>{trend.label}</p>
                   </div>
                 </div>
@@ -222,7 +222,7 @@ function StatCard({ icon, label, value, hint }: { icon: React.ReactNode; label: 
     <Card className="p-3">
       <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-2xl bg-gym-accent/15 text-gym-accent">{icon}</div>
       <p className="text-xs text-gym-muted">{label}</p>
-      <p className="mt-1 text-2xl font-black text-slate-100">{value}</p>
+      <p className="mt-1 text-2xl font-extrabold text-slate-100">{value}</p>
       <p className="text-xs text-slate-500">{hint}</p>
     </Card>
   );
@@ -235,7 +235,7 @@ function DeltaStat({ label, value, diff, suffix }: { label: string; value: numbe
   return (
     <div className="rounded-2xl bg-black/20 p-3">
       <p className="text-gym-muted">{label}</p>
-      <p className="mt-1 text-lg font-black text-slate-100">{formatCompactNumber(value)}{suffix}</p>
+      <p className="mt-1 text-lg font-extrabold text-slate-100">{formatCompactNumber(value)}{suffix}</p>
       <p className={positive ? "text-xs font-bold text-gym-accent" : neutral ? "text-xs text-gym-muted" : "text-xs font-bold text-amber-200"}>
         {displayDiff}
       </p>

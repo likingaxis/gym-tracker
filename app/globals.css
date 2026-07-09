@@ -1,12 +1,20 @@
 @import "tailwindcss";
 
 @theme {
-  --color-gym-bg: #080B12;
-  --color-gym-panel: #111827;
-  --color-gym-card: #172033;
+  --color-gym-bg: #070A0F;
+  --color-gym-panel: #0F172A;
+  --color-gym-card: #151E2E;
+  --color-gym-raised: #1B2638;
+  --color-gym-active: #1F2F46;
   --color-gym-accent: #34D399;
+  --color-gym-info: #60A5FA;
+  --color-gym-warning: #FBBF24;
+  --color-gym-danger: #F87171;
   --color-gym-muted: #94A3B8;
+  --color-gym-soft: #CBD5E1;
   --shadow-glow: 0 0 32px rgba(52, 211, 153, 0.18);
+  --shadow-info: 0 0 30px rgba(96, 165, 250, 0.14);
+  --shadow-card: 0 18px 50px rgba(0, 0, 0, 0.24);
 }
 
 :root {
@@ -18,13 +26,16 @@
 }
 
 html {
-  background: #080b12;
+  background: #070A0F;
 }
 
 body {
   margin: 0;
-  background: #080b12;
-  color: #f8fafc;
+  background:
+    radial-gradient(circle at top left, rgba(96, 165, 250, 0.08), transparent 32rem),
+    radial-gradient(circle at top right, rgba(52, 211, 153, 0.06), transparent 28rem),
+    #070A0F;
+  color: #F8FAFC;
 }
 
 button, input, textarea {
@@ -33,4 +44,8 @@ button, input, textarea {
 
 input, textarea {
   outline: none;
+}
+
+::selection {
+  background: rgba(52, 211, 153, 0.24);
 }

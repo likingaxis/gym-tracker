@@ -36,17 +36,17 @@ function NavItem({ href, icon, label }: { href: string; icon: React.ReactNode; l
       <Link
         href={href}
         className={`relative flex min-h-14 flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 transition ${
-          isActive ? "bg-gym-accent/15 text-gym-accent" : "hover:bg-white/10"
+          isActive ? "text-white" : "text-gym-muted hover:bg-white/[0.06] hover:text-slate-200"
         }`}
       >
         {isActive ? (
           <motion.span
             layoutId="bottom-nav-active"
-            className="absolute inset-0 rounded-2xl border border-gym-accent/20"
+            className="absolute inset-x-3 top-1 h-1 rounded-full bg-gym-accent/80"
             transition={{ duration: 0.18, ease: "easeOut" }}
           />
         ) : null}
-        <span className="relative">{icon}</span>
+        <span className={`relative ${isActive ? "text-gym-accent" : ""}`}>{icon}</span>
         <span className="relative font-bold">{label}</span>
       </Link>
     </motion.div>

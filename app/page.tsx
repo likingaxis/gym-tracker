@@ -77,8 +77,8 @@ export default async function DashboardPage() {
     <div className="space-y-5">
       <header className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-bold uppercase tracking-[0.25em] text-gym-accent">Home</p>
-          <h1 className="mt-2 text-3xl font-black">Ciao {profile?.name ?? "atleta"} {profile?.avatar_emoji ?? "🏋️"}</h1>
+          <p className="text-sm font-semibold text-gym-info">Home</p>
+          <h1 className="mt-2 text-3xl font-extrabold">Ciao {profile?.name ?? "atleta"} {profile?.avatar_emoji ?? "🏋️"}</h1>
           <p className="mt-1 text-sm text-gym-muted">Cosa facciamo oggi?</p>
         </div>
         <Link href="/settings" className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/10 text-slate-200" aria-label="Impostazioni">
@@ -87,18 +87,18 @@ export default async function DashboardPage() {
       </header>
 
       {!plan ? (
-        <Card className="border-gym-accent/40 bg-gym-accent/10">
-          <p className="text-xs font-bold uppercase tracking-[0.2em] text-gym-accent">Primo passo</p>
-          <h2 className="mt-2 text-2xl font-black">Nessuna scheda attiva</h2>
+        <Card variant="primary">
+          <p className="text-xs font-semibold text-gym-info">Primo passo</p>
+          <h2 className="mt-2 text-2xl font-extrabold">Nessuna scheda attiva</h2>
           <p className="mt-2 text-gym-muted">Importa il JSON della tua scheda mensile per iniziare ad allenarti.</p>
           <Link href="/import">
             <Button className="mt-4 w-full py-4">Importa nuova scheda</Button>
           </Link>
         </Card>
       ) : recommendedDay ? (
-        <Card className="border-gym-accent/40 bg-gradient-to-br from-gym-card to-gym-panel shadow-sm">
-          <p className="text-xs font-bold uppercase tracking-[0.2em] text-gym-accent">Consigliato oggi</p>
-          <h2 className="mt-2 text-2xl font-black">{recommendedDay.name}</h2>
+        <Card variant="primary">
+          <p className="text-xs font-semibold text-gym-info">Consigliato oggi</p>
+          <h2 className="mt-2 text-2xl font-extrabold">{recommendedDay.name}</h2>
           <p className="mt-1 text-sm text-gym-muted">
             {lastByDay.get(recommendedDay.id) ? `Ultima volta: ${formatDate(lastByDay.get(recommendedDay.id)?.started_at)}` : "Mai completato"} · {recommendedDay.exercises?.length ?? 0} esercizi
           </p>
@@ -110,10 +110,10 @@ export default async function DashboardPage() {
 
       {lastSession ? (
         <Card>
-          <p className="text-xs font-bold uppercase tracking-[0.2em] text-gym-accent">Ultimo allenamento</p>
+          <p className="text-xs font-semibold text-gym-info">Ultimo allenamento</p>
           <div className="mt-2 flex items-start justify-between gap-3">
             <div>
-              <h2 className="text-xl font-black">{relationName(lastSession.workout_days, "Allenamento")}</h2>
+              <h2 className="text-xl font-extrabold">{relationName(lastSession.workout_days, "Allenamento")}</h2>
               <p className="mt-1 text-sm text-gym-muted">{formatDate(lastSession.started_at)} · {getSessionSummary(lastSession).completedSets} serie · {formatCompactNumber(getSessionSummary(lastSession).volume)} kg volume</p>
             </div>
             <Link href={`/history/${lastSession.id}`} className="rounded-2xl bg-white/10 px-3 py-2 text-xs font-bold text-slate-200">Dettaglio</Link>
@@ -126,7 +126,7 @@ export default async function DashboardPage() {
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-sm text-gym-muted">Scheda attiva</p>
-              <h2 className="mt-1 text-2xl font-black">{plan.name}</h2>
+              <h2 className="mt-1 text-2xl font-extrabold">{plan.name}</h2>
               <p className="text-sm text-gym-muted">{plan.month} · {days.length} giorni · {days.reduce((total: number, day: any) => total + (day.exercises?.length ?? 0), 0)} esercizi</p>
             </div>
             <Link href="/import" className="rounded-2xl bg-white/10 px-3 py-2 text-xs font-bold text-slate-200">Importa</Link>
@@ -141,8 +141,8 @@ export default async function DashboardPage() {
       {plan ? (
         <section className="space-y-3">
           <div className="flex items-center justify-between gap-3">
-            <h2 className="text-xl font-black">Giorni scheda</h2>
-            <Link href="/workout" className="text-sm font-bold text-gym-accent">Vedi tutti</Link>
+            <h2 className="text-xl font-extrabold">Giorni scheda</h2>
+            <Link href="/workout" className="text-sm font-bold text-gym-info">Vedi tutti</Link>
           </div>
           {days.slice(0, 3).map((day: any) => {
             const last = lastByDay.get(day.id);
@@ -151,8 +151,8 @@ export default async function DashboardPage() {
                 <Card className="transition active:scale-[0.99]">
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <p className="text-xs uppercase text-gym-accent">Giorno {day.day_order}</p>
-                      <h3 className="text-lg font-black">{day.name}</h3>
+                      <p className="text-xs font-semibold text-gym-muted">Giorno {day.day_order}</p>
+                      <h3 className="text-lg font-extrabold">{day.name}</h3>
                       <p className="mt-1 text-xs font-bold text-slate-400">{last ? `Ultima volta: ${formatDate(last.started_at)}` : "Mai completato"}</p>
                     </div>
                     <span className="rounded-full bg-white/10 px-3 py-1 text-sm">{day.exercises?.length ?? 0}</span>
@@ -171,7 +171,7 @@ function MiniStat({ label, value, hint }: { label: string; value: string; hint: 
   return (
     <div className="rounded-2xl bg-black/20 p-3">
       <p className="text-gym-muted">{label}</p>
-      <p className="mt-1 truncate text-lg font-black text-slate-100">{value}</p>
+      <p className="mt-1 truncate text-lg font-extrabold text-slate-100">{value}</p>
       <p className="text-[0.65rem] text-slate-500">{hint}</p>
     </div>
   );

@@ -29,47 +29,47 @@ export default async function SettingsPage() {
   return (
     <div className="space-y-5">
       <header>
-        <p className="text-sm font-bold uppercase tracking-[0.3em] text-gym-accent">Impostazioni</p>
-        <h1 className="mt-2 text-4xl font-black">App e dati</h1>
+        <p className="text-sm font-semibold text-gym-info">Impostazioni</p>
+        <h1 className="mt-2 text-3xl font-extrabold">App e dati</h1>
         <p className="mt-2 text-gym-muted">Profilo attivo: {profile.avatar_emoji || "🏋️"} {profile.name}</p>
       </header>
 
       <Card>
-        <p className="text-xs font-bold uppercase tracking-[0.2em] text-gym-accent">Profilo</p>
-        <h2 className="mt-1 text-xl font-black">Gestisci utente</h2>
+        <p className="text-xs font-semibold text-gym-info">Profilo</p>
+        <h2 className="mt-1 text-xl font-extrabold">Gestisci utente</h2>
         <p className="mt-2 text-gym-muted">Cambia profilo o crea un nuovo utente per separare schede e storico.</p>
-        <Link href="/profiles" className="mt-4 inline-block w-full rounded-2xl bg-white/10 px-4 py-3 text-center text-sm font-black text-slate-100">Gestisci profili</Link>
+        <Link href="/profiles" className="mt-4 inline-block w-full rounded-2xl bg-white/10 px-4 py-3 text-center text-sm font-extrabold text-slate-100">Gestisci profili</Link>
       </Card>
 
       <Card>
-        <p className="text-xs font-bold uppercase tracking-[0.2em] text-gym-accent">Sicurezza</p>
-        <h2 className="mt-1 text-xl font-black">PIN profilo</h2>
+        <p className="text-xs font-semibold text-gym-info">Sicurezza</p>
+        <h2 className="mt-1 text-xl font-extrabold">PIN profilo</h2>
         <div className="mt-4">
           <PinSettings profile={profile} />
         </div>
       </Card>
 
       <Card>
-        <p className="text-xs font-bold uppercase tracking-[0.2em] text-gym-accent">Scheda</p>
-        <h2 className="mt-1 text-xl font-black">Scheda mensile</h2>
+        <p className="text-xs font-semibold text-gym-info">Scheda</p>
+        <h2 className="mt-1 text-xl font-extrabold">Scheda mensile</h2>
         <p className="mt-2 text-gym-muted">Importa o sostituisci la scheda attiva quando il personal trainer ti manda il nuovo JSON.</p>
-        <Link href="/import" className="mt-4 inline-block w-full rounded-2xl bg-gym-accent px-4 py-3 text-center text-sm font-black text-slate-950">Importa nuova scheda</Link>
+        <Link href="/import" className="mt-4 inline-block w-full rounded-2xl bg-gym-accent px-4 py-3 text-center text-sm font-extrabold text-slate-950">Importa nuova scheda</Link>
       </Card>
 
-      <Card>
-        <p className="text-xs font-bold uppercase tracking-[0.2em] text-gym-accent">Backup e zona pericolosa</p>
-        <h2 className="mt-1 text-xl font-black">Dati del profilo</h2>
-        <p className="mt-2 text-gym-muted">Prima scarica un backup. Le azioni di reset sono irreversibili e vanno usate solo quando sei sicuro.</p>
+      <Card variant="info">
+        <p className="text-xs font-semibold text-gym-info">Backup e reset</p>
+        <h2 className="mt-1 text-xl font-extrabold">Dati del profilo</h2>
+        <p className="mt-2 text-gym-muted">Scarica una copia dei dati prima di usare azioni irreversibili.</p>
         <div className="mt-4">
           <DataManagement profileName={profile.name} />
         </div>
       </Card>
 
       <Card>
-        <p className="text-xs font-bold uppercase tracking-[0.2em] text-gym-accent">Info app</p>
-        <h2 className="mt-1 text-xl font-black">Gym Tracker</h2>
-        <p className="mt-2 text-gym-muted">Versione app: v0.16</p>
-        <p className="mt-1 text-sm text-gym-muted">Novità: navigazione più semplice, Home orientata all’azione e card allenamento più leggibili.</p>
+        <p className="text-xs font-semibold text-gym-info">Info app</p>
+        <h2 className="mt-1 text-xl font-extrabold">Gym Tracker</h2>
+        <p className="mt-2 text-gym-muted">Versione app: v0.18.2</p>
+        <p className="mt-1 text-sm text-gym-muted">Novità: gerarchia visiva più chiara, colori semantici, timer più pulito e allenamento più leggibile.</p>
       </Card>
     </div>
   );

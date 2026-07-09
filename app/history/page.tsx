@@ -42,18 +42,18 @@ export default async function HistoryPage({ searchParams }: { searchParams?: Pro
   return (
     <div className="space-y-5">
       <header>
-        <p className="text-sm font-bold uppercase tracking-[0.3em] text-gym-accent">Storico</p>
-        <h1 className="mt-2 text-4xl font-black">Allenamenti recenti</h1>
+        <p className="text-sm font-semibold text-gym-info">Storico</p>
+        <h1 className="mt-2 text-3xl font-extrabold">Allenamenti recenti</h1>
         <p className="mt-2 text-gym-muted">Di default vedi gli allenamenti completati. Usa i filtri solo per sessioni in corso, annullate o di test.</p>
       </header>
 
       <div className="grid grid-cols-2 gap-2 text-sm">
-        <Link href="/history" className="rounded-2xl bg-gym-accent px-3 py-3 text-center font-black text-slate-950 shadow-glow">Lista</Link>
+        <Link href="/history" className="rounded-2xl bg-gym-accent px-3 py-3 text-center font-extrabold text-slate-950 shadow-glow">Lista</Link>
         <Link href="/history/calendar" className="rounded-2xl bg-white/10 px-3 py-3 text-center font-bold text-slate-200">Calendario</Link>
       </div>
 
       <details className="rounded-2xl bg-white/5 p-3 text-sm">
-        <summary className="cursor-pointer font-black text-slate-200">Filtri avanzati</summary>
+        <summary className="cursor-pointer font-extrabold text-slate-200">Filtri avanzati</summary>
         <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
           <FilterLink href="/history" active={filter === "completed"} label="Completati" />
           <FilterLink href="/history?status=in_progress" active={filter === "in_progress"} label="In corso" />
@@ -64,7 +64,7 @@ export default async function HistoryPage({ searchParams }: { searchParams?: Pro
 
       {sessions.length === 0 ? (
         <Card>
-          <h2 className="text-xl font-black">Nessuna sessione qui</h2>
+          <h2 className="text-xl font-extrabold">Nessuna sessione qui</h2>
           <p className="mt-2 text-gym-muted">Cambia filtro oppure apri un giorno di allenamento dalla dashboard.</p>
         </Card>
       ) : (
@@ -85,7 +85,7 @@ export default async function HistoryPage({ searchParams }: { searchParams?: Pro
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className={`text-xs font-bold uppercase ${getStatusColor(session.status)}`}>{getStatusLabel(session.status)}</p>
-                      <h2 className="mt-1 text-xl font-black">{relationName(session.workout_days, "Allenamento")}</h2>
+                      <h2 className="mt-1 text-xl font-extrabold">{relationName(session.workout_days, "Allenamento")}</h2>
                       <p className="mt-1 text-sm text-gym-muted">{relationName(session.workout_plans, "Scheda")}</p>
                       <p className="mt-1 text-sm text-gym-muted">{startedAt}</p>
                     </div>
@@ -122,7 +122,7 @@ function FilterLink({ href, active, label }: { href: string; active: boolean; la
       href={href}
       className={
         active
-          ? "rounded-2xl bg-gym-accent px-3 py-3 text-center font-black text-slate-950 shadow-glow"
+          ? "rounded-2xl bg-gym-accent px-3 py-3 text-center font-extrabold text-slate-950 shadow-glow"
           : "rounded-2xl bg-white/10 px-3 py-3 text-center font-bold text-slate-200"
       }
     >
@@ -135,7 +135,7 @@ function MiniStat({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-2xl bg-black/20 p-2">
       <p className="text-gym-muted">{label}</p>
-      <p className="font-black text-slate-100">{value}</p>
+      <p className="font-extrabold text-slate-100">{value}</p>
     </div>
   );
 }

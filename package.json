@@ -1,6 +1,6 @@
 {
   "name": "gym-tracker-app",
-  "version": "0.17.6",
+  "version": "0.17.8",
   "private": true,
   "scripts": {
     "dev": "next dev",

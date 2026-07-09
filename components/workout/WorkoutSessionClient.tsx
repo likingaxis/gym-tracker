@@ -924,14 +924,17 @@ function MediaPreview({
 
   if (isDirectImageUrl(cleanUrl)) {
     return (
-      <div className="mt-4 overflow-hidden rounded-3xl border border-white/10 bg-black/20">
-        <img
-          src={cleanUrl}
-          alt={name}
-          className="max-h-44 w-full object-cover"
-        />
+      <div className="mt-4 rounded-3xl border border-white/10 bg-white/[0.03] px-3 py-3">
+        <div className="flex justify-center">
+          <img
+            src={cleanUrl}
+            alt={name}
+            className="h-40 w-40 rounded-2xl object-contain sm:h-44 sm:w-44"
+            loading="lazy"
+          />
+        </div>
         {exerciseDbName ? (
-          <div className="border-t border-white/10 bg-black/30 px-4 py-2 text-xs text-gym-muted">
+          <div className="mt-2 text-center text-xs text-gym-muted">
             GIF ExerciseDB: <span className="font-bold text-slate-200">{exerciseDbName}</span>
             {exerciseDbScore ? ` · match ${exerciseDbScore}/100` : ""}
           </div>

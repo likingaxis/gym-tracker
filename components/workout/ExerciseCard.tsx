@@ -87,7 +87,16 @@ export function ExerciseCard({ exercise }: Props) {
           {exercise.technique_notes ? <p><strong>Tecnica:</strong> {exercise.technique_notes}</p> : null}
           {exercise.tips ? <p><strong>Consigli:</strong> {exercise.tips}</p> : null}
           {exercise.trainer_notes ? <p><strong>Note PT:</strong> {exercise.trainer_notes}</p> : null}
-          {exercise.media_url ? <img src={exercise.media_url} alt={exercise.name} className="max-h-64 w-full rounded-2xl object-cover" /> : null}
+          {exercise.media_url ? (
+            <div className="flex justify-center">
+              <img
+                src={exercise.media_url}
+                alt={exercise.name}
+                className="h-40 w-40 rounded-2xl object-contain sm:h-44 sm:w-44"
+                loading="lazy"
+              />
+            </div>
+          ) : null}
         </div>
       ) : null}
     </Card>

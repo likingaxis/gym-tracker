@@ -138,3 +138,19 @@ Correzioni:
 - versione pacchetto aggiornata a `0.17.6`.
 
 Database: nessuna nuova migration.
+
+
+## v0.17.7 - GIF non tagliate
+
+- Corretto il rendering delle GIF/foto esercizio su mobile.
+- Le immagini usano `object-contain` invece di `object-cover`, quindi non vengono piu tagliate a meta.
+- Aumentata leggermente l'altezza massima del box media nella card allenamento.
+- Nessuna nuova dipendenza e nessuna nuova migration Supabase.
+
+
+## v0.17.8 - GIF ExerciseDB compatte 180x180
+
+- Ridimensionato il box GIF per rispettare meglio il formato ExerciseDB, circa 180x180.
+- Le GIF ora sono centrate in un riquadro compatto invece di occupare tutta la larghezza della card.
+- Rimossi sfondi neri/padding pesanti che creavano bande visive brutte.
+- Nessuna nuova dipendenza e nessuna nuova migration Supabase.

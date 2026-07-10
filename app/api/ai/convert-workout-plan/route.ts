@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { buildWorkoutPlanPrompt } from "@/lib/ai/workoutPlanPrompt";
-import { generateWorkoutPlanWithGemini } from "@/lib/ai/providers/gemini";
+import { generateWorkoutPlanWithGemini, selectExerciseDbCandidatesWithGemini } from "@/lib/ai/providers/gemini";
 import { extractWorkoutInputFromFile, isSupportedAiImportFile } from "@/lib/ai/extractFileText";
 import { parseAiJson } from "@/lib/ai/parseAiJson";
 import { normalizeAndValidateAiWorkoutPlan } from "@/lib/ai/normalizeAiWorkoutPlan";
@@ -46,7 +46,7 @@ function createUnmatched(plan: any) {
         return {
           day: day.name,
           name: exercise.name,
-          reason: "GIF non applicata automaticamente: Gemini non ha trovato nel CSV ExerciseDB una corrispondenza sicura.",
+          reason: "GIF non applicata automaticamente: Gemini non ha trovato nel catalogo ExerciseDB una corrispondenza sicura.",
         };
       });
   });
@@ -88,11 +88,11 @@ export async function POST(request: Request) {
       prompt,
       text: extracted.text,
       file: extracted.file,
-      includeExerciseDbCsv: true,
+      includeExerciseDbCsv: false,
     });
 
     const parsedJson = parseAiJson(raw);
-    const result = await normalizeAndValidateAiWorkoutPlan(parsedJson);
+    const result = await normalizeAndValidateAiWorkoutPlan(parsedJson, selectExerciseDbCandidatesWithGemini);
 
     if (!result.success) {
       return NextResponse.json({
@@ -115,7 +115,7 @@ export async function POST(request: Request) {
     if (summary.unmatched_exercises_count > 0) {
       warnings.unshift({
         path: "exercise_db",
-        message: `${summary.unmatched_exercises_count} esercizi senza GIF automatica. In v0.23.5 Gemini legge il CSV ExerciseDB completo, ma il backend applica solo ID/GIF validi presenti nel catalogo.`,
+        message: `${summary.unmatched_exercises_count} esercizi senza GIF automatica. In v0.23.6 Gemini usa un vocabolario controllato e sceglie solo tra candidati reali validati dal backend.`,
       });
     }
 

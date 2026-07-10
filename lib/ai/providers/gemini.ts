@@ -1,5 +1,6 @@
 import { readFileSync } from "fs";
 import { join } from "path";
+import { extractFirstJsonObject } from "@/lib/ai/extractJson";
 
 type GeminiPart =
   | { text: string }
@@ -30,6 +31,7 @@ type CandidateSelectionRequest = {
     grip_hint?: unknown;
     bench_angle_hint?: unknown;
     side_hint?: unknown;
+    variant_hints?: unknown;
   };
   candidates: Array<{
     exercise_db_id: string;
@@ -121,8 +123,7 @@ async function callGeminiJson(parts: GeminiPart[], temperature = 0.15) {
 }
 
 function parseJsonObject(text: string) {
-  const cleaned = text.trim().replace(/^```(?:json)?/i, "").replace(/```$/i, "").trim();
-  return JSON.parse(cleaned);
+  return extractFirstJsonObject(text);
 }
 
 export async function generateWorkoutPlanWithGemini(options: GeminiGenerateOptions) {
@@ -176,12 +177,12 @@ export async function selectExerciseDbCandidatesWithGemini(
     })),
   }));
 
-  const prompt = `Sei un selettore prudente di esercizi ExerciseDB.
+  const prompt = `Sei un selettore prudente di esercizi ExerciseDB. Il primo modello ha gia normalizzato gli esercizi usando un vocabolario controllato ExerciseDB.
 
 Per ogni esercizio della scheda devi scegliere il candidato migliore SOLO dalla mini-lista compatta fornita.
 Non puoi inventare ID, nomi o URL.
 Se nessun candidato rappresenta chiaramente lo stesso esercizio, lascia selected_exercise_db_id vuoto e confidence "low".
-Usa confidence "high" solo quando movimento, attrezzatura, posizione/presa quando rilevanti e muscolo principale corrispondono bene.
+Usa confidence "high" solo quando movimento, attrezzatura, posizione/presa/variante quando rilevanti e muscolo principale corrispondono bene.
 Usa confidence "medium" se il candidato e' simile ma non abbastanza sicuro: in quel caso l'app NON applichera' la GIF automaticamente.
 Non sostituire esercizi diversi solo perche' hanno muscoli simili. Esempio: dead hang non e' hanging leg raise.
 I candidati sono in formato short: id=exercise_db_id, n=nome, eq=attrezzatura, bp=distretto, tm=muscolo target, sec=secondari, pat=pattern, aka=alias utili.

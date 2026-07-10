@@ -81,6 +81,7 @@ function ensureRequiredShape(input: unknown) {
       grip_hint: exercise?.grip_hint,
       bench_angle_hint: exercise?.bench_angle_hint,
       side_hint: exercise?.side_hint,
+      variant_hints: exercise?.variant_hints,
     })) : [],
   }));
 
@@ -141,6 +142,7 @@ async function applyExerciseDbMatches(plan: any, warnings: AiWarning[], selectCa
             grip_hint: exercise.grip_hint,
             bench_angle_hint: exercise.bench_angle_hint,
             side_hint: exercise.side_hint,
+            variant_hints: exercise.variant_hints,
           },
           candidates: result.candidates.slice(0, 8),
         };
@@ -209,7 +211,7 @@ async function applyExerciseDbMatches(plan: any, warnings: AiWarning[], selectCa
   if (unmatchedCount > 0) {
     warnings.push({
       path: "exercise_db",
-      message: `${unmatchedCount} esercizi sono rimasti senza GIF automatica. In v0.23.5 Gemini legge il CSV ExerciseDB completo, ma il backend applica solo ID/GIF validi presenti nel catalogo.`,
+      message: `${unmatchedCount} esercizi sono rimasti senza GIF automatica. In v0.23.6 Gemini usa il vocabolario controllato e il backend applica solo scelte high-confidence tra candidati reali.`,
     });
   }
 

@@ -1,4 +1,5 @@
 import { getExerciseDbCatalog, type ExerciseDbCatalogItem } from "@/lib/ai/exerciseDbCatalog";
+import { expandItalianSynonyms } from "@/lib/ai/exerciseDbVocabulary";
 
 type AiExerciseLike = {
   name?: string;
@@ -14,6 +15,7 @@ type AiExerciseLike = {
   grip_hint?: unknown;
   bench_angle_hint?: unknown;
   side_hint?: unknown;
+  variant_hints?: unknown;
 };
 
 export type ExerciseDbCandidate = {
@@ -122,7 +124,7 @@ function tokens(value: string) {
 }
 
 function expandItalianGymTerms(value: string) {
-  const expanded = new Set<string>();
+  const expanded = new Set<string>(expandItalianSynonyms(value));
   for (const token of tokens(value)) {
     expanded.add(token);
     for (const mapped of IT_TO_EN_TERMS[token] ?? []) {
@@ -187,6 +189,7 @@ function queryValues(exercise: AiExerciseLike) {
     if (terms.includes("row") && terms.includes("bench") && terms.includes("incline")) combinations.push("incline bench row", "chest supported incline row", "reverse grip incline bench row");
     if (terms.includes("calf") && terms.includes("seated")) combinations.push("seated calf raise", "lever seated calf raise");
     if (terms.includes("leg") && terms.includes("curl")) combinations.push("leg curl", "lever lying leg curl", "lever seated leg curl");
+    if (terms.includes("pushdown") || (terms.includes("push") && terms.includes("down"))) combinations.push("cable pushdown", "triceps pushdown");
     return [query, ...terms, ...combinations].map(normalize).filter(Boolean);
   });
 
@@ -204,6 +207,7 @@ function hintValues(exercise: AiExerciseLike) {
     ...asStringArray(exercise.grip_hint),
     ...asStringArray(exercise.bench_angle_hint),
     ...asStringArray(exercise.side_hint),
+    ...asStringArray(exercise.variant_hints),
   ].map((value) => normalize(String(value ?? ""))).filter(Boolean);
 
   const expanded = raw.flatMap((hint) => [hint, ...expandItalianGymTerms(hint)]);
@@ -235,7 +239,7 @@ function scoreItem(item: ExerciseDbCatalogItem, queries: string[], hints: string
       reasons.push("alias ExerciseDB uguale alla query");
     } else if (searchText.includes(query) && query.length >= 8) {
       score += index === 0 ? 48 : 32;
-      reasons.push("query contenuta nel catalogo short");
+      reasons.push("query contenuta nel catalogo ExerciseDB");
     }
   }
 
@@ -333,7 +337,7 @@ export function findExerciseDbCandidates(exercise: AiExerciseLike, limit = 8): E
     .map((item) => {
       const { score, reasons } = scoreItem(item, queries, hints);
       if (score < 20) return null;
-      return { item, score, reasons: reasons.length > 0 ? reasons : ["somiglianza con query, intent e catalogo short"] };
+      return { item, score, reasons: reasons.length > 0 ? reasons : ["somiglianza con query, intent e catalogo ExerciseDB"] };
     })
     .filter((entry): entry is { item: ExerciseDbCatalogItem; score: number; reasons: string[] } => Boolean(entry))
     .sort((a, b) => b.score - a.score)

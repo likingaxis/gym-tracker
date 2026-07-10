@@ -1,96 +1,102 @@
-# Gym Tracker App v0.23.5
+# Gym Tracker App v0.23.7
 
 PWA mobile-first per gestire schede palestra personali con profili, import scheda, allenamento guidato, storico, progressi, timer e backup.
 
-## Novita v0.23.5
+## Novita v0.23.7
 
-Questa versione rende l'import AI piu' controllato e piu' veloce da leggere per Gemini.
+Questa versione cambia di nuovo la strategia dell'import AI: non passa piu' il CSV enorme completo a Gemini e non usa piu' il catalogo short della v0.23.4 come soluzione separata.
 
-La pipeline ora e':
+La nuova pipeline usa un vocabolario controllato ExerciseDB:
 
 ```text
-Gemini legge la scheda
-Gemini produce query + intento dell'esercizio
-Backend cerca nel catalogo completo locale ExerciseDB
-Backend crea una mini-lista short di 5-8 candidati reali
-Gemini sceglie solo tra quei candidati short
-Backend copia exercise_db_id e gifUrl dal catalogo completo
+Gemini legge la scheda del trainer
+Gemini normalizza gli esercizi usando parole controllate ExerciseDB
+Backend cerca candidati reali nel catalogo completo
+Gemini sceglie solo tra candidati reali
+Backend copia exercise_db_id e gifUrl dal catalogo ufficiale
+Preview prima dell'import
+Supabase salva solo dopo conferma utente
 ```
 
-## Catalogo ExerciseDB
+## Nuovi file dati
 
-Sono inclusi tre file dati:
+Sono inclusi i file del vocabulary pack:
 
 ```text
 data/exercisedb-catalog.json
-```
-
-Catalogo completo usato dal backend come fonte ufficiale per ID e GIF.
-
-```text
-data/exercisedb-catalog-short.json
-```
-
-Versione compatta del catalogo. Non contiene URL e usa campi brevi:
-
-```text
-id = exercise_db_id
-n = nome esercizio
-eq = attrezzatura
-bp = body part
-tm = target muscle
-sec = muscoli secondari
-pat = movement pattern
-aka = alias inglesi/italiani
-```
-
-```text
+data/exercisedb-vocabulary.json
+data/exercisedb-prompt-vocabulary.json
+data/exercise-it-synonyms.json
 data/exercisedb-index-compact.csv
 ```
 
-CSV sorgente di riferimento.
-
-## Matching AI prudente
-
-Gemini non riceve tutto il CSV da 1500 righe.
-
-Il backend filtra il catalogo e passa a Gemini solo pochi candidati reali in formato short. Questo riduce confusione, costo e rischio di GIF sbagliate.
-
-La GIF viene applicata solo se Gemini sceglie un candidato con confidenza alta.
-
-Se la confidenza e' media o bassa:
+Uso previsto:
 
 ```text
-exercise_db_id = ""
-media_url = ""
+exercisedb-catalog.json
+= catalogo completo usato dal backend come fonte ufficiale per ID e GIF
+
+exercisedb-vocabulary.json
+= vocabolario completo per matching/debug
+
+exercisedb-prompt-vocabulary.json
+= vocabolario compatto inserito nel prompt Gemini
+
+exercise-it-synonyms.json
+= sinonimi italiano -> termini ExerciseDB per espandere la ricerca backend
 ```
 
-Meglio nessuna GIF che una GIF sbagliata.
+## Prompt controllato
 
-## Prompt migliorato
+Il prompt ora chiede a Gemini di usare termini simili o identici a ExerciseDB per:
 
-Il prompt chiede a Gemini di interpretare l'esercizio per caratteristiche, non solo per traduzione letterale:
+```text
+exercise_db_query
+alternative_queries
+equipment_hint
+body_part_hint
+target_muscle_hint
+movement_pattern
+variant_hints
+position_hint
+grip_hint
+bench_angle_hint
+side_hint
+```
 
-- movimento principale;
-- attrezzatura;
-- distretto;
-- muscolo target;
-- posizione;
-- presa;
-- inclinazione panca;
-- lato/arto.
-
-Esempi gestiti meglio:
+Esempi:
 
 ```text
 Stacchi regular -> barbell deadlift
-Lat pull down machine -> machine/lever lat pulldown
-Tirate su panca a 30 gradi supino -> reverse grip incline bench row / chest supported incline row
-Sitted calf machine -> seated calf raise machine
-Leg curl -> leg curl machine
+Lat pull down machine -> lever lat pulldown / lat pulldown
+Tirate su panca a 30 gradi supino -> reverse grip incline bench row
+Sitted calf machine -> lever seated calf raise
+Leg curl -> lever lying leg curl / leg curl
 ```
 
-`trainer_notes` resta dedicato solo a consigli pratici di esecuzione.
+Nella prima chiamata Gemini non deve compilare ID o URL: deve lasciare `exercise_db_id` e `media_url` vuoti. Il backend usera' query e hint per trovare candidati reali.
+
+## Matching ExerciseDB
+
+La logica e' prudente:
+
+```text
+1. Backend usa catalogo completo e sinonimi italiani.
+2. Backend crea massimo 5-8 candidati reali per esercizio.
+3. Gemini sceglie solo tra quei candidati.
+4. Se Gemini risponde confidence high, il backend applica ID e GIF.
+5. Se confidence medium/low, niente GIF automatica.
+```
+
+Regola fondamentale:
+
+```text
+Gemini interpreta.
+Backend valida.
+ExerciseDB fornisce ID e GIF ufficiali.
+```
+
+`media_url` viene sempre copiata da `gifUrl` del catalogo completo. Non viene mai accettata una URL inventata dal modello.
 
 ## Import AI
 
@@ -143,7 +149,7 @@ Se tutto funziona:
 ```powershell
 npm run build
 git add .
-git commit -m "v0.23.5 CSV completo ExerciseDB AI"
+git commit -m "v0.23.7 vocabolario ExerciseDB controllato"
 git push
 ```
 
@@ -156,13 +162,8 @@ Nessuna nuova migration Supabase.
 Nessuna nuova dipendenza rispetto alla v0.23.
 
 
-## v0.23.5 — CSV completo ExerciseDB per Gemini
+## v0.23.7 - Fix parsing JSON AI
 
-Questa versione semplifica il flusso AI Import: Gemini riceve la scheda e il CSV ExerciseDB completo, senza catalogo short e senza selezione tra candidati filtrati.
-
-Regole di sicurezza mantenute:
-
-- `exercise_db_id` viene accettato solo se esiste nel catalogo locale.
-- `media_url` viene sempre sovrascritto dal backend usando il `gifUrl` ufficiale della stessa riga ExerciseDB.
-- Se Gemini non trova una corrispondenza sicura nel CSV, l'esercizio resta senza GIF.
-- Supabase salva solo dopo preview e conferma utente.
+- Aggiunta utility `lib/ai/extractJson.ts` per estrarre il primo oggetto JSON completo anche quando Gemini aggiunge testo extra dopo il JSON.
+- Aggiornati `lib/ai/parseAiJson.ts` e `lib/ai/providers/gemini.ts` per usare lo stesso parser robusto sia nella conversione scheda sia nella selezione candidati ExerciseDB.
+- Risolve errori del tipo `Unexpected non-whitespace character after JSON`.

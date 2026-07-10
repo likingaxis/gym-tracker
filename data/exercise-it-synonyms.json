@@ -1,0 +1,373 @@
+{
+  "version": "1.0",
+  "source": "manual seed + ExerciseDB vocabulary",
+  "items": {
+    "manubrio": {
+      "equipment_hint": "dumbbell",
+      "query_terms": [
+        "dumbbell"
+      ]
+    },
+    "manubri": {
+      "equipment_hint": "dumbbell",
+      "query_terms": [
+        "dumbbell"
+      ]
+    },
+    "bilanciere": {
+      "equipment_hint": "barbell",
+      "query_terms": [
+        "barbell"
+      ]
+    },
+    "ez": {
+      "equipment_hint": "ez barbell",
+      "query_terms": [
+        "ez barbell"
+      ]
+    },
+    "cavo": {
+      "equipment_hint": "cable",
+      "query_terms": [
+        "cable"
+      ]
+    },
+    "cavi": {
+      "equipment_hint": "cable",
+      "query_terms": [
+        "cable"
+      ]
+    },
+    "corpo libero": {
+      "equipment_hint": "body weight",
+      "query_terms": [
+        "body weight"
+      ]
+    },
+    "macchina": {
+      "equipment_hint": "leverage machine",
+      "query_terms": [
+        "leverage machine",
+        "machine"
+      ]
+    },
+    "multipower": {
+      "equipment_hint": "smith machine",
+      "query_terms": [
+        "smith machine",
+        "smith"
+      ]
+    },
+    "multi power": {
+      "equipment_hint": "smith machine",
+      "query_terms": [
+        "smith machine",
+        "smith"
+      ]
+    },
+    "smith": {
+      "equipment_hint": "smith machine",
+      "query_terms": [
+        "smith machine",
+        "smith"
+      ]
+    },
+    "pressa": {
+      "equipment_hint": "sled machine",
+      "movement_pattern": "leg press",
+      "query_terms": [
+        "sled leg press",
+        "leg press"
+      ]
+    },
+    "panca": {
+      "variant_hints": [
+        "bench"
+      ],
+      "query_terms": [
+        "bench"
+      ]
+    },
+    "panca inclinata": {
+      "variant_hints": [
+        "incline",
+        "bench"
+      ],
+      "query_terms": [
+        "incline bench"
+      ]
+    },
+    "panca declinata": {
+      "variant_hints": [
+        "decline",
+        "bench"
+      ],
+      "query_terms": [
+        "decline bench"
+      ]
+    },
+    "petto": {
+      "body_part_hint": "chest",
+      "target_muscle_hint": "pectorals",
+      "query_terms": [
+        "chest",
+        "pectorals"
+      ]
+    },
+    "schiena": {
+      "body_part_hint": "back",
+      "query_terms": [
+        "back"
+      ]
+    },
+    "dorsali": {
+      "body_part_hint": "back",
+      "target_muscle_hint": "lats",
+      "query_terms": [
+        "lats",
+        "back"
+      ]
+    },
+    "spalle": {
+      "body_part_hint": "shoulders",
+      "target_muscle_hint": "delts",
+      "query_terms": [
+        "shoulders",
+        "delts"
+      ]
+    },
+    "bicipiti": {
+      "body_part_hint": "upper arms",
+      "target_muscle_hint": "biceps",
+      "query_terms": [
+        "biceps"
+      ]
+    },
+    "tricipiti": {
+      "body_part_hint": "upper arms",
+      "target_muscle_hint": "triceps",
+      "query_terms": [
+        "triceps"
+      ]
+    },
+    "quadricipiti": {
+      "body_part_hint": "upper legs",
+      "target_muscle_hint": "quads",
+      "query_terms": [
+        "quads",
+        "quadriceps"
+      ]
+    },
+    "femorali": {
+      "body_part_hint": "upper legs",
+      "target_muscle_hint": "hamstrings",
+      "query_terms": [
+        "hamstrings"
+      ]
+    },
+    "glutei": {
+      "body_part_hint": "upper legs",
+      "target_muscle_hint": "glutes",
+      "query_terms": [
+        "glutes"
+      ]
+    },
+    "polpacci": {
+      "body_part_hint": "lower legs",
+      "target_muscle_hint": "calves",
+      "query_terms": [
+        "calves"
+      ]
+    },
+    "addome": {
+      "body_part_hint": "waist",
+      "target_muscle_hint": "abs",
+      "query_terms": [
+        "abs",
+        "waist"
+      ]
+    },
+    "spinte": {
+      "movement_pattern": "press",
+      "query_terms": [
+        "press"
+      ]
+    },
+    "distensioni": {
+      "movement_pattern": "press",
+      "query_terms": [
+        "press"
+      ]
+    },
+    "croci": {
+      "movement_pattern": "fly",
+      "query_terms": [
+        "fly"
+      ]
+    },
+    "aperture": {
+      "movement_pattern": "fly",
+      "query_terms": [
+        "fly"
+      ]
+    },
+    "rematore": {
+      "movement_pattern": "row",
+      "query_terms": [
+        "row"
+      ]
+    },
+    "rematori": {
+      "movement_pattern": "row",
+      "query_terms": [
+        "row"
+      ]
+    },
+    "tirate": {
+      "movement_pattern": "row",
+      "query_terms": [
+        "row",
+        "pull"
+      ]
+    },
+    "lat machine": {
+      "equipment_hint": "cable",
+      "body_part_hint": "back",
+      "target_muscle_hint": "lats",
+      "movement_pattern": "pulldown",
+      "query_terms": [
+        "pulldown",
+        "cable",
+        "lats"
+      ]
+    },
+    "lat pull down": {
+      "equipment_hint": "cable",
+      "body_part_hint": "back",
+      "target_muscle_hint": "lats",
+      "movement_pattern": "pulldown",
+      "query_terms": [
+        "pulldown",
+        "cable",
+        "lats"
+      ]
+    },
+    "pulley": {
+      "equipment_hint": "cable",
+      "body_part_hint": "back",
+      "movement_pattern": "row",
+      "query_terms": [
+        "cable row",
+        "seated row"
+      ]
+    },
+    "trazioni": {
+      "equipment_hint": "body weight",
+      "body_part_hint": "back",
+      "movement_pattern": "pull-up",
+      "query_terms": [
+        "pull-up",
+        "chin-up"
+      ]
+    },
+    "curl": {
+      "movement_pattern": "curl",
+      "query_terms": [
+        "curl"
+      ]
+    },
+    "estensioni": {
+      "movement_pattern": "extension",
+      "query_terms": [
+        "extension"
+      ]
+    },
+    "pushdown": {
+      "equipment_hint": "cable",
+      "target_muscle_hint": "triceps",
+      "movement_pattern": "pushdown",
+      "query_terms": [
+        "pushdown",
+        "triceps pushdown"
+      ]
+    },
+    "alzate": {
+      "movement_pattern": "raise",
+      "query_terms": [
+        "raise"
+      ]
+    },
+    "alzate laterali": {
+      "body_part_hint": "shoulders",
+      "target_muscle_hint": "delts",
+      "movement_pattern": "lateral raise",
+      "query_terms": [
+        "lateral raise"
+      ]
+    },
+    "squat": {
+      "movement_pattern": "squat",
+      "query_terms": [
+        "squat"
+      ]
+    },
+    "affondi": {
+      "movement_pattern": "lunge",
+      "query_terms": [
+        "lunge"
+      ]
+    },
+    "stacchi": {
+      "movement_pattern": "deadlift",
+      "query_terms": [
+        "deadlift"
+      ]
+    },
+    "leg extension": {
+      "target_muscle_hint": "quads",
+      "movement_pattern": "leg extension",
+      "query_terms": [
+        "leg extension"
+      ]
+    },
+    "leg curl": {
+      "target_muscle_hint": "hamstrings",
+      "movement_pattern": "leg curl",
+      "query_terms": [
+        "leg curl"
+      ]
+    },
+    "calf": {
+      "target_muscle_hint": "calves",
+      "movement_pattern": "calf raise",
+      "query_terms": [
+        "calf raise"
+      ]
+    },
+    "crunch": {
+      "target_muscle_hint": "abs",
+      "movement_pattern": "crunch",
+      "query_terms": [
+        "crunch"
+      ]
+    },
+    "plank": {
+      "target_muscle_hint": "abs",
+      "movement_pattern": "plank",
+      "query_terms": [
+        "plank"
+      ]
+    },
+    "dead hang": {
+      "body_part_hint": "back",
+      "movement_pattern": "static hold",
+      "query_terms": [
+        "dead hang",
+        "hang"
+      ],
+      "avoid_matches": [
+        "hanging leg raise"
+      ]
+    }
+  }
+}

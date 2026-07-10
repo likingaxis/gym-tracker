@@ -1,8 +1,8 @@
-# Gym Tracker App v0.23.7
+# Gym Tracker App v0.24.0
 
 PWA mobile-first per gestire schede palestra personali con profili, import scheda, allenamento guidato, storico, progressi, timer e backup.
 
-## Novita v0.23.7
+## Novita v0.24.0
 
 Questa versione cambia di nuovo la strategia dell'import AI: non passa piu' il CSV enorme completo a Gemini e non usa piu' il catalogo short della v0.23.4 come soluzione separata.
 
@@ -149,7 +149,7 @@ Se tutto funziona:
 ```powershell
 npm run build
 git add .
-git commit -m "v0.23.7 vocabolario ExerciseDB controllato"
+git commit -m "v0.24.0 vocabolario ExerciseDB controllato"
 git push
 ```
 
@@ -162,8 +162,32 @@ Nessuna nuova migration Supabase.
 Nessuna nuova dipendenza rispetto alla v0.23.
 
 
-## v0.23.7 - Fix parsing JSON AI
+## v0.24.0 - Fix parsing JSON AI
 
 - Aggiunta utility `lib/ai/extractJson.ts` per estrarre il primo oggetto JSON completo anche quando Gemini aggiunge testo extra dopo il JSON.
 - Aggiornati `lib/ai/parseAiJson.ts` e `lib/ai/providers/gemini.ts` per usare lo stesso parser robusto sia nella conversione scheda sia nella selezione candidati ExerciseDB.
 - Risolve errori del tipo `Unexpected non-whitespace character after JSON`.
+
+
+## v0.24.0 - Media review ExerciseDB
+
+- Aggiunta correzione manuale GIF/media ExerciseDB dalle card esercizio.
+- Nuova ricerca server-side nel catalogo ExerciseDB locale.
+- Possibilita di scegliere una GIF alternativa reale dal catalogo.
+- Possibilita di rimuovere una GIF sbagliata e lasciare l'esercizio senza media.
+- Il backend valida sempre exercise_db_id e copia media_url dal gifUrl ufficiale del catalogo.
+- Nessuna nuova migration Supabase e nessuna nuova dipendenza.
+
+## v0.24.2 - Ricerca ExerciseDB migliorata
+
+- Migliorata la ricerca manuale nella funzione `Cambia GIF` / `Cerca GIF`.
+- Aggiunta espansione query con sinonimi italiani e abbreviazioni da palestra.
+- Query come `pec fly`, `pec deck`, `lat machine`, `push down`, `sitted calf machine`, `croci cavi`, `leg curl` producono risultati più pertinenti.
+- Ranking migliorato su nome esercizio, target muscle, body part, attrezzatura, movement pattern e alias.
+- Nessuna nuova migration Supabase e nessuna nuova dipendenza.
+
+
+## v0.24.2
+
+- Spostato il Giorno consigliato nella Home subito dopo il saluto.
+- Corretto errore TypeScript nella ricerca ExerciseDB: chiave `"in piedi"`.

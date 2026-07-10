@@ -15,6 +15,7 @@ import {
 import { Card } from "@/components/ui/Card";
 import { formatCountdown, formatRestTime } from "@/lib/utils/time";
 import { AnimatedAccordion } from "@/components/motion/AnimatedAccordion";
+import { ExerciseDbMediaPicker } from "@/components/workout/ExerciseDbMediaPicker";
 
 type Exercise = {
   id: string;
@@ -82,6 +83,7 @@ type Props = {
 
 export function WorkoutSessionClient({ day }: Props) {
   const router = useRouter();
+  const [exercises, setExercises] = useState<Exercise[]>(day.exercises);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<Record<string, ExerciseDraft>>({});
   const [generalNotes, setGeneralNotes] = useState("");
@@ -94,6 +96,10 @@ export function WorkoutSessionClient({ day }: Props) {
   const firstSaveSkipped = useRef(false);
   const hasVibratedForTimer = useRef(false);
   const exerciseRefs = useRef<Record<string, HTMLDivElement | null>>({});
+
+  useEffect(() => {
+    setExercises(day.exercises);
+  }, [day.exercises]);
 
   useEffect(() => {
     let cancelled = false;
@@ -271,11 +277,11 @@ export function WorkoutSessionClient({ day }: Props) {
   );
   const totalSets = useMemo(
     () =>
-      day.exercises.reduce(
+      exercises.reduce(
         (total, exercise) => total + Math.max(1, Number(exercise.sets ?? 1)),
         0,
       ),
-    [day.exercises],
+    [exercises],
   );
   const progress =
     totalSets > 0 ? Math.round((completedSets / totalSets) * 100) : 0;
@@ -356,16 +362,16 @@ export function WorkoutSessionClient({ day }: Props) {
 
   function goToNextIncompleteExercise(currentExerciseId?: string) {
     const sourceExercises = currentExerciseId
-      ? day.exercises.slice(
-          day.exercises.findIndex(
+      ? exercises.slice(
+          exercises.findIndex(
             (exercise) => exercise.id === currentExerciseId,
           ) + 1,
         )
-      : day.exercises;
+      : exercises;
 
     const nextExercise =
       sourceExercises.find((exercise) => !drafts[exercise.id]?.completed) ??
-      day.exercises.find((exercise) => !drafts[exercise.id]?.completed);
+      exercises.find((exercise) => !drafts[exercise.id]?.completed);
 
     if (!nextExercise) return;
 
@@ -483,6 +489,14 @@ export function WorkoutSessionClient({ day }: Props) {
     });
   }
 
+  function updateExerciseMedia(exerciseId: string, patch: Partial<Exercise>) {
+    setExercises((current) =>
+      current.map((exercise) =>
+        exercise.id === exerciseId ? { ...exercise, ...patch } : exercise,
+      ),
+    );
+  }
+
   async function completeSession() {
     if (!sessionId) return;
 
@@ -561,7 +575,7 @@ export function WorkoutSessionClient({ day }: Props) {
         open={progressOpen}
         onClose={() => setProgressOpen(false)}
         dayName={day.name ?? "Allenamento"}
-        exercises={day.exercises}
+        exercises={exercises}
         drafts={drafts}
         completedSets={completedSets}
         totalSets={totalSets}
@@ -588,7 +602,7 @@ export function WorkoutSessionClient({ day }: Props) {
         ) : null}
       </AnimatePresence>
 
-      {day.exercises.map((exercise, index) => (
+      {exercises.map((exercise, index) => (
         <TrackableExerciseCard
           index={index}
           key={exercise.id}
@@ -611,6 +625,7 @@ export function WorkoutSessionClient({ day }: Props) {
           onResetTimer={resetTimer}
           onAdjustTimer={adjustTimer}
           onGoNext={() => goToNextIncompleteExercise(exercise.id)}
+          onMediaSaved={(patch) => updateExerciseMedia(exercise.id, patch)}
           setCardRef={(element) => {
             exerciseRefs.current[exercise.id] = element;
           }}
@@ -842,6 +857,7 @@ function TrackableExerciseCard({
   onResetTimer,
   onAdjustTimer,
   onGoNext,
+  onMediaSaved,
   setCardRef,
 }: {
   index: number;
@@ -858,6 +874,7 @@ function TrackableExerciseCard({
   onResetTimer: () => void;
   onAdjustTimer: (deltaSeconds: number) => void;
   onGoNext: () => void;
+  onMediaSaved: (patch: Partial<Exercise>) => void;
   setCardRef: (element: HTMLDivElement | null) => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -977,6 +994,15 @@ function TrackableExerciseCard({
           name={exercise.name}
           exerciseDbName={exercise.exercise_db_name}
           exerciseDbScore={exercise.exercise_db_match_score}
+        />
+
+        <ExerciseDbMediaPicker
+          exerciseId={exercise.id}
+          exerciseName={exercise.name}
+          currentMediaUrl={exercise.media_url}
+          currentExerciseDbName={exercise.exercise_db_name}
+          currentExerciseDbId={exercise.exercise_db_id}
+          onSaved={onMediaSaved}
         />
 
         <AnimatePresence mode="wait">

@@ -108,6 +108,26 @@ export default async function DashboardPage() {
         </Card>
       ) : null}
 
+      {plan && recommendedDay ? (
+        <Card variant="primary">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-2xl bg-gym-accent/15 text-gym-accent"><PlayCircle size={20} /></div>
+              <p className="text-sm font-semibold text-gym-accent">Giorno consigliato</p>
+              <h2 className="mt-1 line-clamp-2 text-2xl font-extrabold">{recommendedDay.name}</h2>
+              <p className="mt-2 text-sm text-gym-muted">
+                {lastByDay.get(recommendedDay.id) ? `Ultima volta ${formatDate(lastByDay.get(recommendedDay.id)?.started_at)}` : "Mai completato"}
+                <span className="mx-2 text-slate-600">·</span>
+                {formatExerciseCount(recommendedDay.exercises?.length ?? 0)}
+              </p>
+            </div>
+          </div>
+          <Link href={`/workout/${recommendedDay.id}`}>
+            <Button className="mt-4 w-full py-4">Inizia</Button>
+          </Link>
+        </Card>
+      ) : null}
+
       <div className="grid grid-cols-2 gap-3">
         {lastSession ? (
           <Link href={`/history/${lastSession.id}`} className="block">
@@ -172,25 +192,6 @@ export default async function DashboardPage() {
         </Card>
       ) : null}
 
-      {plan && recommendedDay ? (
-        <Card variant="primary">
-          <div className="flex items-start justify-between gap-4">
-            <div className="min-w-0">
-              <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-2xl bg-gym-accent/15 text-gym-accent"><PlayCircle size={20} /></div>
-              <p className="text-sm font-semibold text-gym-accent">Giorno consigliato</p>
-              <h2 className="mt-1 line-clamp-2 text-2xl font-extrabold">{recommendedDay.name}</h2>
-              <p className="mt-2 text-sm text-gym-muted">
-                {lastByDay.get(recommendedDay.id) ? `Ultima volta ${formatDate(lastByDay.get(recommendedDay.id)?.started_at)}` : "Mai completato"}
-                <span className="mx-2 text-slate-600">·</span>
-                {formatExerciseCount(recommendedDay.exercises?.length ?? 0)}
-              </p>
-            </div>
-          </div>
-          <Link href={`/workout/${recommendedDay.id}`}>
-            <Button className="mt-4 w-full py-4">Inizia</Button>
-          </Link>
-        </Card>
-      ) : null}
 
     </div>
   );

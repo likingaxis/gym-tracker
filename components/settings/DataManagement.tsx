@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { ReactNode } from "react";
+import { useAppDialog } from "@/components/ui/AppDialogProvider";
 
 type ResetAction = "trash_open_sessions" | "trash_sessions" | "empty_trash" | "delete_workout_data";
 
@@ -40,6 +41,7 @@ const RESET_ACTIONS: Record<ResetAction, { label: string; description: string; c
 
 export function DataManagement({ profileName }: DataManagementProps) {
   const router = useRouter();
+  const { confirmDialog } = useAppDialog();
   const [pendingAction, setPendingAction] = useState<ResetAction | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -49,7 +51,8 @@ export function DataManagement({ profileName }: DataManagementProps) {
     setStatus(null);
     setError(null);
 
-    if (!window.confirm(config.confirm)) return;
+    const accepted = await confirmDialog({ title: "Conferma operazione", message: config.confirm, confirmLabel: "Continua", tone: "danger" });
+    if (!accepted) return;
 
     setPendingAction(action);
 

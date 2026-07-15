@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useAppDialog } from "@/components/ui/AppDialogProvider";
 
 type Props = {
   sessionId: string;
@@ -9,17 +10,19 @@ type Props = {
 
 export function TrashSessionActions({ sessionId }: Props) {
   const router = useRouter();
+  const { confirmDialog } = useAppDialog();
   const [pending, setPending] = useState<"restore" | "permanent" | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   async function run(action: "restore" | "permanent") {
     setError(null);
 
-    const confirmed = window.confirm(
-      action === "restore"
-        ? "Vuoi ripristinare questa sessione nello storico?"
-        : "Vuoi eliminarla definitivamente? Questa azione non si può annullare.",
-    );
+    const confirmed = await confirmDialog({
+      title: action === "restore" ? "Ripristinare la sessione?" : "Eliminare definitivamente?",
+      message: action === "restore" ? "La sessione tornerà nello storico." : "Questa azione non può essere annullata.",
+      confirmLabel: action === "restore" ? "Ripristina" : "Elimina per sempre",
+      tone: action === "restore" ? "success" : "danger",
+    });
     if (!confirmed) return;
 
     setPending(action);

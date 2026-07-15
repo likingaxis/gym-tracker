@@ -5,6 +5,7 @@ import { AlertTriangle, Bot, Check, CheckCircle2, ChevronDown, Eye, FileJson, Re
 import { Button } from "@/components/ui/Button";
 import { parseWorkoutPlanJson } from "@/lib/import/parseJson";
 import { formatDayCount, formatExerciseCount } from "@/lib/utils/copy";
+import { useAppDialog } from "@/components/ui/AppDialogProvider";
 
 type ImportMessage = { path: string; message: string };
 type ImportMode = "ai" | "json";
@@ -38,6 +39,7 @@ async function readJsonResponse(response: Response) {
 }
 
 export function ImportUploader() {
+  const { confirmDialog } = useAppDialog();
   const [mode, setMode] = useState<ImportMode>("ai");
   const [fileName, setFileName] = useState<string>();
   const [preview, setPreview] = useState<ImportPreview>();
@@ -116,7 +118,10 @@ export function ImportUploader() {
 
   async function importPlan() {
     if (!cleanJson) return;
-    if (makeActivePlan && !window.confirm("La scheda attuale verrà archiviata. Continuare?")) return;
+    if (makeActivePlan) {
+      const accepted = await confirmDialog({ title: "Attivare la nuova scheda?", message: "La scheda attuale verrà archiviata e resterà consultabile nello storico.", confirmLabel: "Importa e attiva" });
+      if (!accepted) return;
+    }
 
     setStatus("Importazione in corso");
     setIsImporting(true);

@@ -67,9 +67,10 @@ export default async function ProgressPage() {
 
   return (
     <div className="space-y-7">
-      <header>
-        <p className="technical-label">Progressi</p>
-        <h1 className="page-title mt-1">Rapporto tecnico</h1>
+      <header className="statistics-hero">
+        <p className="technical-label text-gym-accent">Statistiche</p>
+        <h1 className="mt-3 text-4xl font-extrabold leading-none">Rapporto tecnico</h1>
+        <p className="mt-3 text-base text-gym-muted">Prestazioni, frequenza e carichi in un’unica vista.</p>
       </header>
 
       <section className={primaryImprovement ? "insight-hero insight-growth" : primaryStall ? "insight-hero insight-warning" : "insight-hero"}>

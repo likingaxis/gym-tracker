@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
+import { useAppDialog } from "@/components/ui/AppDialogProvider";
 
 type PinSettingsProps = {
   profile: {
@@ -28,6 +29,7 @@ function cleanPin(value: string) {
 
 export function PinSettings({ profile }: PinSettingsProps) {
   const router = useRouter();
+  const { confirmDialog } = useAppDialog();
   const [pinEnabled, setPinEnabled] = useState(Boolean(profile.pin_enabled));
   const [currentPin, setCurrentPin] = useState("");
   const [newPin, setNewPin] = useState("");
@@ -68,7 +70,8 @@ export function PinSettings({ profile }: PinSettingsProps) {
 
   async function deletePin(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!confirm("Vuoi rimuovere il PIN da questo profilo?")) return;
+    const accepted = await confirmDialog({ title: "Rimuovere il PIN?", message: "Il profilo non richiederà più il codice di accesso su questo dispositivo.", confirmLabel: "Rimuovi PIN", tone: "danger" });
+    if (!accepted) return;
 
     setIsSaving(true);
     setStatus("Rimozione PIN...");

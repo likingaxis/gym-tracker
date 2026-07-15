@@ -20,6 +20,7 @@ import { formatCountdown, formatRestTime } from "@/lib/utils/time";
 import { formatClockTimeFromNow, formatDurationShort } from "@/lib/progress";
 import { AnimatedAccordion } from "@/components/motion/AnimatedAccordion";
 import { ExerciseDbMediaPicker } from "@/components/workout/ExerciseDbMediaPicker";
+import { useAppDialog } from "@/components/ui/AppDialogProvider";
 
 type Exercise = {
   id: string;
@@ -94,6 +95,7 @@ type Props = {
 
 export function WorkoutSessionClient({ day, durationEstimate }: Props) {
   const router = useRouter();
+  const { confirmDialog } = useAppDialog();
   const [exercises, setExercises] = useState<Exercise[]>(day.exercises);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<Record<string, ExerciseDraft>>({});
@@ -558,7 +560,12 @@ export function WorkoutSessionClient({ day, durationEstimate }: Props) {
 
   async function deleteSessionToTrash() {
     if (!sessionId) return;
-    const confirmed = window.confirm("Vuoi eliminare questo allenamento? Verrà spostato nel cestino e potrai recuperarlo.");
+    const confirmed = await confirmDialog({
+      title: "Eliminare l’allenamento?",
+      message: "La sessione verrà spostata nel cestino e potrà essere ripristinata.",
+      confirmLabel: "Sposta nel cestino",
+      tone: "danger",
+    });
     if (!confirmed) return;
     setCompleting(true);
     setStatus("Sposto nel cestino...");
@@ -578,9 +585,12 @@ export function WorkoutSessionClient({ day, durationEstimate }: Props) {
     if (!sessionId) return;
 
     if (completedSets < totalSets) {
-      const confirmed = window.confirm(
-        `Hai completato ${completedSets}/${totalSets} serie. Vuoi chiudere comunque l'allenamento?`,
-      );
+      const confirmed = await confirmDialog({
+        title: "Chiudere l’allenamento?",
+        message: `Hai completato ${completedSets} di ${totalSets} serie. Le serie mancanti resteranno non completate.`,
+        confirmLabel: "Chiudi comunque",
+        tone: "default",
+      });
       if (!confirmed) return;
     }
 
@@ -670,6 +680,15 @@ export function WorkoutSessionClient({ day, durationEstimate }: Props) {
           </div>
         ) : null}
       </header>
+
+      <div className="workout-progress-anchor">
+        <WorkoutProgressButton
+          progress={progress}
+          completedSets={completedSets}
+          totalSets={totalSets}
+          onClick={() => setProgressOpen(true)}
+        />
+      </div>
 
       <WorkoutProgressSheet
         open={progressOpen}
@@ -780,8 +799,8 @@ function WorkoutProgressButton({
       type="button"
       onClick={onClick}
       whileTap={reduceMotion ? undefined : { scale: 0.96 }}
-      className="relative flex h-16 w-16 shrink-0 items-center justify-center rounded-xl border border-gym-line bg-gym-active text-center"
-      aria-label="Apri dettaglio andamento allenamento"
+      className="relative flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border border-gym-accent/35 bg-gym-active text-center shadow-lg shadow-black/35"
+      aria-label={`Apri andamento: ${completedSets} di ${totalSets} serie, ${Math.max(0, totalSets - completedSets)} rimanenti`}
     >
       <svg className="h-12 w-12 -rotate-90" viewBox="0 0 48 48" aria-hidden="true">
         <circle
@@ -810,7 +829,7 @@ function WorkoutProgressButton({
         {isComplete ? "✓" : `${progress}%`}
       </span>
       <span className="sr-only">
-        {completedSets}/{totalSets} serie
+        {completedSets}/{totalSets} serie completate
       </span>
     </motion.button>
   );

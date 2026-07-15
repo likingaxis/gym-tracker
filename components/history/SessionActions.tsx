@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useAppDialog } from "@/components/ui/AppDialogProvider";
 
 type Props = {
   sessionId: string;
@@ -14,6 +15,7 @@ type Action = "pause" | "resume" | "complete" | "delete";
 
 export function SessionActions({ sessionId, workoutDayId, status, compact = false }: Props) {
   const router = useRouter();
+  const { confirmDialog } = useAppDialog();
   const [pendingAction, setPendingAction] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -27,7 +29,8 @@ export function SessionActions({ sessionId, workoutDayId, status, compact = fals
       delete: "Vuoi spostare questa sessione nel cestino? Potrai recuperarla.",
     } as const;
 
-    if (!window.confirm(messages[action])) return;
+    const accepted = await confirmDialog({ title: action === "delete" ? "Spostare nel cestino?" : messages[action], message: action === "delete" ? "La sessione potrà essere ripristinata dal cestino." : undefined, confirmLabel: action === "delete" ? "Sposta nel cestino" : "Conferma", tone: action === "delete" ? "danger" : "default" });
+    if (!accepted) return;
 
     setPendingAction(action);
 

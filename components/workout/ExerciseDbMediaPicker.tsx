@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Check, ImageOff, RefreshCw, Search, X } from "lucide-react";
+import { useAppDialog } from "@/components/ui/AppDialogProvider";
 
 type Candidate = {
   exercise_db_id: string;
@@ -51,6 +52,7 @@ export function ExerciseDbMediaPicker({
   currentExerciseDbId,
   onSaved,
 }: Props) {
+  const { confirmDialog } = useAppDialog();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState(exerciseName);
   const [results, setResults] = useState<Candidate[]>([]);
@@ -122,7 +124,7 @@ export function ExerciseDbMediaPicker({
   }
 
   async function removeMedia() {
-    const confirmed = window.confirm("Rimuovere la GIF da questo esercizio?");
+    const confirmed = await confirmDialog({ title: "Rimuovere la GIF?", message: "L’esercizio resterà disponibile senza media. Potrai scegliere una nuova GIF in seguito.", confirmLabel: "Rimuovi GIF", tone: "danger" });
     if (!confirmed) return;
 
     setSavingId("remove");

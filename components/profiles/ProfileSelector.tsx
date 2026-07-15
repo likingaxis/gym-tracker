@@ -120,14 +120,14 @@ export function ProfileSelector({ initialProfiles }: { initialProfiles: Profile[
             <button
               key={profile.id}
               onClick={() => handleProfileClick(profile)}
-              className="relative min-h-[116px] rounded-lg border border-gym-line bg-gym-panel p-4 text-left transition hover:border-gym-accent/40 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gym-accent"
+              className="profile-tile relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gym-accent"
             >
               {profile.pin_enabled ? (
                 <span className="absolute right-3 top-3 rounded-lg border border-gym-line bg-gym-bg p-2 text-gym-accent">
                   <LockKeyhole size={16} />
                 </span>
               ) : null}
-              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-white/10 text-2xl">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10 text-3xl">
                 {profile.avatar_emoji || "🏋️"}
               </div>
               <p className="mt-3 text-xl font-extrabold leading-none">{profile.name}</p>

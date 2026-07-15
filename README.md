@@ -1,8 +1,8 @@
-# Gym Tracker App v0.26.4
+# Gym Tracker App v0.26.6
 
 PWA mobile-first per schede palestra personali, allenamenti guidati, storico, analytics, import AI, editor e gestione multi-scheda.
 
-## Focus v0.26.4
+## Focus v0.26.6
 
 Questa versione applica un pass completo di **chiarezza UX, affordance e basso carico cognitivo** alla direzione “Officina di precisione”.
 
@@ -59,7 +59,7 @@ Se tutto funziona:
 
 ```powershell
 git add .
-git commit -m "v0.26.4 UX clarity and affordance"
+git commit -m "v0.26.6 fix widget player dialogs"
 git push
 ```
 
@@ -72,3 +72,20 @@ GEMINI_MODEL=gemini-2.5-flash
 ```
 
 Le chiavi AI devono restare esclusivamente server-side e non devono iniziare con `NEXT_PUBLIC_`.
+
+
+## v0.26.5
+- Ripristinato il widget flottante di avanzamento durante l’allenamento.
+- Mini-player semplificato con icone pausa/riprendi e cestino.
+- Sostituiti gli alert JavaScript con dialoghi centrali coerenti.
+- Migliorata la gerarchia visiva di Profili, Statistiche e Impostazioni.
+
+
+## v0.26.6
+- Ripristinato il widget progresso con posizione e comportamento della versione originale.
+- Rimossa l’etichetta flottante che interferiva con le card durante lo scroll.
+- Corretto il pannello Andamento e rimosso un blocco di proprietà duplicato.
+- Mini-player ricostruito con contrasto elevato, testo leggibile e sole icone per pausa/riprendi e cestino.
+- Dialoghi renderizzati tramite portal direttamente nel body, sempre centrati nel viewport.
+- Blocco dello scroll, chiusura con Escape e focus automatico sull’azione principale.
+- Corretto un selettore CSS duplicato nella sezione profili.

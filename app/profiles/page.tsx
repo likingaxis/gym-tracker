@@ -21,10 +21,12 @@ export default async function ProfilesPage() {
 
   return (
     <div className="space-y-6 py-6">
+      <section className="profile-stage">
       <header className="text-center">
         <p className="technical-label">Profili</p>
         <h1 className="page-title mt-2">Chi si allena?</h1>
       </header>
+      </section>
       <ProfileSelector initialProfiles={profiles} />
     </div>
   );

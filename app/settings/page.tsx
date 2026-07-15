@@ -1,9 +1,9 @@
 export const dynamic = "force-dynamic";
 
 import Link from "next/link";
-import { DatabaseBackup, FileText, Shield, UserRound } from "lucide-react";
+import type { ReactNode } from "react";
+import { Archive, ChevronRight, DatabaseBackup, FileText, Shield, UserRound } from "lucide-react";
 import { redirect } from "next/navigation";
-import { Card } from "@/components/ui/Card";
 import { PinSettings } from "@/components/profiles/PinSettings";
 import { DataManagement } from "@/components/settings/DataManagement";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
@@ -28,70 +28,73 @@ export default async function SettingsPage() {
   if (!profile) redirect("/profiles");
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <header>
-        <p className="text-sm font-semibold text-gym-info">Impostazioni</p>
-        <h1 className="mt-2 text-3xl font-extrabold">App e dati</h1>
-        <p className="mt-2 text-gym-muted">{profile.avatar_emoji || "🏋️"} {profile.name}</p>
+        <p className="technical-label">Impostazioni</p>
+        <h1 className="page-title mt-1">App e dati</h1>
+        <p className="page-subtitle">{profile.avatar_emoji || "🏋️"} {profile.name}</p>
       </header>
 
-      <Card>
-        <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white/10 text-slate-300"><UserRound size={18} /></div>
-          <div>
-            <p className="text-sm font-semibold text-gym-info">Profilo</p>
-            <h2 className="mt-1 text-xl font-extrabold">Gestisci profili</h2>
-            <p className="mt-2 text-sm text-gym-muted">Separa schede e storico per ogni utente.</p>
+      <section className="section-block border-t-0 pt-0">
+        <p className="technical-label">Profilo</p>
+        <div className="mt-3 divide-y divide-gym-line rounded-lg border border-gym-line bg-gym-panel">
+          <SettingsLink href="/profiles" icon={<UserRound size={18} />} title="Gestisci profili" description="Profilo attivo e accesso." />
+          <div className="p-4">
+            <div className="mb-3 flex items-center gap-3">
+              <div className="icon-action"><Shield size={18} /></div>
+              <div>
+                <h2 className="font-extrabold text-gym-soft">PIN profilo</h2>
+                <p className="text-sm text-gym-muted">{profile.pin_enabled ? "Attivo" : "Non attivo"}</p>
+              </div>
+            </div>
+            <PinSettings profile={profile} />
           </div>
         </div>
-        <Link href="/profiles" className="mt-4 inline-block w-full rounded-2xl bg-white/10 px-4 py-3 text-center text-sm font-extrabold text-slate-100">Apri profili</Link>
-      </Card>
+      </section>
 
-      <Card>
-        <div className="mb-4 flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/10 text-slate-300"><Shield size={18} /></div>
-          <div>
-            <p className="text-sm font-semibold text-gym-info">Sicurezza</p>
-            <h2 className="mt-1 text-xl font-extrabold">PIN profilo</h2>
-          </div>
+      <section className="section-block">
+        <p className="technical-label">Schede</p>
+        <div className="mt-3 divide-y divide-gym-line rounded-lg border border-gym-line bg-gym-panel">
+          <SettingsLink href="/import" icon={<FileText size={18} />} title="Importa nuova scheda" description="Carica e attiva un nuovo programma." strong />
+          <SettingsLink href="/workout/archive" icon={<Archive size={18} />} title="Schede archiviate" description="Consulta programmi precedenti." />
         </div>
-        <div className="mt-4">
-          <PinSettings profile={profile} />
-        </div>
-      </Card>
+      </section>
 
-      <Card>
-        <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white/10 text-slate-300"><FileText size={18} /></div>
-          <div>
-            <p className="text-sm font-semibold text-gym-info">Scheda</p>
-            <h2 className="mt-1 text-xl font-extrabold">Scheda mensile</h2>
-            <p className="mt-2 text-sm text-gym-muted">Carica il nuovo JSON quando cambia la scheda.</p>
+      <section className="section-block">
+        <p className="technical-label">Dati</p>
+        <div className="mt-3 rounded-lg border border-gym-line bg-gym-panel p-4">
+          <div className="mb-4 flex items-center gap-3">
+            <div className="icon-action"><DatabaseBackup size={18} /></div>
+            <div>
+              <h2 className="font-extrabold text-gym-soft">Backup e manutenzione</h2>
+              <p className="text-sm text-gym-muted">Esporta, ripristina o elimina dati.</p>
+            </div>
           </div>
-        </div>
-        <Link href="/import" className="mt-4 inline-block w-full rounded-2xl bg-gym-accent px-4 py-3 text-center text-sm font-extrabold text-slate-950">Importa nuova scheda</Link>
-      </Card>
-
-      <Card variant="info">
-        <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-sky-400/15 text-sky-200"><DatabaseBackup size={18} /></div>
-          <div>
-            <p className="text-sm font-semibold text-gym-info">Backup</p>
-            <h2 className="mt-1 text-xl font-extrabold">I tuoi dati</h2>
-            <p className="mt-2 text-sm text-gym-muted">Scarica una copia prima di fare reset.</p>
-          </div>
-        </div>
-        <div className="mt-4">
           <DataManagement profileName={profile.name} />
         </div>
-      </Card>
+      </section>
 
-      <Card>
-        <p className="text-sm font-semibold text-gym-info">Info app</p>
-        <h2 className="mt-1 text-xl font-extrabold">Gym Tracker</h2>
-        <p className="mt-2 text-gym-muted">Versione app: v0.22.3</p>
-        <p className="mt-1 text-sm text-gym-muted">Polish UI e testi più puliti.</p>
-      </Card>
+      <section className="section-block">
+        <p className="technical-label">Info</p>
+        <div className="mt-3 rounded-lg border border-gym-line bg-gym-panel p-4">
+          <h2 className="font-extrabold text-gym-soft">Gym Tracker</h2>
+          <p className="mt-1 text-sm text-gym-muted">Versione app: v0.26.4</p>
+          <p className="mt-1 text-xs text-gym-muted">UX clarity, affordance e leggibilità.</p>
+        </div>
+      </section>
     </div>
+  );
+}
+
+function SettingsLink({ href, icon, title, description, strong }: { href: string; icon: ReactNode; title: string; description: string; strong?: boolean }) {
+  return (
+    <Link href={href} className="flex items-center gap-3 p-4 transition active:scale-[0.99]">
+      <div className={strong ? "icon-action border-gym-accent/40 bg-gym-accent/15 text-gym-accent" : "icon-action"}>{icon}</div>
+      <div className="min-w-0 flex-1">
+        <h2 className="font-extrabold text-gym-soft">{title}</h2>
+        <p className="mt-1 text-sm text-gym-muted">{description}</p>
+      </div>
+      <ChevronRight size={18} className="text-gym-muted" />
+    </Link>
   );
 }

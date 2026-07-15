@@ -1,7 +1,6 @@
 export const dynamic = "force-dynamic";
 
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import { ImportUploader } from "@/components/import/ImportUploader";
 import { getSelectedProfileId } from "@/lib/profiles";
 
@@ -10,12 +9,10 @@ export default async function ImportPage() {
   if (!profileId) redirect("/profiles");
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-7">
       <header>
-        <p className="text-sm font-semibold text-gym-info">Carica scheda</p>
-        <h1 className="mt-2 text-3xl font-extrabold">Nuova scheda</h1>
-        <p className="mt-2 text-gym-muted">Genera una scheda da PDF, DOCX, foto o testo. Oppure importa un JSON già pronto.</p>
-        <Link href="/profiles" className="mt-3 inline-block rounded-2xl bg-white/10 px-3 py-2 text-sm font-bold text-slate-200">Cambia profilo</Link>
+        <p className="technical-label">Nuova scheda</p>
+        <h1 className="page-title mt-1">Importa</h1>
       </header>
       <ImportUploader />
     </div>

@@ -3,7 +3,7 @@
 import { clsx } from "clsx";
 import { motion, useReducedMotion } from "framer-motion";
 
-type CardVariant = "default" | "primary" | "subtle" | "active" | "danger" | "info";
+type CardVariant = "default" | "primary" | "subtle" | "active" | "danger" | "info" | "success";
 
 type CardProps = {
   className?: string;
@@ -12,12 +12,13 @@ type CardProps = {
 };
 
 const variants: Record<CardVariant, string> = {
-  default: "border-white/10 bg-gym-card shadow-card",
-  primary: "border-gym-accent/30 bg-gradient-to-br from-gym-active to-gym-card shadow-card",
-  subtle: "border-white/[0.07] bg-white/[0.045] shadow-sm",
-  active: "border-gym-info/25 bg-gym-active shadow-info",
-  danger: "border-red-400/25 bg-red-500/[0.07] shadow-sm",
-  info: "border-gym-info/25 bg-blue-500/[0.08] shadow-info"
+  default: "border-gym-line/70 bg-gym-card",
+  primary: "border-gym-accent/45 bg-gym-raised",
+  subtle: "border-gym-line/45 bg-white/[0.025]",
+  active: "border-gym-accent/45 bg-gym-active",
+  danger: "border-gym-danger/35 bg-gym-danger/10",
+  info: "border-gym-info/30 bg-gym-info/10",
+  success: "border-gym-success/35 bg-gym-success/10"
 };
 
 export function Card({ className, children, variant = "default" }: CardProps) {
@@ -26,8 +27,8 @@ export function Card({ className, children, variant = "default" }: CardProps) {
   return (
     <motion.section
       layout={reduceMotion ? false : true}
-      transition={{ duration: 0.22, ease: "easeOut" }}
-      className={clsx("rounded-3xl border p-4", variants[variant], className)}
+      transition={{ duration: 0.18, ease: "easeOut" }}
+      className={clsx("rounded-lg border p-4", variants[variant], className)}
     >
       {children}
     </motion.section>

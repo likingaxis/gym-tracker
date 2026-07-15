@@ -93,8 +93,8 @@ export default async function HistoryPage({ searchParams }: { searchParams?: Pro
       </header>
 
       <div className="grid grid-cols-2 gap-2 text-sm">
-        <Link href={buildHistoryHref(filter, selectedPlanId)} className="flex items-center justify-center gap-2 rounded-2xl bg-gym-accent px-3 py-3 text-center font-extrabold text-slate-950 shadow-glow"><HistoryIcon size={15} /> Lista</Link>
-        <Link href={buildCalendarHref(selectedPlanId)} className="flex items-center justify-center gap-2 rounded-2xl bg-white/10 px-3 py-3 text-center font-bold text-slate-200"><CalendarDays size={15} /> Calendario</Link>
+        <Link href={buildHistoryHref(filter, selectedPlanId)} className="flex items-center justify-center gap-2 rounded-lg bg-gym-accent px-3 py-3 text-center font-extrabold text-slate-950 "><HistoryIcon size={15} /> Lista</Link>
+        <Link href={buildCalendarHref(selectedPlanId)} className="flex items-center justify-center gap-2 rounded-lg bg-white/10 px-3 py-3 text-center font-bold text-slate-200"><CalendarDays size={15} /> Calendario</Link>
       </div>
 
       <Card variant="subtle" className="p-3">
@@ -104,8 +104,8 @@ export default async function HistoryPage({ searchParams }: { searchParams?: Pro
             <p className="text-gym-muted">{selectedPlan ? selectedPlan.name : "Tutte le schede"} · {formatWorkoutCount(weekSessions.length)} · {formatSetCount(weekSets)}</p>
           </div>
           <details className="relative text-right">
-            <summary className="cursor-pointer rounded-2xl bg-white/10 px-3 py-2 text-xs font-bold text-slate-200">Filtra</summary>
-            <div className="absolute right-0 z-20 mt-2 grid w-44 gap-2 rounded-3xl border border-white/10 bg-gym-panel p-2 shadow-card">
+            <summary className="cursor-pointer rounded-lg bg-white/10 px-3 py-2 text-xs font-bold text-slate-200">Filtra</summary>
+            <div className="absolute right-0 z-20 mt-2 grid w-44 gap-2 rounded-lg border border-white/10 bg-gym-panel p-2 ">
               <FilterLink href={buildHistoryHref("completed", selectedPlanId)} active={filter === "completed"} label="Completati" />
               <FilterLink href={buildHistoryHref("in_progress", selectedPlanId)} active={filter === "in_progress"} label="In corso" />
               <FilterLink href={buildHistoryHref("paused", selectedPlanId)} active={filter === "paused"} label="In pausa" />
@@ -193,8 +193,8 @@ function FilterLink({ href, active, label }: { href: string; active: boolean; la
       href={href}
       className={
         active
-          ? "rounded-2xl bg-gym-accent px-3 py-2 text-center text-xs font-extrabold text-slate-950"
-          : "rounded-2xl bg-white/10 px-3 py-2 text-center text-xs font-bold text-slate-200"
+          ? "rounded-lg bg-gym-accent px-3 py-2 text-center text-xs font-extrabold text-slate-950"
+          : "rounded-lg bg-white/10 px-3 py-2 text-center text-xs font-bold text-slate-200"
       }
     >
       {label}
@@ -208,8 +208,8 @@ function PlanChip({ href, active, label, color, status }: { href: string; active
       href={href}
       className={
         active
-          ? "min-w-max rounded-2xl bg-gym-accent px-3 py-2 text-xs font-extrabold text-slate-950"
-          : "min-w-max rounded-2xl bg-white/10 px-3 py-2 text-xs font-bold text-slate-200"
+          ? "min-w-max rounded-lg bg-gym-accent px-3 py-2 text-xs font-extrabold text-slate-950"
+          : "min-w-max rounded-lg bg-white/10 px-3 py-2 text-xs font-bold text-slate-200"
       }
     >
       <span className="inline-flex items-center gap-2">

@@ -103,20 +103,20 @@ export default async function CalendarHistoryPage({ searchParams }: { searchPara
 
   return (
     <div className="space-y-5">
-      <header className="rounded-[2rem] border border-white/10 bg-gradient-to-br from-gym-card to-gym-panel p-5">
+      <header className="rounded-[2rem] border border-white/10 bg-gym-panel p-5">
         <p className="text-sm font-semibold text-gym-info">Calendario</p>
         <h1 className="mt-2 text-3xl font-extrabold">Allenamenti</h1>
         <p className="mt-2 text-sm text-gym-muted">Ogni pallino indica la scheda usata in quel giorno.</p>
       </header>
 
       <div className="grid grid-cols-2 gap-2 text-sm">
-        <Link href={buildHistoryHref(selectedPlanId)} className="rounded-2xl bg-white/10 px-3 py-3 text-center font-bold text-slate-200">Lista</Link>
-        <Link href={buildCalendarHref(month, selectedDay, selectedPlanId)} className="rounded-2xl bg-gym-accent px-3 py-3 text-center font-extrabold text-slate-950 shadow-glow">Calendario</Link>
+        <Link href={buildHistoryHref(selectedPlanId)} className="rounded-lg bg-white/10 px-3 py-3 text-center font-bold text-slate-200">Lista</Link>
+        <Link href={buildCalendarHref(month, selectedDay, selectedPlanId)} className="rounded-lg bg-gym-accent px-3 py-3 text-center font-extrabold text-slate-950 ">Calendario</Link>
       </div>
 
       <Card className="border-gym-accent/20">
         <div className="flex items-center justify-between gap-3">
-          <Link href={buildCalendarHref(previousMonth, undefined, selectedPlanId)} className="rounded-2xl bg-white/10 p-3 text-slate-200" aria-label="Mese precedente">
+          <Link href={buildCalendarHref(previousMonth, undefined, selectedPlanId)} className="rounded-lg bg-white/10 p-3 text-slate-200" aria-label="Mese precedente">
             <ChevronLeft size={20} />
           </Link>
           <div className="text-center">
@@ -124,7 +124,7 @@ export default async function CalendarHistoryPage({ searchParams }: { searchPara
             <h2 className="text-2xl font-extrabold capitalize">{formatMonthTitle(month)}</h2>
             <p className="mt-1 text-xs text-gym-muted">{selectedPlan ? selectedPlan.name : "Tutte le schede"}</p>
           </div>
-          <Link href={buildCalendarHref(nextMonth, undefined, selectedPlanId)} className="rounded-2xl bg-white/10 p-3 text-slate-200" aria-label="Mese successivo">
+          <Link href={buildCalendarHref(nextMonth, undefined, selectedPlanId)} className="rounded-lg bg-white/10 p-3 text-slate-200" aria-label="Mese successivo">
             <ChevronRight size={20} />
           </Link>
         </div>
@@ -191,7 +191,7 @@ export default async function CalendarHistoryPage({ searchParams }: { searchPara
 
       <Card>
         <div className="flex items-center gap-3">
-          <div className="rounded-2xl bg-white/10 p-3 text-gym-accent"><CalendarDays size={22} /></div>
+          <div className="rounded-lg bg-white/10 p-3 text-gym-accent"><CalendarDays size={22} /></div>
           <div>
             <p className="text-xs font-semibold text-gym-info">Giorno selezionato</p>
             <h2 className="text-2xl font-extrabold capitalize">{formatFullDate(selectedDay)}</h2>
@@ -199,13 +199,13 @@ export default async function CalendarHistoryPage({ searchParams }: { searchPara
         </div>
 
         {selectedSessions.length === 0 ? (
-          <p className="mt-4 rounded-3xl bg-black/20 p-4 text-sm text-gym-muted">Nessun allenamento registrato in questo giorno.</p>
+          <p className="mt-4 rounded-lg bg-black/20 p-4 text-sm text-gym-muted">Nessun allenamento registrato in questo giorno.</p>
         ) : (
           <div className="mt-4 space-y-3">
             {selectedSessions.map((session) => {
               const summary = getSessionSummary(session as any);
               return (
-                <Link key={session.id} href={`/history/${session.id}`} className="block rounded-3xl border border-white/10 bg-black/20 p-4 transition active:scale-[0.99]">
+                <Link key={session.id} href={`/history/${session.id}`} className="block rounded-lg border border-white/10 bg-black/20 p-4 transition active:scale-[0.99]">
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className={`text-xs font-bold uppercase ${getStatusText(session.status)}`}>{getStatusLabel(session.status)}</p>
@@ -247,7 +247,7 @@ function buildMonthStats(sessions: CalendarSession[]) {
 
 function MiniStat({ label, value, hint }: { label: string; value: string; hint: string }) {
   return (
-    <div className="rounded-2xl bg-black/20 p-3">
+    <div className="rounded-lg bg-black/20 p-3">
       <p className="text-gym-muted">{label}</p>
       <p className="mt-1 truncate text-base font-extrabold text-slate-100">{value}</p>
       <p className="text-[0.65rem] text-slate-500">{hint}</p>
@@ -265,8 +265,8 @@ function PlanChip({ href, active, label, color, status }: { href: string; active
       href={href}
       className={
         active
-          ? "min-w-max rounded-2xl bg-gym-accent px-3 py-2 text-xs font-extrabold text-slate-950"
-          : "min-w-max rounded-2xl bg-white/10 px-3 py-2 text-xs font-bold text-slate-200"
+          ? "min-w-max rounded-lg bg-gym-accent px-3 py-2 text-xs font-extrabold text-slate-950"
+          : "min-w-max rounded-lg bg-white/10 px-3 py-2 text-xs font-bold text-slate-200"
       }
     >
       <span className="inline-flex items-center gap-2">
@@ -407,8 +407,8 @@ function getStatusText(status: string) {
 }
 
 function getDayClass(inMonth: boolean, selected: boolean, today: boolean, hasSessions: boolean) {
-  const base = "flex min-h-14 flex-col items-center justify-center rounded-2xl border text-center transition active:scale-[0.98]";
-  if (selected) return `${base} border-gym-accent bg-gym-accent text-slate-950 shadow-glow`;
+  const base = "flex min-h-14 flex-col items-center justify-center rounded-lg border text-center transition active:scale-[0.98]";
+  if (selected) return `${base} border-gym-accent bg-gym-accent text-slate-950 `;
   if (hasSessions) return `${base} border-gym-accent/30 bg-gym-accent/10 text-slate-100`;
   if (today) return `${base} border-white/20 bg-white/10 text-slate-100`;
   if (!inMonth) return `${base} border-transparent bg-transparent text-slate-700`;

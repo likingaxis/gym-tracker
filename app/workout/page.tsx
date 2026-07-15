@@ -2,9 +2,7 @@ export const dynamic = "force-dynamic";
 
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { BadgeCheck, CheckCircle2, Circle, Dumbbell, Pencil, PlayCircle, Repeat2 } from "lucide-react";
-import { Card } from "@/components/ui/Card";
-import { Button } from "@/components/ui/Button";
+import { Archive, BadgeCheck, CheckCircle2, ChevronRight, Dumbbell, Pencil, Play } from "lucide-react";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getSelectedProfileId } from "@/lib/profiles";
 import { type SessionLike } from "@/lib/progress";
@@ -49,23 +47,16 @@ export default async function WorkoutIndexPage() {
   const profileId = await getSelectedProfileId();
   if (!profileId) redirect("/profiles");
 
-  const [plan, sessions] = await Promise.all([
-    getActivePlan(profileId),
-    getCompletedSessions(profileId),
-  ]);
+  const [plan, sessions] = await Promise.all([getActivePlan(profileId), getCompletedSessions(profileId)]);
 
   if (!plan) {
     return (
-      <div className="space-y-5">
+      <div className="space-y-6">
         <header>
-          <p className="text-sm font-semibold text-gym-info">Scheda</p>
-          <h1 className="mt-2 text-3xl font-extrabold">Nessuna scheda</h1>
+          <p className="technical-label">Scheda</p>
+          <h1 className="page-title mt-1">Nessun programma</h1>
         </header>
-        <Card>
-          <h2 className="text-2xl font-extrabold">Carica la tua scheda</h2>
-          <p className="mt-2 text-gym-muted">Importa il JSON della tua scheda per iniziare.</p>
-          <Link href="/import"><Button className="mt-4 w-full">Importa scheda</Button></Link>
-        </Card>
+        <Link href="/import" className="primary-link">Importa scheda</Link>
       </div>
     );
   }
@@ -76,68 +67,65 @@ export default async function WorkoutIndexPage() {
   const exerciseCount = days.reduce((total: number, day: any) => total + (day.exercises?.length ?? 0), 0);
 
   return (
-    <div className="space-y-5">
-      <header className="space-y-3">
-        <div className="flex items-start gap-3">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gym-info/15 text-gym-info">
-            <Dumbbell size={22} />
-          </div>
-          <div className="min-w-0">
-            <p className="text-sm font-semibold text-gym-info">Scheda</p>
-            <h1 className="mt-1 text-3xl font-extrabold">{plan.name}</h1>
-            <p className="mt-1 flex items-center gap-2 text-sm text-gym-muted"><span className={`h-2.5 w-2.5 rounded-full ${getPlanDotClass(plan.color)}`} />{formatDayCount(days.length)} · {formatExerciseCount(exerciseCount)}</p>
-            <p className="mt-1 text-xs text-gym-muted">{formatPlanDateRange(plan.start_date, plan.end_date)}</p>
-          </div>
+    <div className="space-y-7">
+      <header>
+        <div className="flex items-center gap-2">
+          <span className={`h-2.5 w-2.5 rounded-full ${getPlanDotClass(plan.color)}`} />
+          <p className="technical-label">Scheda attiva</p>
         </div>
+        <h1 className="page-title mt-2">{plan.name}</h1>
+        <p className="mt-2 text-base text-gym-muted">
+          {formatPlanDateRange(plan.start_date, plan.end_date)} · {formatDayCount(days.length)} · {formatExerciseCount(exerciseCount)}
+        </p>
       </header>
 
-      <div className="grid grid-cols-3 gap-2 text-sm">
-        <Link href="/workout/edit" className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gym-accent px-3 py-3 text-center font-extrabold text-slate-950"><Pencil size={16} /> Modifica</Link>
-        <Link href="/import" className="rounded-2xl bg-white/10 px-3 py-3 text-center font-bold text-slate-200">Importa nuova</Link>
-        <Link href="/workout/archive" className="rounded-2xl bg-white/10 px-3 py-3 text-center font-bold text-slate-200">Archivio</Link>
-      </div>
+      <nav className="grid grid-cols-3 gap-2" aria-label="Azioni scheda">
+        <Link href="/workout/edit" className="secondary-button"><Pencil size={17} /> Modifica</Link>
+        <Link href="/import" className="secondary-button"><Dumbbell size={17} /> Nuova</Link>
+        <Link href="/workout/archive" className="secondary-button"><Archive size={17} /> Archivio</Link>
+      </nav>
 
-      <section className="space-y-3">
-        {days.map((day: any) => {
-          const last = lastByDay.get(day.id);
-          const isRecommended = recommended?.id === day.id;
-          const title = getShortDayName(day);
-          return (
-            <Link key={day.id} href={`/workout/${day.id}`} className="block">
-              <Card variant={isRecommended ? "active" : last ? "default" : "subtle"} className="transition active:scale-[0.99]">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0 flex-1">
-                    <div className="mb-2 flex items-center gap-2">
-                      <p className="text-sm font-semibold text-gym-muted">Giorno {day.day_order}</p>
-                      {isRecommended ? (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-gym-info/15 px-2 py-1 text-[0.7rem] font-bold text-gym-info">
-                          <BadgeCheck size={12} /> Consigliato
-                        </span>
-                      ) : null}
-                    </div>
-                    <h2 className="text-xl font-extrabold leading-tight">{title}</h2>
-                    <div className="mt-3 grid gap-2 text-sm text-gym-muted">
-                      <div className="flex items-center gap-2">
-                        {last ? <CheckCircle2 size={16} className="text-gym-accent" /> : <Circle size={16} className="text-slate-500" />}
-                        <span>{last ? `Ultima volta ${formatDate(last.started_at)}` : "Mai completato"}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Dumbbell size={16} className="text-slate-400" />
-                        <span>{formatExerciseCount(day.exercises?.length ?? 0)}</span>
-                      </div>
-                    </div>
+      <section className="section-block">
+        <div className="mb-3 flex items-end justify-between gap-3">
+          <div>
+            <p className="technical-label">Giorni</p>
+            <h2 className="section-title">Scegli cosa consultare</h2>
+          </div>
+        </div>
+
+        <div className="technical-list">
+          {days.map((day: any) => {
+            const last = lastByDay.get(day.id);
+            const isRecommended = recommended?.id === day.id;
+            return (
+              <article key={day.id} className={`day-row ${isRecommended ? "day-row-recommended" : ""}`}>
+                <Link href={`/workout/${day.id}/preview`} className="min-w-0 flex-1 py-4 pr-3 focus-visible:outline-none">
+                  <div className="flex items-center gap-2">
+                    <span className="mono-type text-xs text-gym-muted">G{day.day_order}</span>
+                    {isRecommended ? <span className="status-pill status-signal"><BadgeCheck size={12} /> Consigliato</span> : null}
                   </div>
-                  <div className="flex shrink-0 flex-col items-end gap-3">
-                    {last ? <Repeat2 size={21} className="text-slate-400" /> : <PlayCircle size={22} className="text-gym-accent" />}
-                    <span className={`rounded-2xl px-3 py-2 text-sm font-extrabold ${last ? "bg-white/10 text-slate-100" : "bg-gym-accent text-slate-950"}`}>
-                      {last ? "Ripeti" : "Inizia"}
+                  <h2 className="mt-2 text-2xl font-extrabold leading-none text-gym-soft">{getShortDayName(day.name)}</h2>
+                  <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-gym-muted">
+                    <span>{formatExerciseCount(day.exercises?.length ?? 0)}</span>
+                    <span className="inline-flex items-center gap-1.5">
+                      {last ? <CheckCircle2 size={15} className="text-gym-success" /> : null}
+                      {last ? `Ultima volta ${formatDate(last.started_at)}` : "Mai completato"}
                     </span>
                   </div>
+                </Link>
+                <div className="flex shrink-0 items-center gap-2">
+                  <Link href={`/workout/${day.id}/preview`} className="touch-icon" aria-label={`Visualizza ${day.name}`}>
+                    <ChevronRight size={20} />
+                  </Link>
+                  <Link href={`/workout/${day.id}`} className="start-button" aria-label={`Inizia ${day.name}`}>
+                    <Play size={17} fill="currentColor" />
+                    <span className="sr-only">Inizia</span>
+                  </Link>
                 </div>
-              </Card>
-            </Link>
-          );
-        })}
+              </article>
+            );
+          })}
+        </div>
       </section>
     </div>
   );
@@ -163,8 +151,8 @@ function getRecommendedDay(days: any[], lastByDay: Map<string, SessionLike>) {
   })[0];
 }
 
-function getShortDayName(day: any) {
-  const raw = String(day.name ?? "Allenamento");
+function getShortDayName(name: string | null | undefined) {
+  const raw = name ?? "Allenamento";
   return raw.replace(/^Giorno\s*\d+\s*[-–—]\s*/i, "") || raw;
 }
 

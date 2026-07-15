@@ -120,18 +120,17 @@ export function ProfileSelector({ initialProfiles }: { initialProfiles: Profile[
             <button
               key={profile.id}
               onClick={() => handleProfileClick(profile)}
-              className="relative rounded-[2rem] border border-white/10 bg-gym-panel p-5 text-center shadow-card transition active:scale-[0.98]"
+              className="relative min-h-[116px] rounded-lg border border-gym-line bg-gym-panel p-4 text-left transition hover:border-gym-accent/40 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gym-accent"
             >
               {profile.pin_enabled ? (
-                <span className="absolute right-3 top-3 rounded-full bg-black/40 p-2 text-gym-accent">
+                <span className="absolute right-3 top-3 rounded-lg border border-gym-line bg-gym-bg p-2 text-gym-accent">
                   <LockKeyhole size={16} />
                 </span>
               ) : null}
-              <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-[2rem] bg-white/10 text-4xl">
+              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-white/10 text-2xl">
                 {profile.avatar_emoji || "🏋️"}
               </div>
-              <p className="mt-3 text-lg font-black">{profile.name}</p>
-              {profile.pin_enabled ? <p className="mt-1 text-xs font-bold text-gym-accent">PIN attivo</p> : null}
+              <p className="mt-3 text-xl font-extrabold leading-none">{profile.name}</p>
             </button>
           ))}
         </section>
@@ -139,7 +138,7 @@ export function ProfileSelector({ initialProfiles }: { initialProfiles: Profile[
         <Card>
           <h2 className="text-xl font-black">Nessun profilo</h2>
           <p className="mt-2 text-gym-muted">
-            Crea il primo profilo per importare la tua scheda e salvare i progressi separatamente.
+            Crea il primo profilo.
           </p>
         </Card>
       )}
@@ -184,9 +183,9 @@ export function ProfileSelector({ initialProfiles }: { initialProfiles: Profile[
         <button
           type="button"
           onClick={() => setShowCreateForm(true)}
-          className="w-full rounded-2xl bg-white/10 px-4 py-4 text-sm font-black text-slate-200"
+          className="secondary-button w-full"
         >
-          + Aggiungi profilo
+          Aggiungi profilo
         </button>
       ) : (
       <Card>
@@ -198,7 +197,7 @@ export function ProfileSelector({ initialProfiles }: { initialProfiles: Profile[
               value={name}
               onChange={(event) => setName(event.target.value)}
               placeholder="Es. Luca"
-              className="mt-2 w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-base text-white outline-none focus:border-gym-accent"
+              className="input mt-2"
             />
           </label>
 
@@ -210,7 +209,7 @@ export function ProfileSelector({ initialProfiles }: { initialProfiles: Profile[
                   key={item}
                   type="button"
                   onClick={() => setAvatar(item)}
-                  className={`rounded-2xl border p-3 text-2xl ${
+                  className={`rounded-lg border p-3 text-2xl ${
                     avatar === item ? "border-gym-accent bg-gym-accent/20" : "border-white/10 bg-black/20"
                   }`}
                 >
@@ -227,7 +226,7 @@ export function ProfileSelector({ initialProfiles }: { initialProfiles: Profile[
       </Card>
       )}
 
-      {status ? <p className="rounded-2xl bg-white/10 p-3 text-sm text-slate-200">{status}</p> : null}
+      {status ? <p className="rounded-lg border border-gym-line bg-gym-panel p-3 text-sm text-slate-200">{status}</p> : null}
     </div>
   );
 }

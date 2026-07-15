@@ -2,9 +2,7 @@ export const dynamic = "force-dynamic";
 
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { CalendarDays, Clock3, Dumbbell, FileText, PlayCircle, Settings, TrendingUp } from "lucide-react";
-import { Card } from "@/components/ui/Card";
-import { Button } from "@/components/ui/Button";
+import { ChevronRight, Clock3, FileText, Play, Settings, TrendingUp } from "lucide-react";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getSelectedProfileId } from "@/lib/profiles";
 import {
@@ -18,7 +16,7 @@ import {
   type SessionLike,
 } from "@/lib/progress";
 import { getDayNameSnapshot, getPlanColorSnapshot, getPlanDotClass, getPlanNameSnapshot } from "@/lib/workoutPlanHistory";
-import { formatDayCount, formatExerciseCount, formatWorkoutCount, formatSetCount } from "@/lib/utils/copy";
+import { formatDayCount, formatExerciseCount, formatSetCount } from "@/lib/utils/copy";
 
 async function getSelectedProfile(profileId: string) {
   try {
@@ -81,12 +79,12 @@ export default async function DashboardPage() {
   const days = [...(plan?.workout_days ?? [])].sort((a: any, b: any) => a.day_order - b.day_order);
   const overview = buildProgressOverview(completedSessions);
   const exercises = buildExerciseProgress(completedSessions);
-  const improvements = getRecentImprovements(exercises);
-  const firstImprovement = improvements[0] ?? null;
+  const firstImprovement = getRecentImprovements(exercises)[0] ?? null;
   const lastSession = completedSessions[0] ?? null;
   const exerciseCount = days.reduce((total: number, day: any) => total + (day.exercises?.length ?? 0), 0);
   const lastByDay = buildLastSessionByDay(completedSessions);
   const recommendedDay = getRecommendedDay(days, lastByDay);
+  const completedThisWeek = new Set((overview.sessionsThisWeek as any[]).map((session) => session.workout_day_id).filter(Boolean));
   const recommendedDuration = recommendedDay
     ? estimateWorkoutDurationFromSessions(
         completedSessions,
@@ -96,121 +94,123 @@ export default async function DashboardPage() {
     : null;
 
   return (
-    <div className="space-y-5">
-      <header className="flex items-start justify-between gap-3">
+    <div className="space-y-7">
+      <header className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-sm font-semibold text-gym-info">Home</p>
-          <h1 className="mt-2 text-3xl font-extrabold">Ciao {profile?.name ?? "atleta"} {profile?.avatar_emoji ?? "🏋️"}</h1>
-          <p className="mt-1 text-sm text-gym-muted">Ultimo workout, progressi e scheda attiva.</p>
+          <p className="technical-label">Settimana {getItalianWeekNumber()}</p>
+          <h1 className="page-title mt-1">Ciao {profile?.name ?? "atleta"}</h1>
         </div>
-        <Link href="/settings" className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/10 text-slate-200" aria-label="Impostazioni">
-          <Settings size={20} />
+        <Link href="/settings" className="touch-icon" aria-label="Apri impostazioni">
+          <Settings size={21} />
         </Link>
       </header>
 
       {!plan ? (
-        <Card variant="primary">
-          <p className="text-sm font-semibold text-gym-info">Scheda</p>
-          <h2 className="mt-2 text-2xl font-extrabold">Carica la tua scheda</h2>
-          <p className="mt-2 text-gym-muted">Importa il JSON creato da ChatGPT per iniziare.</p>
-          <Link href="/import">
-            <Button className="mt-4 w-full py-4">Carica scheda</Button>
-          </Link>
-        </Card>
+        <section className="surface-accent p-5">
+          <span className="status-pill status-signal">Primo passo</span>
+          <h2 className="mt-3 text-3xl font-extrabold leading-none">Carica la tua scheda</h2>
+          <Link href="/import" className="primary-link mt-5">Importa scheda</Link>
+        </section>
       ) : null}
 
       {plan && recommendedDay ? (
-        <Card variant="primary">
-          <div className="flex items-start justify-between gap-4">
-            <div className="min-w-0">
-              <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-2xl bg-gym-accent/15 text-gym-accent"><PlayCircle size={20} /></div>
-              <p className="text-sm font-semibold text-gym-accent">Giorno consigliato</p>
-              <h2 className="mt-1 line-clamp-2 text-2xl font-extrabold">{recommendedDay.name}</h2>
-              <p className="mt-2 text-sm text-gym-muted">
-                {lastByDay.get(recommendedDay.id) ? `Ultima volta ${formatDate(lastByDay.get(recommendedDay.id)?.started_at)}` : "Mai completato"}
-                <span className="mx-2 text-slate-600">·</span>
-                {formatExerciseCount(recommendedDay.exercises?.length ?? 0)}
-                {recommendedDuration?.estimatedSeconds ? (
-                  <>
-                    <span className="mx-2 text-slate-600">·</span>
-                    circa {formatDurationShort(recommendedDuration.estimatedSeconds)}
-                  </>
-                ) : null}
-              </p>
-            </div>
+        <section className="surface-accent p-5">
+          <div className="flex items-center justify-between gap-3">
+            <span className="status-pill status-signal">Consigliato</span>
+            <span className="mono-type text-sm text-gym-muted">G{recommendedDay.day_order}</span>
           </div>
-          <Link href={`/workout/${recommendedDay.id}`}>
-            <Button className="mt-4 w-full py-4">Inizia</Button>
-          </Link>
-        </Card>
-      ) : null}
-
-      <div className="grid grid-cols-2 gap-3">
-        {lastSession ? (
-          <Link href={`/history/${lastSession.id}`} className="block">
-            <Card variant="subtle" className="h-full transition active:scale-[0.99]">
-              <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-2xl bg-white/10 text-slate-300"><Clock3 size={16} /></div>
-              <p className="text-sm font-semibold text-gym-muted">Ultimo</p>
-              <h2 className="mt-1 line-clamp-2 text-lg font-extrabold">{getDayNameSnapshot(lastSession)}</h2>
-              <p className="mt-2 flex items-center gap-1.5 text-xs text-gym-muted"><span>{formatDate(lastSession.started_at)}</span><span>·</span><span className={`h-1.5 w-1.5 rounded-full ${getPlanDotClass(getPlanColorSnapshot(lastSession))}`} /><span className="line-clamp-1">{getPlanNameSnapshot(lastSession)}</span></p>
-              <p className="mt-1 text-xs text-gym-muted">{formatSetCount(getSessionSummary(lastSession).completedSets)}</p>
-            </Card>
-          </Link>
-        ) : (
-          <Card variant="subtle" className="h-full">
-            <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-2xl bg-white/10 text-slate-300"><Clock3 size={16} /></div>
-            <p className="text-sm font-semibold text-gym-muted">Ultimo</p>
-            <p className="mt-2 text-sm text-gym-muted">Completa una sessione per vedere lo storico.</p>
-          </Card>
-        )}
-
-        <Link href="/progress" className="block">
-          <Card variant="info" className="h-full transition active:scale-[0.99]">
-            <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-2xl bg-sky-400/15 text-sky-200"><TrendingUp size={16} /></div>
-            <p className="text-sm font-semibold text-gym-info">Progressi</p>
-            {firstImprovement ? (
-              <>
-                <h2 className="mt-1 line-clamp-2 text-lg font-extrabold">+{firstImprovement.diff.toFixed(1).replace(".", ",")} kg</h2>
-                <p className="mt-2 line-clamp-2 text-xs text-gym-muted">su {firstImprovement.name}</p>
-              </>
-            ) : (
-              <>
-                <h2 className="mt-1 text-lg font-extrabold">{overview.sessionsThisWeek.length ? formatWorkoutCount(overview.sessionsThisWeek.length) : "Nessun dato"}</h2>
-                <p className="mt-2 text-xs text-gym-muted">7 giorni</p>
-              </>
-            )}
-          </Card>
-        </Link>
-      </div>
-
-      {plan ? (
-        <Card>
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-2xl bg-white/10 text-slate-300"><FileText size={16} /></div>
-              <p className="text-sm text-gym-muted">Scheda attiva</p>
-              <h2 className="mt-1 line-clamp-2 text-xl font-extrabold">{plan.name}</h2>
-              <p className="text-sm text-gym-muted">{formatDayCount(days.length)} · {formatExerciseCount(exerciseCount)}</p>
-            </div>
-            <Link href="/import" className="shrink-0 rounded-2xl bg-white/10 px-3 py-2 text-xs font-bold text-slate-200">Importa</Link>
+          <h2 className="mt-4 text-4xl font-extrabold leading-[0.95]">{getShortDayName(recommendedDay.name)}</h2>
+          <div className="mt-4 flex flex-wrap gap-x-3 gap-y-1 text-sm text-gym-muted">
+            <span>{lastByDay.get(recommendedDay.id) ? `Ultima volta ${formatDate(lastByDay.get(recommendedDay.id)?.started_at)}` : "Prima sessione"}</span>
+            <span>{formatExerciseCount(recommendedDay.exercises?.length ?? 0)}</span>
+            {recommendedDuration?.estimatedSeconds ? <span>circa {formatDurationShort(recommendedDuration.estimatedSeconds)}</span> : null}
           </div>
-        </Card>
+          <div className="mt-5 grid grid-cols-[1fr_auto] gap-2">
+            <Link href={`/workout/${recommendedDay.id}`} className="primary-link"><Play size={18} fill="currentColor" /> Inizia</Link>
+            <Link href={`/workout/${recommendedDay.id}/preview`} className="secondary-button px-4">Vedi</Link>
+          </div>
+        </section>
       ) : null}
 
       {plan ? (
-        <Card variant="subtle">
-          <div className="mb-3 flex h-8 w-8 items-center justify-center rounded-2xl bg-white/10 text-slate-300"><CalendarDays size={16} /></div>
-          <p className="text-sm font-semibold text-gym-muted">Settimana</p>
-          <div className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
-            <p className="text-xl font-extrabold text-slate-100">{formatWorkoutCount(overview.sessionsThisWeek.length)}</p>
-            <span className="text-gym-muted">·</span>
-            <p className="text-xl font-extrabold text-slate-100">{formatSetCount(overview.totalSetsThisWeek)}</p>
+        <section className="section-block">
+          <div className="flex items-end justify-between gap-3">
+            <div>
+              <p className="technical-label">Questa settimana</p>
+              <h2 className="section-title">{completedThisWeek.size} di {days.length} giorni</h2>
+            </div>
+            <p className="mono-type text-sm text-gym-muted">{formatSetCount(overview.totalSetsThisWeek)}</p>
           </div>
-          <p className="mt-1 text-xs text-gym-muted">da lunedì</p>
-        </Card>
+          <div className="mt-4 grid gap-2" style={{ gridTemplateColumns: `repeat(${Math.max(days.length, 1)}, minmax(0, 1fr))` }}>
+            {days.map((day: any) => {
+              const done = completedThisWeek.has(day.id);
+              const recommended = recommendedDay?.id === day.id;
+              return <div key={day.id} className={`h-2 rounded-full ${done ? "bg-gym-success" : recommended ? "bg-gym-accent" : "bg-gym-line"}`} title={day.name} />;
+            })}
+          </div>
+        </section>
       ) : null}
 
+      <section className="section-block">
+        <div className="technical-list">
+          {lastSession ? (
+            <Link href={`/history/${lastSession.id}`} className="row-link">
+              <span className="semantic-icon semantic-blue"><Clock3 size={19} /></span>
+              <span className="min-w-0 flex-1">
+                <span className="technical-label">Ultima sessione</span>
+                <strong className="mt-1 block truncate text-lg text-gym-soft">{getDayNameSnapshot(lastSession)}</strong>
+                <span className="mt-1 flex items-center gap-2 text-sm text-gym-muted">
+                  {formatDate(lastSession.started_at)} · {formatSetCount(getSessionSummary(lastSession).completedSets)}
+                  <span className={`h-1.5 w-1.5 rounded-full ${getPlanDotClass(getPlanColorSnapshot(lastSession))}`} />
+                  <span className="truncate">{getPlanNameSnapshot(lastSession)}</span>
+                </span>
+              </span>
+              <ChevronRight size={20} className="text-gym-muted" />
+            </Link>
+          ) : (
+            <div className="row-link cursor-default">
+              <span className="semantic-icon semantic-blue"><Clock3 size={19} /></span>
+              <span className="min-w-0 flex-1">
+                <span className="technical-label">Ultima sessione</span>
+                <strong className="mt-1 block text-lg text-gym-soft">Nessun allenamento</strong>
+              </span>
+            </div>
+          )}
 
+          <Link href="/progress" className="row-link">
+            <span className="semantic-icon semantic-green"><TrendingUp size={19} /></span>
+            <span className="min-w-0 flex-1">
+              <span className="technical-label">Progressione</span>
+              {firstImprovement ? (
+                <>
+                  <strong className="mt-1 block text-lg text-gym-soft">{firstImprovement.name}</strong>
+                  <span className="mt-1 block text-sm font-bold text-gym-success">+{firstImprovement.diff.toFixed(1).replace(".", ",")} kg dall’ultima volta</span>
+                </>
+              ) : (
+                <strong className="mt-1 block text-lg text-gym-soft">Dati insufficienti</strong>
+              )}
+            </span>
+            <ChevronRight size={20} className="text-gym-muted" />
+          </Link>
+        </div>
+      </section>
+
+      {plan ? (
+        <section className="section-block">
+          <div className="row-link cursor-default px-0">
+            <span className="semantic-icon semantic-violet"><FileText size={19} /></span>
+            <span className="min-w-0 flex-1">
+              <span className="technical-label">Scheda attiva</span>
+              <strong className="mt-1 block truncate text-lg text-gym-soft">{plan.name}</strong>
+              <span className="mt-1 block text-sm text-gym-muted">{formatDayCount(days.length)} · {formatExerciseCount(exerciseCount)}</span>
+            </span>
+          </div>
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <Link href="/workout" className="secondary-button">Apri scheda</Link>
+            <Link href="/import" className="secondary-button">Importa nuova</Link>
+          </div>
+        </section>
+      ) : null}
     </div>
   );
 }
@@ -235,7 +235,22 @@ function getRecommendedDay(days: any[], lastByDay: Map<string, SessionLike>) {
   })[0];
 }
 
+function getShortDayName(name: string | null | undefined) {
+  const raw = name ?? "Allenamento";
+  return raw.replace(/^Giorno\s*\d+\s*[-–—]\s*/i, "") || raw;
+}
+
 function formatDate(value: string | null | undefined) {
   if (!value) return "-";
   return new Date(value).toLocaleDateString("it-IT", { day: "2-digit", month: "short" });
+}
+
+function getItalianWeekNumber() {
+  const date = new Date();
+  const firstThursday = new Date(date.getFullYear(), 0, 4);
+  const dayOffset = (firstThursday.getDay() + 6) % 7;
+  const weekOne = new Date(firstThursday);
+  weekOne.setDate(firstThursday.getDate() - dayOffset);
+  const diff = date.getTime() - weekOne.getTime();
+  return Math.max(1, Math.ceil((diff / 86400000 + 1) / 7));
 }

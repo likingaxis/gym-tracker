@@ -69,7 +69,7 @@ export default async function WorkoutArchivePage() {
     <div className="space-y-5">
       <header className="space-y-3">
         <div className="flex items-start gap-3">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/10 text-slate-200">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-white/10 text-slate-200">
             <Archive size={22} />
           </div>
           <div>
@@ -81,8 +81,8 @@ export default async function WorkoutArchivePage() {
       </header>
 
       <div className="grid grid-cols-2 gap-2 text-sm">
-        <Link href="/workout" className="rounded-2xl bg-white/10 px-3 py-3 text-center font-bold text-slate-200">Scheda attiva</Link>
-        <Link href="/import" className="rounded-2xl bg-gym-accent px-3 py-3 text-center font-extrabold text-slate-950">Importa nuova</Link>
+        <Link href="/workout" className="rounded-lg bg-white/10 px-3 py-3 text-center font-bold text-slate-200">Scheda attiva</Link>
+        <Link href="/import" className="rounded-lg bg-gym-accent px-3 py-3 text-center font-extrabold text-slate-950">Importa nuova</Link>
       </div>
 
       {plans.length === 0 ? (
@@ -108,7 +108,7 @@ function PlanSection({ title, description, plans, empty }: { title: string; desc
         <h2 className="text-xl font-extrabold">{title}</h2>
         <p className="mt-1 text-sm text-gym-muted">{description}</p>
       </div>
-      {plans.length === 0 ? <p className="rounded-3xl bg-white/5 p-4 text-sm text-gym-muted">{empty ?? "Nessuna scheda."}</p> : null}
+      {plans.length === 0 ? <p className="rounded-lg bg-white/5 p-4 text-sm text-gym-muted">{empty ?? "Nessuna scheda."}</p> : null}
       {plans.map((plan: any) => <PlanCard key={plan.id} plan={plan} />)}
     </section>
   );
@@ -132,7 +132,7 @@ function PlanCard({ plan }: { plan: any }) {
           <p className="mt-1 text-sm text-gym-muted">{formatPlanDateRange(plan.start_date, plan.end_date)}</p>
           <p className="mt-2 text-sm text-slate-300">{formatDayCount(days.length)} · {formatExerciseCount(exerciseCount)} · {formatWorkoutCount(stats.completed)}</p>
         </div>
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white/10 text-slate-300">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white/10 text-slate-300">
           <FileText size={18} />
         </div>
       </div>
@@ -145,11 +145,11 @@ function PlanCard({ plan }: { plan: any }) {
 
       <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
         {active ? (
-          <Link href="/workout" className="rounded-2xl bg-white/10 px-3 py-3 text-center font-extrabold text-slate-100">Apri scheda</Link>
+          <Link href="/workout" className="rounded-lg bg-white/10 px-3 py-3 text-center font-extrabold text-slate-100">Apri scheda</Link>
         ) : (
-          <Link href={`/history?plan=${plan.id}`} className="rounded-2xl bg-white/10 px-3 py-3 text-center font-extrabold text-slate-100">Vedi storico</Link>
+          <Link href={`/history?plan=${plan.id}`} className="rounded-lg bg-white/10 px-3 py-3 text-center font-extrabold text-slate-100">Vedi storico</Link>
         )}
-        <Link href={`/history/calendar?plan=${plan.id}`} className="rounded-2xl bg-white/10 px-3 py-3 text-center font-bold text-slate-200">Calendario</Link>
+        <Link href={`/history/calendar?plan=${plan.id}`} className="rounded-lg bg-white/10 px-3 py-3 text-center font-bold text-slate-200">Calendario</Link>
       </div>
     </Card>
   );
@@ -157,7 +157,7 @@ function PlanCard({ plan }: { plan: any }) {
 
 function ArchiveStat({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-2xl bg-black/20 p-3">
+    <div className="rounded-lg bg-black/20 p-3">
       <p className="text-gym-muted">{label}</p>
       <p className="mt-1 text-lg font-extrabold text-slate-100">{value}</p>
     </div>

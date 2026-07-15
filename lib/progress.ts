@@ -437,7 +437,7 @@ export function toDateKey(value: string | null | undefined) {
 
 export function getExerciseTrend(entries: Array<{ averageWeight: number | null }>) {
   const weighted = entries.filter((entry) => entry.averageWeight !== null) as Array<{ averageWeight: number }>;
-  if (weighted.length < 2) return { label: "trend n/d", diff: null as number | null, direction: "flat" as const };
+  if (weighted.length < 2) return { label: "Dati insufficienti", diff: null as number | null, direction: "flat" as const };
   const previous = weighted[weighted.length - 2].averageWeight;
   const current = weighted[weighted.length - 1].averageWeight;
   const diff = current - previous;

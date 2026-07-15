@@ -158,7 +158,7 @@ export function ExerciseDbMediaPicker({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="w-full rounded-2xl bg-white/10 px-4 py-3 text-sm font-extrabold text-slate-100 active:scale-[0.98]"
+        className="secondary-button w-full"
       >
         {hasCurrentMedia ? "Cambia GIF" : "Cerca GIF"}
       </button>
@@ -169,19 +169,19 @@ export function ExerciseDbMediaPicker({
             role="dialog"
             aria-modal="true"
             aria-label="Cambia GIF ExerciseDB"
-            className="max-h-[86dvh] w-full max-w-md overflow-y-auto rounded-[2rem] border border-white/10 bg-gym-panel p-4 shadow-2xl shadow-black/60"
+            className="max-h-[86dvh] w-full max-w-md overflow-y-auto rounded-t-2xl border border-gym-line bg-gym-panel p-4 shadow-2xl shadow-black/60"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-sm font-bold text-gym-info">Media ExerciseDB</p>
+                <p className="technical-label">Media esercizio</p>
                 <h2 className="mt-1 line-clamp-2 text-xl font-extrabold">{exerciseName}</h2>
-                <p className="mt-1 text-xs text-gym-muted">Attuale: {currentLabel}</p>
+                <p className="mt-1 text-sm text-gym-muted">{currentLabel}</p>
               </div>
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="rounded-full bg-white/10 p-2 text-slate-200"
+                className="touch-icon"
                 aria-label="Chiudi"
               >
                 <X size={18} />
@@ -189,14 +189,14 @@ export function ExerciseDbMediaPicker({
             </div>
 
             {hasCurrentMedia ? (
-              <div className="mt-4 flex justify-center rounded-3xl border border-white/10 bg-black/20 p-3">
-                <img src={cleanCurrentMedia} alt={exerciseName} className="h-36 w-36 rounded-2xl object-contain" loading="lazy" />
+              <div className="mt-4 flex justify-center rounded-lg border border-gym-line bg-black/20 p-3">
+                <img src={cleanCurrentMedia} alt={exerciseName} className="h-36 w-36 rounded-lg object-contain" loading="lazy" />
               </div>
             ) : null}
 
             <label className="mt-4 block">
-              <span className="mb-1 block text-xs font-bold text-gym-muted">Cerca nel catalogo</span>
-              <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-black/20 px-3 py-2">
+              <span className="field-label">Cerca nel catalogo</span>
+              <div className="flex items-center gap-2 rounded-lg border border-gym-line bg-black/20 px-3 py-2">
                 <Search size={16} className="text-gym-muted" />
                 <input
                   value={query}
@@ -212,9 +212,9 @@ export function ExerciseDbMediaPicker({
               {results.length > 0 ? results.map((candidate) => {
                 const isCurrent = candidate.exercise_db_id === currentExerciseDbId;
                 return (
-                  <div key={candidate.exercise_db_id} className="rounded-3xl border border-white/10 bg-white/[0.04] p-3">
+                  <div key={candidate.exercise_db_id} className="rounded-lg border border-gym-line bg-white/[0.04] p-3">
                     <div className="flex gap-3">
-                      <img src={candidate.gifUrl} alt={candidate.name} className="h-20 w-20 shrink-0 rounded-2xl bg-black/20 object-contain" loading="lazy" />
+                      <img src={candidate.gifUrl} alt={candidate.name} className="h-20 w-20 shrink-0 rounded-lg bg-black/20 object-contain" loading="lazy" />
                       <div className="min-w-0 flex-1">
                         <p className="line-clamp-2 text-sm font-extrabold text-slate-100">{candidate.name}</p>
                         <p className="mt-1 text-xs text-gym-muted">{formatMeta(candidate)}</p>
@@ -226,8 +226,8 @@ export function ExerciseDbMediaPicker({
                       onClick={() => saveCandidate(candidate)}
                       disabled={Boolean(savingId) || isCurrent}
                       className={isCurrent
-                        ? "mt-3 flex w-full items-center justify-center gap-2 rounded-2xl bg-gym-accent/15 px-4 py-3 text-sm font-extrabold text-gym-accent disabled:opacity-80"
-                        : "mt-3 flex w-full items-center justify-center gap-2 rounded-2xl bg-gym-info px-4 py-3 text-sm font-extrabold text-slate-950 disabled:opacity-60"}
+                        ? "mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-gym-accent/15 px-4 py-3 text-sm font-extrabold text-gym-accent disabled:opacity-80"
+                        : "mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-gym-info px-4 py-3 text-sm font-extrabold text-slate-950 disabled:opacity-60"}
                     >
                       {isCurrent ? <Check size={16} /> : null}
                       {savingId === candidate.exercise_db_id ? "Salvo..." : isCurrent ? "GIF attuale" : "Usa questa GIF"}
@@ -235,7 +235,7 @@ export function ExerciseDbMediaPicker({
                   </div>
                 );
               }) : (
-                <div className="rounded-2xl bg-black/20 p-3 text-sm text-gym-muted">
+                <div className="rounded-lg bg-black/20 p-3 text-sm text-gym-muted">
                   {query.trim().length < 2 ? "Scrivi almeno 2 caratteri." : loading ? "Ricerca..." : "Nessun risultato trovato."}
                 </div>
               )}
@@ -245,12 +245,12 @@ export function ExerciseDbMediaPicker({
               type="button"
               onClick={removeMedia}
               disabled={Boolean(savingId) || !hasCurrentMedia}
-              className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl border border-red-300/20 bg-red-500/10 px-4 py-3 text-sm font-extrabold text-red-100 disabled:opacity-50"
+              className="danger-button mt-4 w-full disabled:opacity-50"
             >
               <ImageOff size={16} /> {savingId === "remove" ? "Rimuovo..." : "Rimuovi GIF"}
             </button>
 
-            {status ? <p className="mt-3 rounded-2xl bg-white/10 p-3 text-sm text-slate-200">{status}</p> : null}
+            {status ? <p className="status-banner mt-3">{status}</p> : null}
           </div>
         </div>
       ) : null}

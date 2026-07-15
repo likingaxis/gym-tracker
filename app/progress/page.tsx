@@ -1,9 +1,9 @@
 export const dynamic = "force-dynamic";
 
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
-import { Activity, BarChart3, CalendarDays, Clock3, Dumbbell, Flame, Target, Trophy, TrendingUp } from "lucide-react";
-import { Card } from "@/components/ui/Card";
+import { AlertTriangle, CalendarDays, ChevronRight, Clock3, Dumbbell, Target, Trophy, TrendingUp } from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getSelectedProfileId } from "@/lib/profiles";
@@ -61,306 +61,195 @@ export default async function ProgressPage() {
   const records = getExerciseRecords(exercises);
   const stalledExercises = getStalledExercises(exercises);
   const topExercise = exercises.find((exercise) => exercise.entries.some((entry) => entry.averageWeight !== null));
-  const latestExercises = exercises
-    .filter((exercise) => exercise.entries.length > 0)
-    .slice(0, 8);
+  const latestExercises = exercises.filter((exercise) => exercise.entries.length > 0).slice(0, 8);
+  const primaryImprovement = improvements[0];
+  const primaryStall = stalledExercises[0];
 
   return (
-    <div className="space-y-5">
-      <header className="rounded-[2rem] border border-white/10 bg-gradient-to-br from-gym-card via-gym-panel to-black p-5 shadow-sm">
-        <p className="text-sm font-semibold text-gym-info">Progressi</p>
-        <h1 className="mt-2 text-3xl font-extrabold">I tuoi miglioramenti</h1>
-        <p className="mt-2 text-gym-muted">Carichi, serie e volume.</p>
+    <div className="space-y-7">
+      <header>
+        <p className="technical-label">Progressi</p>
+        <h1 className="page-title mt-1">Rapporto tecnico</h1>
       </header>
 
-      <Card variant={improvements.length ? "primary" : "subtle"}>
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-sm font-semibold text-gym-info">In crescita</p>
-            {improvements.length ? (
-              <h2 className="mt-2 text-2xl font-extrabold">{improvements[0].name} +{improvements[0].diff.toFixed(1).replace(".", ",")} kg</h2>
-            ) : (
-              <h2 className="mt-2 text-2xl font-extrabold">Ancora pochi dati</h2>
-            )}
-            <p className="mt-2 text-sm text-gym-muted">
-              {improvements.length
-                ? "Dall’ultima volta"
-                : "Registra qualche kg per vedere i trend."}
-            </p>
-          </div>
-          <TrendingUp size={24} className={improvements.length ? "text-gym-accent" : "text-gym-muted"} />
-        </div>
-        {improvements.length > 1 ? (
-          <div className="mt-4 space-y-2">
-            {improvements.slice(1, 3).map((item) => (
-              <div key={item.name} className="flex items-center justify-between gap-3 rounded-2xl bg-black/20 p-3 text-sm">
-                <span className="line-clamp-1 font-bold text-slate-100">{item.name}</span>
-                <span className="shrink-0 rounded-full bg-gym-accent/20 px-3 py-1 font-extrabold text-gym-accent">+{item.diff.toFixed(1).replace(".", ",")} kg</span>
-              </div>
-            ))}
-          </div>
-        ) : null}
-      </Card>
-
-      <section className="grid grid-cols-2 gap-3">
-        <StatCard icon={<CalendarDays size={18} />} label="Allenamenti" value={`${overview.sessionsThisWeek.length}`} hint="da lunedì" />
-        <StatCard icon={<Flame size={18} />} label="Giorni svolti" value={`${consistency.trainingDaysThisWeek}`} hint="questa settimana" />
-        <StatCard icon={<Dumbbell size={18} />} label="Serie" value={`${overview.totalSetsThisWeek}`} hint="da lunedì" />
-        <StatCard icon={<Clock3 size={18} />} label="Durata media" value={formatDurationShort(averageDuration.averageSeconds)} hint={averageDuration.sampleSize ? `${averageDuration.sampleSize} sessioni` : "n/d"} />
+      <section className={primaryImprovement ? "insight-hero insight-growth" : primaryStall ? "insight-hero insight-warning" : "insight-hero"}>
+        {primaryImprovement ? (
+          <>
+            <span className="status-pill status-success"><TrendingUp size={13} /> In crescita</span>
+            <h2 className="mt-4 text-3xl font-extrabold leading-none">{primaryImprovement.name}</h2>
+            <p className="mt-3 text-lg font-bold text-gym-success">+{primaryImprovement.diff.toFixed(1).replace(".", ",")} kg dall’ultima sessione</p>
+          </>
+        ) : primaryStall ? (
+          <>
+            <span className="status-pill status-warning"><AlertTriangle size={13} /> Da monitorare</span>
+            <h2 className="mt-4 text-3xl font-extrabold leading-none">{primaryStall.name}</h2>
+            <p className="mt-3 text-base text-gym-muted">Carico stabile nelle ultime sessioni registrate.</p>
+          </>
+        ) : (
+          <>
+            <span className="status-pill">Dati insufficienti</span>
+            <h2 className="mt-4 text-3xl font-extrabold leading-none">Registra i carichi</h2>
+            <p className="mt-3 text-base text-gym-muted">Servono almeno tre sessioni comparabili.</p>
+          </>
+        )}
       </section>
 
-      <Card className="border-gym-info/20">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-sm font-semibold text-gym-info">Analytics</p>
-            <h2 className="mt-1 text-2xl font-extrabold">Costanza e frequenza</h2>
-            <p className="mt-1 text-sm text-gym-muted">La settimana parte da lunedì: niente streak giornaliera, conta quanti giorni hai davvero svolto.</p>
-          </div>
-          <Target size={22} className="text-gym-info" />
+      <section className="section-block">
+        <p className="technical-label">Questa settimana</p>
+        <div className="metric-grid mt-3">
+          <Metric icon={<CalendarDays size={18} />} label="Giorni" value={`${consistency.trainingDaysThisWeek}`} hint="da lunedì" tone="blue" />
+          <Metric icon={<Dumbbell size={18} />} label="Serie" value={`${overview.totalSetsThisWeek}`} hint="completate" tone="violet" />
+          <Metric icon={<Clock3 size={18} />} label="Durata media" value={formatDurationShort(averageDuration.averageSeconds)} hint={averageDuration.sampleSize ? `${averageDuration.sampleSize} sessioni` : "nessun dato"} tone="orange" />
+          <Metric icon={<Target size={18} />} label="Sessioni" value={`${overview.sessionsThisWeek.length}`} hint="da lunedì" tone="green" />
         </div>
-        <div className="mt-4 grid grid-cols-2 gap-2 text-center text-xs">
-          <div className="rounded-2xl bg-black/20 p-3">
-            <p className="text-gym-muted">Giorni svolti</p>
-            <p className="mt-1 text-2xl font-extrabold text-slate-100">{consistency.trainingDaysThisWeek}</p>
-            <p className="text-gym-muted">da lunedì</p>
-          </div>
-          <div className="rounded-2xl bg-black/20 p-3">
-            <p className="text-gym-muted">Serie svolte</p>
-            <p className="mt-1 text-2xl font-extrabold text-slate-100">{consistency.totalSetsThisWeek}</p>
-            <p className="text-gym-muted">questa settimana</p>
+      </section>
+
+      <section className="section-block">
+        <div className="flex items-end justify-between gap-3">
+          <div>
+            <p className="technical-label">Frequenza</p>
+            <h2 className="section-title">Gruppi allenati</h2>
           </div>
         </div>
         {muscleFrequency.length ? (
-          <div className="mt-4 space-y-2">
-            {muscleFrequency.slice(0, 5).map((item) => (
-              <div key={item.group} className="flex items-center justify-between rounded-2xl bg-white/[0.045] px-3 py-2 text-sm">
-                <span className="font-bold text-slate-100">{item.group}</span>
-                <span className="text-gym-muted">{item.days} giorn{item.days === 1 ? "o" : "i"}</span>
-              </div>
+          <div className="mt-4 space-y-4">
+            {muscleFrequency.slice(0, 6).map((item, index) => (
+              <FrequencyRow key={item.group} label={item.group} value={item.days} max={Math.max(...muscleFrequency.map((entry) => entry.days), 1)} tone={index % 4} />
             ))}
           </div>
         ) : (
-          <p className="mt-4 text-sm text-gym-muted">Completa allenamenti questa settimana per vedere la frequenza muscolare.</p>
+          <p className="mt-3 text-base text-gym-muted">Nessun allenamento completato questa settimana.</p>
         )}
-      </Card>
+      </section>
 
-      {stalledExercises.length ? (
-        <Card>
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-sm font-semibold text-amber-200">Da monitorare</p>
-              <h2 className="mt-1 text-2xl font-extrabold">Esercizi fermi</h2>
-              <p className="mt-1 text-sm text-gym-muted">Esercizi senza crescita chiara nelle ultime 3 sessioni con peso.</p>
-            </div>
+      <section className="section-block">
+        <div className="flex items-end justify-between gap-3">
+          <div>
+            <p className="technical-label">Esercizi</p>
+            <h2 className="section-title">Andamento recente</h2>
           </div>
-          <div className="mt-4 space-y-2">
-            {stalledExercises.map((exercise) => (
-              <Link key={exercise.key} href={`/progress/exercise?key=${encodeURIComponent(exercise.key)}`} className="block rounded-2xl bg-black/20 p-3 transition active:scale-[0.99]">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="font-extrabold text-slate-100">{exercise.name}</p>
-                    <p className="text-xs text-gym-muted">{exercise.muscleGroup} · {exercise.sessions} sessioni</p>
-                  </div>
-                  <span className="rounded-full bg-amber-300/10 px-3 py-1 text-xs font-bold text-amber-100">stabile</span>
-                </div>
-              </Link>
-            ))}
+        </div>
+        {latestExercises.length ? (
+          <div className="technical-list mt-3">
+            {latestExercises.map((exercise) => {
+              const last = exercise.entries[exercise.entries.length - 1];
+              const trend = getExerciseTrend(exercise.entries);
+              return (
+                <Link key={exercise.key} href={`/progress/exercise?key=${encodeURIComponent(exercise.key)}`} className="row-link px-0">
+                  <span className={`trend-mark trend-${trend.direction}`} aria-hidden="true" />
+                  <span className="min-w-0 flex-1">
+                    <strong className="block truncate text-lg text-gym-soft">{exercise.name}</strong>
+                    <span className="mt-1 block text-sm text-gym-muted">{formatShortDate(last?.date)} · {last?.repsLabel || "ripetizioni non registrate"}</span>
+                  </span>
+                  <span className="shrink-0 text-right">
+                    <strong className="block text-lg text-gym-soft">{last?.averageWeight ? `${last.averageWeight.toFixed(1).replace(".", ",")} kg` : "-"}</strong>
+                    <TrendLabel direction={trend.direction} label={trend.label} sessions={exercise.entries.length} />
+                  </span>
+                  <ChevronRight size={19} className="text-gym-muted" />
+                </Link>
+              );
+            })}
           </div>
-        </Card>
-      ) : null}
+        ) : (
+          <EmptyState icon={<Dumbbell size={20} />} title="Nessun esercizio" description="Completa una sessione per iniziare l’analisi." />
+        )}
+      </section>
 
       {records.length ? (
-        <Card>
+        <section className="section-block">
           <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-sm font-semibold text-gym-info">Record</p>
-              <h2 className="mt-1 text-2xl font-extrabold">Migliori carichi</h2>
-            </div>
-            <Trophy size={22} className="text-gym-accent" />
+            <div><p className="technical-label">Record</p><h2 className="section-title">Migliori carichi</h2></div>
+            <Trophy size={22} className="text-gym-warning" />
           </div>
-          <div className="mt-4 space-y-2">
+          <div className="technical-list mt-3">
             {records.slice(0, 5).map((record) => (
-              <Link key={record.key} href={`/progress/exercise?key=${encodeURIComponent(record.key)}`} className="block rounded-2xl bg-black/20 p-3 transition active:scale-[0.99]">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="font-extrabold text-slate-100">{record.name}</p>
-                    <p className="text-xs text-gym-muted">{record.muscleGroup} · {record.sessions} sessioni</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-lg font-extrabold text-slate-100">{record.bestWeight ? `${record.bestWeight.toFixed(1).replace(".", ",")} kg` : "-"}</p>
-                    <p className={record.trend.direction === "up" ? "text-xs font-bold text-gym-accent" : "text-xs text-gym-muted"}>{record.trend.label}</p>
-                  </div>
-                </div>
+              <Link key={record.key} href={`/progress/exercise?key=${encodeURIComponent(record.key)}`} className="row-link px-0">
+                <span className="semantic-icon semantic-orange"><Trophy size={17} /></span>
+                <span className="min-w-0 flex-1"><strong className="block truncate text-gym-soft">{record.name}</strong><span className="mt-1 block text-sm text-gym-muted">{record.sessions} sessioni</span></span>
+                <strong className="text-lg text-gym-soft">{record.bestWeight ? `${record.bestWeight.toFixed(1).replace(".", ",")} kg` : "-"}</strong>
+                <ChevronRight size={19} className="text-gym-muted" />
               </Link>
             ))}
           </div>
-        </Card>
+        </section>
       ) : null}
 
       {topExercise ? (
-        <Card>
+        <section className="section-block">
           <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-sm font-semibold text-gym-info">Grafico</p>
-              <h2 className="mt-1 text-2xl font-extrabold">{topExercise.name}</h2>
-              <p className="text-sm text-gym-muted">Peso medio nelle ultime sessioni.</p>
-            </div>
-            <Link href={`/progress/exercise?key=${encodeURIComponent(topExercise.key)}`} className="rounded-2xl bg-white/10 px-3 py-2 text-xs font-bold text-slate-200">Dettaglio</Link>
+            <div><p className="technical-label">Miglior set comparabile</p><h2 className="section-title">{topExercise.name}</h2></div>
+            <Link href={`/progress/exercise?key=${encodeURIComponent(topExercise.key)}`} className="secondary-button min-h-10 px-3 text-sm">Dettaglio</Link>
           </div>
           <WeightLineChart entries={topExercise.entries.slice(-8)} />
-        </Card>
-      ) : (
-        <EmptyState
-          icon={<BarChart3 size={20} />}
-          title="Ancora pochi dati"
-          description="Registra qualche kg per vedere l’andamento."
-        />
-      )}
+        </section>
+      ) : null}
 
-      <Card className="border-gym-info/20">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-sm font-semibold text-gym-info">Questo mese</p>
-            <h2 className="mt-1 text-2xl font-extrabold">Confronto mese</h2>
+      <section className="section-block">
+        <div><p className="technical-label">Distribuzione</p><h2 className="section-title">Volume muscolare</h2></div>
+        {muscleVolume.length ? (
+          <div className="mt-4 space-y-5">
+            {muscleVolume.slice(0, 8).map((item, index) => (
+              <div key={item.group}>
+                <BarRow label={item.group} value={item.sets} max={muscleGroups[0]?.sets ?? item.sets} tone={index % 4} />
+                <div className="mt-2 flex items-center justify-between text-sm text-gym-muted"><span>{formatCompactNumber(item.volume)} kg</span><span>RPE {formatAverage(item.averageRpe)}</span></div>
+              </div>
+            ))}
           </div>
-        </div>
-        <div className="mt-4 grid grid-cols-3 gap-2 text-center text-xs">
+        ) : <p className="mt-3 text-base text-gym-muted">Nessun dato mensile.</p>}
+      </section>
+
+      <section className="section-block">
+        <p className="technical-label">Questo mese</p>
+        <div className="metric-strip mt-3">
           <DeltaStat label="Allenamenti" value={comparison.currentMonthSessions.length} diff={comparison.sessionDiff} suffix="" />
           <DeltaStat label="Serie" value={comparison.currentSets} diff={comparison.setsDiff} suffix="" />
           <DeltaStat label="Volume" value={Math.round(comparison.currentVolume)} diff={Math.round(comparison.volumeDiff)} suffix=" kg" />
         </div>
-      </Card>
-
-      <Card>
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-sm font-semibold text-gym-info">Gruppi</p>
-            <h2 className="mt-1 text-2xl font-extrabold">Distribuzione</h2>
-          </div>
-        </div>
-        {muscleVolume.length ? (
-          <div className="mt-4 space-y-3">
-            {muscleVolume.slice(0, 8).map((item) => (
-              <div key={item.group} className="rounded-2xl bg-black/20 p-3">
-                <BarRow label={item.group} value={item.sets} max={muscleGroups[0]?.sets ?? item.sets} />
-                <div className="mt-2 flex items-center justify-between text-xs text-gym-muted">
-                  <span>{formatCompactNumber(item.volume)} kg</span>
-                  <span>RPE {formatAverage(item.averageRpe)}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="mt-3 text-gym-muted">I gruppi appariranno dopo qualche allenamento.</p>
-        )}
-      </Card>
-
-      <section className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-extrabold">Ultimi esercizi</h2>
-          <Link href="/history" className="text-sm font-bold text-gym-accent">Storico</Link>
-        </div>
-        {latestExercises.length ? latestExercises.map((exercise) => {
-          const last = exercise.entries[exercise.entries.length - 1];
-          const trend = getExerciseTrend(exercise.entries);
-          return (
-            <Link key={exercise.key} href={`/progress/exercise?key=${encodeURIComponent(exercise.key)}`} className="block">
-              <Card className="transition active:scale-[0.99]">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-xs font-semibold text-gym-muted">{exercise.muscleGroup}</p>
-                    <h3 className="text-xl font-extrabold">{exercise.name}</h3>
-                    <p className="mt-1 text-sm text-gym-muted">Ultima volta {formatShortDate(last?.date)} · {last?.repsLabel || "reps n/d"}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-2xl font-extrabold">{last?.averageWeight ? `${last.averageWeight.toFixed(1).replace(".", ",")} kg` : "-"}</p>
-                    <p className={trend.direction === "up" ? "text-xs font-bold text-gym-accent" : "text-xs text-gym-muted"}>{trend.label}</p>
-                  </div>
-                </div>
-              </Card>
-            </Link>
-          );
-        }) : (
-          <Card>
-            <p className="text-gym-muted">Completa qualche allenamento per vedere gli esercizi recenti.</p>
-          </Card>
-        )}
       </section>
     </div>
   );
 }
 
-function StatCard({ icon, label, value, hint }: { icon: React.ReactNode; label: string; value: string; hint: string }) {
-  return (
-    <Card className="p-3">
-      <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-2xl bg-gym-info/15 text-gym-info">{icon}</div>
-      <p className="text-xs text-gym-muted">{label}</p>
-      <p className="mt-1 text-2xl font-extrabold text-slate-100">{value}</p>
-      <p className="text-xs text-slate-500">{hint}</p>
-    </Card>
-  );
+function Metric({ icon, label, value, hint, tone }: { icon: ReactNode; label: string; value: string; hint: string; tone: "blue" | "green" | "orange" | "violet" }) {
+  return <div className={`metric-cell metric-${tone}`}><span className="metric-icon">{icon}</span><p className="mt-3 text-sm text-gym-muted">{label}</p><p className="mt-1 text-3xl font-extrabold leading-none text-gym-soft">{value}</p><p className="mt-2 text-sm text-gym-muted">{hint}</p></div>;
+}
+
+function FrequencyRow({ label, value, max, tone }: { label: string; value: number; max: number; tone: number }) {
+  const width = Math.max(8, Math.round((value / max) * 100));
+  return <div><div className="mb-2 flex items-center justify-between"><strong className="text-gym-soft">{label}</strong><span className="text-sm text-gym-muted">{value} giorn{value === 1 ? "o" : "i"}</span></div><div className="h-2 overflow-hidden rounded-full bg-gym-line"><div className={`h-full rounded-full bar-tone-${tone}`} style={{ width: `${width}%` }} /></div></div>;
+}
+
+function TrendLabel({ direction, label, sessions }: { direction: string; label: string; sessions: number }) {
+  if (sessions < 3) return <span className="text-sm text-gym-muted">{sessions} session{sessions === 1 ? "e" : "i"}</span>;
+  return <span className={direction === "up" ? "text-sm font-bold text-gym-success" : direction === "down" ? "text-sm font-bold text-gym-danger" : "text-sm font-bold text-gym-warning"}>{label}</span>;
 }
 
 function DeltaStat({ label, value, diff, suffix }: { label: string; value: number; diff: number; suffix: string }) {
-  const positive = diff > 0;
-  const neutral = diff === 0;
   const displayDiff = `${diff > 0 ? "+" : ""}${new Intl.NumberFormat("it-IT", { maximumFractionDigits: 0 }).format(diff)}${suffix}`;
-  return (
-    <div className="rounded-2xl bg-black/20 p-3">
-      <p className="text-gym-muted">{label}</p>
-      <p className="mt-1 text-lg font-extrabold text-slate-100">{formatCompactNumber(value)}{suffix}</p>
-      <p className={positive ? "text-xs font-bold text-gym-accent" : neutral ? "text-xs text-gym-muted" : "text-xs font-bold text-amber-200"}>
-        {displayDiff}
-      </p>
-    </div>
-  );
+  return <div className="p-3 text-center"><p className="text-sm text-gym-muted">{label}</p><p className="mt-1 text-xl font-extrabold text-gym-soft">{formatCompactNumber(value)}{suffix}</p><p className={diff > 0 ? "mt-1 text-sm font-bold text-gym-success" : diff < 0 ? "mt-1 text-sm font-bold text-gym-warning" : "mt-1 text-sm text-gym-muted"}>{displayDiff}</p></div>;
 }
 
-function BarRow({ label, value, max }: { label: string; value: number; max: number }) {
+function BarRow({ label, value, max, tone }: { label: string; value: number; max: number; tone: number }) {
   const width = max > 0 ? Math.max(8, Math.round((value / max) * 100)) : 0;
-  return (
-    <div>
-      <div className="mb-1 flex items-center justify-between text-sm">
-        <span className="font-bold text-slate-200">{label}</span>
-        <span className="text-gym-muted">{value} serie</span>
-      </div>
-      <div className="h-3 overflow-hidden rounded-full bg-white/10">
-        <div className="h-full rounded-full bg-gym-accent" style={{ width: `${width}%` }} />
-      </div>
-    </div>
-  );
+  return <div><div className="mb-2 flex items-center justify-between text-sm"><strong className="text-gym-soft">{label}</strong><span className="text-gym-muted">{value} serie</span></div><div className="h-2 overflow-hidden rounded-full bg-gym-line"><div className={`h-full rounded-full bar-tone-${tone}`} style={{ width: `${width}%` }} /></div></div>;
 }
 
 function WeightLineChart({ entries }: { entries: Array<{ date: string; averageWeight: number | null }> }) {
   const points = entries.filter((entry) => entry.averageWeight !== null) as Array<{ date: string; averageWeight: number }>;
-  if (points.length < 2) {
-    return <p className="mt-4 text-gym-muted">Servono almeno due sessioni con peso numerico per disegnare il grafico.</p>;
-  }
-
+  if (points.length < 2) return <p className="mt-4 text-gym-muted">Servono almeno due sessioni con peso.</p>;
   const values = points.map((entry) => entry.averageWeight);
   const min = Math.min(...values);
   const max = Math.max(...values);
   const range = Math.max(1, max - min);
-  const svgPoints = points.map((entry, index) => {
-    const x = points.length === 1 ? 160 : 20 + (index * 280) / (points.length - 1);
-    const y = 130 - ((entry.averageWeight - min) * 100) / range;
-    return { x, y, ...entry };
-  });
+  const svgPoints = points.map((entry, index) => ({ x: points.length === 1 ? 160 : 20 + (index * 280) / (points.length - 1), y: 130 - ((entry.averageWeight - min) * 100) / range, ...entry }));
   const polyline = svgPoints.map((point) => `${point.x},${point.y}`).join(" ");
-
   return (
-    <div className="mt-4 rounded-3xl bg-black/20 p-3">
-      <svg viewBox="0 0 320 160" className="h-44 w-full" role="img" aria-label="Grafico peso esercizio">
+    <div className="chart-surface mt-4">
+      <svg viewBox="0 0 320 160" className="h-44 w-full" role="img" aria-label="Andamento del peso">
         <line x1="20" y1="130" x2="300" y2="130" stroke="rgba(255,255,255,0.15)" strokeWidth="2" />
         <line x1="20" y1="30" x2="300" y2="30" stroke="rgba(255,255,255,0.08)" strokeWidth="1" />
         <polyline points={polyline} fill="none" stroke="currentColor" strokeWidth="4" className="text-gym-accent" strokeLinecap="round" strokeLinejoin="round" />
-        {svgPoints.map((point) => (
-          <g key={`${point.date}-${point.x}`}>
-            <circle cx={point.x} cy={point.y} r="5" fill="currentColor" className="text-gym-accent" />
-            <text x={point.x} y={point.y - 10} textAnchor="middle" fontSize="10" fill="rgba(226,232,240,0.9)">{point.averageWeight.toFixed(0)}kg</text>
-            <text x={point.x} y="150" textAnchor="middle" fontSize="9" fill="rgba(148,163,184,0.9)">{formatShortDate(point.date)}</text>
-          </g>
-        ))}
+        {svgPoints.map((point) => <g key={`${point.date}-${point.x}`}><circle cx={point.x} cy={point.y} r="5" fill="currentColor" className="text-gym-accent" /><text x={point.x} y={point.y - 10} textAnchor="middle" fontSize="10" fill="rgba(240,241,237,0.9)">{point.averageWeight.toFixed(0)}kg</text><text x={point.x} y="150" textAnchor="middle" fontSize="9" fill="rgba(169,176,173,0.9)">{formatShortDate(point.date)}</text></g>)}
       </svg>
     </div>
   );

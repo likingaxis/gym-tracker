@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/Card";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getSelectedProfileId } from "@/lib/profiles";
 import { firstRelation, relationName } from "@/lib/relations";
+import { getDayNameSnapshot, getPlanColorSnapshot, getPlanDotClass, getPlanNameSnapshot } from "@/lib/workoutPlanHistory";
 import { SessionActions } from "@/components/history/SessionActions";
 import { formatAverage, formatCompactNumber, getSessionSummary } from "@/lib/progress";
 
@@ -16,7 +17,7 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
   const supabase = createServerSupabaseClient();
   const { data: session, error } = await supabase
     .from("workout_sessions")
-    .select("*, workout_plans(name, month), workout_days(name), session_exercises(*, exercises(*), exercise_sets(*))")
+    .select("*, workout_plans(name, month, color), workout_days(name), session_exercises(*, exercises(*), exercise_sets(*))")
     .eq("id", sessionId)
     .eq("profile_id", profileId)
     .single();
@@ -52,8 +53,8 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
     <div className="space-y-5">
       <header>
         <p className="text-sm font-semibold text-gym-info">Dettaglio</p>
-        <h1 className="mt-2 text-3xl font-extrabold">{relationName(session.workout_days, "Allenamento")}</h1>
-        <p className="mt-2 text-gym-muted">{relationName(session.workout_plans, "Scheda")}</p>
+        <h1 className="mt-2 text-3xl font-extrabold">{getDayNameSnapshot(session)}</h1>
+        <p className="mt-2 flex items-center gap-2 text-gym-muted"><span className={`h-2.5 w-2.5 rounded-full ${getPlanDotClass(getPlanColorSnapshot(session))}`} />{getPlanNameSnapshot(session)}</p>
       </header>
 
       <Card>
@@ -65,6 +66,7 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
           <Info label="Volume" value={`${formatCompactNumber(summary.volume)} kg`} />
           <Info label="RPE medio" value={formatAverage(summary.averageRpe)} />
         </div>
+        {session.deleted_at ? <p className="mt-4 rounded-2xl border border-red-400/30 bg-red-500/10 p-3 text-sm text-red-100">Sessione nel cestino dal {new Date(session.deleted_at).toLocaleDateString("it-IT", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}.</p> : null}
         {session.general_notes ? <p className="mt-4 rounded-2xl bg-black/20 p-3 text-sm text-slate-200">{session.general_notes}</p> : null}
       </Card>
 
@@ -110,7 +112,8 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
 
 function getStatusLabel(status: string) {
   if (status === "completed") return "Completato";
-  if (status === "abandoned") return "Annullato";
+  if (status === "abandoned") return "Interrotto";
+  if (status === "paused") return "In pausa";
   return "In corso";
 }
 

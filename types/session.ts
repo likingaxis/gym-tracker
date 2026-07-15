@@ -1,4 +1,4 @@
-export type SessionStatus = "in_progress" | "completed" | "abandoned";
+export type SessionStatus = "in_progress" | "paused" | "completed" | "abandoned";
 
 export type SessionExerciseDraft = {
   exercise_id: string;

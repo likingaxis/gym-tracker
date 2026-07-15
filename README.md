@@ -1,8 +1,84 @@
-# Gym Tracker App v0.24.0
+# Gym Tracker App v0.26.0
+
+PWA mobile-first per gestire schede palestra personali con profili, import scheda, allenamento guidato, storico, progressi, timer, backup, editor scheda e gestione multi-scheda.
+
+## Focus v0.26.0
+
+Questa versione migliora la parte multi-scheda introdotta nella v0.25.0 e la rende piu' visibile in storico, calendario e archivio.
+
+Novita principali:
+
+- filtro storico per singola scheda;
+- storico con chip scheda attiva/archiviata e pallino colore;
+- calendario filtrabile per scheda;
+- calendario con legenda dinamica basata sulle schede realmente presenti nel mese;
+- dettaglio giorno calendario con scheda, giorno e metriche;
+- archivio schede diviso tra attiva e archiviate;
+- archivio con conteggio sessioni completate, aperte e nel cestino per ogni scheda;
+- link rapidi da archivio a storico e calendario della singola scheda.
+
+## Migrazioni
+
+Nessuna nuova migration rispetto alla v0.25.2.
+
+Servono comunque le migration gia' introdotte prima:
+
+```sql
+supabase/migrations/009_workout_plan_history.sql
+supabase/migrations/010_session_trash_pause.sql
+```
+
+## Aggiornamento
+
+Copia questa versione sopra la cartella attuale senza cancellare:
+
+```text
+node_modules
+.env.local
+package-lock.json
+.git
+```
+
+Poi:
+
+```powershell
+npm run dev
+```
+
+Se tutto funziona:
+
+```powershell
+npm run build
+git add .
+git commit -m "v0.26.0 multi plan history calendar"
+git push
+```
+
+---
+
+# Gym Tracker App v0.25.1
 
 PWA mobile-first per gestire schede palestra personali con profili, import scheda, allenamento guidato, storico, progressi, timer e backup.
 
-## Novita v0.24.0
+## Focus v0.25.1
+
+Questa versione introduce la base per gestire più schede nel tempo:
+
+- una scheda attiva per profilo;
+- schede precedenti archiviate invece che eliminate;
+- date, status e colore per ogni scheda;
+- snapshot su ogni sessione per conservare nome scheda e nome giorno originali;
+- storico e calendario con indicatore della scheda usata;
+- nuova pagina Archivio schede.
+
+Prima di usare questa versione su Supabase eseguire la migration:
+
+```sql
+supabase/migrations/009_workout_plan_history.sql
+```
+
+
+## Novita v0.25.1
 
 Questa versione cambia di nuovo la strategia dell'import AI: non passa piu' il CSV enorme completo a Gemini e non usa piu' il catalogo short della v0.23.4 come soluzione separata.
 
@@ -178,7 +254,7 @@ Nessuna nuova dipendenza rispetto alla v0.23.
 - Il backend valida sempre exercise_db_id e copia media_url dal gifUrl ufficiale del catalogo.
 - Nessuna nuova migration Supabase e nessuna nuova dipendenza.
 
-## v0.24.2 - Ricerca ExerciseDB migliorata
+## v0.25.1 - Ricerca ExerciseDB migliorata
 
 - Migliorata la ricerca manuale nella funzione `Cambia GIF` / `Cerca GIF`.
 - Aggiunta espansione query con sinonimi italiani e abbreviazioni da palestra.
@@ -187,7 +263,31 @@ Nessuna nuova dipendenza rispetto alla v0.23.
 - Nessuna nuova migration Supabase e nessuna nuova dipendenza.
 
 
-## v0.24.2
+## v0.25.1
 
 - Spostato il Giorno consigliato nella Home subito dopo il saluto.
 - Corretto errore TypeScript nella ricerca ExerciseDB: chiave `"in piedi"`.
+
+
+## v0.25.1 - Editor scheda base
+
+- Aggiunta pagina `/workout/edit` per modificare la scheda attiva.
+- Modifica nome scheda, mese, date, nome/descrizione giorni.
+- Modifica esercizi: nome, serie, reps, recupero, gruppo, RPE, peso suggerito, note tecniche e trainer notes.
+- Riordino giorni ed esercizi con frecce su/giù.
+- Aggiunta di nuovi giorni e nuovi esercizi.
+- Nessuna eliminazione distruttiva: delete/cestino arriveranno con soft delete per non rompere lo storico.
+- Nessuna nuova migration Supabase.
+
+
+## v0.26.0 - Analytics palestra
+
+- Progressi aggiornati con analytics più utili per la palestra.
+- La costanza ora usa i giorni svolti da lunedì, non la streak di giorni consecutivi.
+- Aggiunta durata media degli allenamenti, calcolata escludendo il tempo in pausa quando disponibile.
+- Aggiunta frequenza muscolare settimanale.
+- Aggiunti esercizi da monitorare quando il carico resta stabile nelle ultime sessioni.
+- Il giorno consigliato mostra una durata stimata.
+- Durante l’allenamento viene mostrata una stima di fine sessione basata sullo storico o, se mancano dati, su serie/recuperi della scheda.
+
+Nessuna nuova migration Supabase rispetto alla v0.25.3.

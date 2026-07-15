@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getSelectedProfileId } from "@/lib/profiles";
 
-// Compatibilità: la vecchia azione "annulla" ora sposta la sessione nel cestino.
 export async function POST(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const profileId = await getSelectedProfileId();
@@ -14,19 +13,16 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
   const supabase = createServerSupabaseClient();
   const { data, error } = await supabase
     .from("workout_sessions")
-    .update({ deleted_at: new Date().toISOString(), deleted_reason: "user", paused_at: null })
+    .update({ deleted_at: null, deleted_reason: null })
     .eq("id", id)
     .eq("profile_id", profileId)
-    .is("deleted_at", null)
+    .not("deleted_at", "is", null)
     .select("id")
     .single();
 
   if (error || !data) {
-    return NextResponse.json(
-      { success: false, error: error?.message ?? "Sessione non trovata." },
-      { status: 404 }
-    );
+    return NextResponse.json({ success: false, error: error?.message ?? "Sessione eliminata non trovata." }, { status: 404 });
   }
 
-  return NextResponse.json({ success: true, session_id: data.id, trashed: true });
+  return NextResponse.json({ success: true });
 }

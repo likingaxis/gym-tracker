@@ -56,7 +56,7 @@ export function ImportUploader() {
   const [cleanJson, setCleanJson] = useState<string>();
   const [isImporting, setIsImporting] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [replaceCurrentPlan, setReplaceCurrentPlan] = useState(true);
+  const [makeActivePlan, setMakeActivePlan] = useState(true);
 
   function resetResult() {
     setStatus(undefined);
@@ -148,9 +148,9 @@ export function ImportUploader() {
     setErrors([]);
 
     try {
-      if (replaceCurrentPlan) {
+      if (makeActivePlan) {
         const confirmed = window.confirm(
-          "Vuoi sostituire la scheda attiva attuale? Questa operazione elimina la scheda attiva precedente e i dati collegati a quella scheda.",
+          "Importando questa scheda, la scheda attiva precedente verrà archiviata. Lo storico rimane collegato alla scheda originale. Procedere?",
         );
         if (!confirmed) {
           setStatus("Import annullato.");
@@ -163,7 +163,7 @@ export function ImportUploader() {
         method: "POST",
         headers: {
           "content-type": "application/json",
-          "x-replace-current-plan": replaceCurrentPlan ? "true" : "false",
+          "x-replace-current-plan": makeActivePlan ? "true" : "false",
         },
         body: cleanJson,
       });
@@ -177,7 +177,7 @@ export function ImportUploader() {
       }
 
       setWarnings(data?.warnings ?? warnings);
-      setStatus(`Scheda importata: ${formatDayCount(data.days_created)}, ${formatExerciseCount(data.exercises_created)}, ${data.exercise_db_matched ?? 0} GIF.`);
+      setStatus(`Scheda importata: ${formatDayCount(data.days_created)}, ${formatExerciseCount(data.exercises_created)}, ${data.exercise_db_matched ?? 0} GIF. ${data.archived_previous_plan ? "Scheda precedente archiviata." : "Scheda salvata in archivio."}`);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Errore di rete sconosciuto";
       setStatus("Importazione non riuscita");
@@ -222,7 +222,7 @@ export function ImportUploader() {
             </div>
           ) : null}
           {fileName ? <p className="mt-3 rounded-2xl bg-black/20 px-3 py-2 text-sm text-slate-200">File: {fileName}</p> : null}
-          <ReplaceCurrentPlanCheckbox checked={replaceCurrentPlan} onChange={setReplaceCurrentPlan} />
+          <MakeActivePlanCheckbox checked={makeActivePlan} onChange={setMakeActivePlan} />
         </Card>
       ) : (
         <Card variant="primary">
@@ -241,7 +241,7 @@ export function ImportUploader() {
             className="mt-4 w-full rounded-2xl border border-white/10 bg-black/20 p-3 text-sm"
           />
           {fileName ? <p className="mt-3 rounded-2xl bg-black/20 px-3 py-2 text-sm text-slate-200">File pronto: {fileName}</p> : null}
-          <ReplaceCurrentPlanCheckbox checked={replaceCurrentPlan} onChange={setReplaceCurrentPlan} />
+          <MakeActivePlanCheckbox checked={makeActivePlan} onChange={setMakeActivePlan} />
         </Card>
       )}
 
@@ -360,13 +360,13 @@ function ImportModeTabs({ mode, onChange }: { mode: ImportMode; onChange: (mode:
   );
 }
 
-function ReplaceCurrentPlanCheckbox({ checked, onChange }: { checked: boolean; onChange: (checked: boolean) => void }) {
+function MakeActivePlanCheckbox({ checked, onChange }: { checked: boolean; onChange: (checked: boolean) => void }) {
   return (
     <label className="mt-4 flex items-start gap-3 rounded-2xl bg-black/20 p-3 text-sm text-slate-200">
       <input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} className="mt-1 h-4 w-4 accent-lime-300" />
       <span>
-        <strong>Sostituisci scheda attiva</strong>
-        <span className="mt-1 block text-xs text-gym-muted">Cambio mensile: aggiorni la scheda e mantieni lo storico.</span>
+        <strong>Rendi attiva e archivia la precedente</strong>
+        <span className="mt-1 block text-xs text-gym-muted">Cambio mensile: la scheda attuale non viene eliminata, passa in archivio.</span>
       </span>
     </label>
   );

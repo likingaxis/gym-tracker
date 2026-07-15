@@ -32,7 +32,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 
   let query = supabase
     .from("workout_sessions")
-    .select("*, workout_plans(name, month), workout_days(name), session_exercises(*, exercises(*), exercise_sets(*))")
+    .select("*, workout_plans(name, month, color), workout_days(name), session_exercises(*, exercises(*), exercise_sets(*))")
     .eq("id", id);
 
   if (profileId) query = query.eq("profile_id", profileId);
@@ -143,12 +143,14 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
     }
 
     const supabase = createServerSupabaseClient();
+    const now = new Date().toISOString();
 
     const { data, error } = await supabase
       .from("workout_sessions")
-      .delete()
+      .update({ deleted_at: now, deleted_reason: "user", paused_at: null })
       .eq("id", id)
       .eq("profile_id", profileId)
+      .is("deleted_at", null)
       .select("id")
       .single();
 
@@ -159,10 +161,10 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
       );
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, trashed: true });
   } catch (error) {
     return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : "Errore eliminazione sessione." },
+      { success: false, error: error instanceof Error ? error.message : "Errore spostamento nel cestino." },
       { status: 500 }
     );
   }

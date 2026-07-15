@@ -1,36 +1,37 @@
 "use client";
 
-import { AlertTriangle, Download, FileDown } from "lucide-react";
+import { AlertTriangle, Download, FileDown, Trash2 } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-type ResetAction = "abandon_in_progress" | "delete_abandoned" | "delete_sessions" | "delete_workout_data";
+type ResetAction = "trash_open_sessions" | "trash_sessions" | "empty_trash" | "delete_workout_data";
 
 type DataManagementProps = {
   profileName: string;
 };
 
 const RESET_ACTIONS: Record<ResetAction, { label: string; description: string; confirm: string; danger?: boolean }> = {
-  abandon_in_progress: {
-    label: "Annulla sessioni aperte",
-    description: "Sposta gli allenamenti aperti nello stato Annullato.",
-    confirm: "Vuoi annullare tutti gli allenamenti in corso di questo profilo?"
+  trash_open_sessions: {
+    label: "Elimina sessioni aperte",
+    description: "Sposta gli allenamenti in corso o in pausa nel cestino. Puoi recuperarli.",
+    confirm: "Vuoi spostare nel cestino tutti gli allenamenti aperti di questo profilo?"
   },
-  delete_abandoned: {
-    label: "Elimina sessioni annullate",
-    description: "Rimuove gli allenamenti annullati o di test.",
-    confirm: "Vuoi eliminare definitivamente tutte le sessioni annullate di questo profilo?",
+  trash_sessions: {
+    label: "Sposta storico nel cestino",
+    description: "Nasconde tutte le sessioni dallo storico normale, ma puoi ripristinarle dal cestino.",
+    confirm: "Vuoi spostare tutto lo storico allenamenti nel cestino?",
     danger: true
   },
-  delete_sessions: {
-    label: "Elimina storico",
-    description: "Elimina tutte le sessioni. La scheda rimane disponibile.",
-    confirm: "Vuoi eliminare definitivamente tutto lo storico allenamenti di questo profilo? Questa azione non si può annullare.",
+  empty_trash: {
+    label: "Svuota cestino",
+    description: "Elimina definitivamente le sessioni già nel cestino.",
+    confirm: "Vuoi eliminare definitivamente tutte le sessioni nel cestino? Questa azione non si può annullare.",
     danger: true
   },
   delete_workout_data: {
     label: "Elimina schede",
-    description: "Elimina le schede e le sessioni collegate.",
+    description: "Elimina le schede e le sessioni collegate. Scarica un backup prima di continuare.",
     confirm: "Vuoi eliminare definitivamente schede e dati collegati di questo profilo? Scarica un backup prima di continuare.",
     danger: true
   }
@@ -97,6 +98,13 @@ export function DataManagement({ profileName }: DataManagementProps) {
           <Download size={17} />
           Scarica backup JSON
         </a>
+        <Link
+          href="/history/trash"
+          className="flex items-center justify-center gap-2 rounded-2xl bg-white/10 px-4 py-3 text-center text-sm font-bold text-slate-100 transition active:scale-[0.98]"
+        >
+          <Trash2 size={17} />
+          Apri cestino
+        </Link>
       </div>
 
       <p className="rounded-2xl border border-gym-info/20 bg-blue-500/[0.06] p-3 text-xs leading-5 text-gym-muted">
@@ -115,7 +123,7 @@ export function DataManagement({ profileName }: DataManagementProps) {
               </div>
               <div>
                 <p className="font-extrabold text-red-100">Zona pericolosa</p>
-                <p className="text-xs text-red-100/70">Azioni irreversibili.</p>
+                <p className="text-xs text-red-100/70">Le sessioni finiscono prima nel cestino quando possibile.</p>
               </div>
             </div>
             <span className="rounded-full bg-red-400/10 px-3 py-1 text-xs font-bold text-red-100">Mostra</span>

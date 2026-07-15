@@ -6,12 +6,22 @@ import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getSelectedProfileId } from "@/lib/profiles";
-import { relationName } from "@/lib/relations";
+import { getDayNameSnapshot, getPlanColorSnapshot, getPlanDotClass, getPlanNameSnapshot } from "@/lib/workoutPlanHistory";
 import { formatAverage, formatCompactNumber, getSessionSummary } from "@/lib/progress";
 
 type CalendarSearchParams = {
   month?: string;
   day?: string;
+  plan?: string;
+};
+
+type HistoryPlan = {
+  id: string;
+  name: string;
+  month?: string | null;
+  is_active?: boolean | null;
+  status?: string | null;
+  color?: string | null;
 };
 
 type CalendarSession = {
@@ -19,26 +29,51 @@ type CalendarSession = {
   status: string;
   started_at: string;
   completed_at?: string | null;
+  workout_plan_id?: string | null;
   workout_day_id?: string | null;
   workout_days?: { name?: string | null } | null;
-  workout_plans?: { name?: string | null; month?: string | null } | null;
+  workout_plans?: { name?: string | null; month?: string | null; color?: string | null } | null;
+  workout_plan_name_snapshot?: string | null;
+  workout_day_name_snapshot?: string | null;
+  workout_plan_color_snapshot?: string | null;
   session_exercises?: Array<{
     completed?: boolean | null;
     exercise_sets?: Array<{ completed?: boolean | null; reps?: string | number | null; weight?: string | number | null; rpe?: number | null }> | null;
   }> | null;
 };
 
-async function getMonthSessions(profileId: string, month: string) {
+async function getPlans(profileId: string) {
+  try {
+    const supabase = createServerSupabaseClient();
+    const { data } = await supabase
+      .from("workout_plans")
+      .select("id, name, month, is_active, status, color, created_at")
+      .eq("profile_id", profileId)
+      .order("is_active", { ascending: false })
+      .order("created_at", { ascending: false });
+
+    return (data ?? []) as HistoryPlan[];
+  } catch {
+    return [];
+  }
+}
+
+async function getMonthSessions(profileId: string, month: string, planId: string | null) {
   try {
     const supabase = createServerSupabaseClient();
     const { start, end } = getMonthBounds(month);
-    const { data } = await supabase
+    let query = supabase
       .from("workout_sessions")
-      .select("id, status, started_at, completed_at, workout_day_id, workout_days(name), workout_plans(name, month), session_exercises(completed, exercise_sets(completed, reps, weight, rpe))")
+      .select("id, status, started_at, completed_at, workout_plan_id, workout_day_id, workout_plan_name_snapshot, workout_day_name_snapshot, workout_plan_color_snapshot, workout_days(name), workout_plans(name, month, color), session_exercises(completed, exercise_sets(completed, reps, weight, rpe))")
       .eq("profile_id", profileId)
+      .is("deleted_at", null)
       .gte("started_at", start.toISOString())
       .lt("started_at", end.toISOString())
       .order("started_at", { ascending: true });
+
+    if (planId) query = query.eq("workout_plan_id", planId);
+
+    const { data } = await query;
 
     return (data ?? []) as CalendarSession[];
   } catch {
@@ -52,7 +87,10 @@ export default async function CalendarHistoryPage({ searchParams }: { searchPara
 
   const params = searchParams ? await searchParams : {};
   const month = normalizeMonth(params.month);
-  const sessions = await getMonthSessions(profileId, month);
+  const plans = await getPlans(profileId);
+  const selectedPlanId = plans.some((plan) => plan.id === params.plan) ? params.plan ?? null : null;
+  const selectedPlan = plans.find((plan) => plan.id === selectedPlanId) ?? null;
+  const sessions = await getMonthSessions(profileId, month, selectedPlanId);
   const selectedDay = normalizeDay(params.day, month) ?? getMostRecentSessionDay(sessions) ?? todayKeyIfMonth(month) ?? `${month}-01`;
 
   const monthGrid = buildMonthGrid(month);
@@ -61,30 +99,32 @@ export default async function CalendarHistoryPage({ searchParams }: { searchPara
   const stats = buildMonthStats(sessions);
   const previousMonth = shiftMonth(month, -1);
   const nextMonth = shiftMonth(month, 1);
+  const visiblePlans = buildVisiblePlanLegend(sessions);
 
   return (
     <div className="space-y-5">
       <header className="rounded-[2rem] border border-white/10 bg-gradient-to-br from-gym-card to-gym-panel p-5">
         <p className="text-sm font-semibold text-gym-info">Calendario</p>
         <h1 className="mt-2 text-3xl font-extrabold">Allenamenti</h1>
-        <p className="mt-2 text-sm text-gym-muted">Guarda a colpo d’occhio quando ti sei allenato e apri il dettaglio del giorno.</p>
+        <p className="mt-2 text-sm text-gym-muted">Ogni pallino indica la scheda usata in quel giorno.</p>
       </header>
 
       <div className="grid grid-cols-2 gap-2 text-sm">
-        <Link href="/history" className="rounded-2xl bg-white/10 px-3 py-3 text-center font-bold text-slate-200">Lista</Link>
-        <Link href={`/history/calendar?month=${month}`} className="rounded-2xl bg-gym-accent px-3 py-3 text-center font-extrabold text-slate-950 shadow-glow">Calendario</Link>
+        <Link href={buildHistoryHref(selectedPlanId)} className="rounded-2xl bg-white/10 px-3 py-3 text-center font-bold text-slate-200">Lista</Link>
+        <Link href={buildCalendarHref(month, selectedDay, selectedPlanId)} className="rounded-2xl bg-gym-accent px-3 py-3 text-center font-extrabold text-slate-950 shadow-glow">Calendario</Link>
       </div>
 
       <Card className="border-gym-accent/20">
         <div className="flex items-center justify-between gap-3">
-          <Link href={`/history/calendar?month=${previousMonth}`} className="rounded-2xl bg-white/10 p-3 text-slate-200" aria-label="Mese precedente">
+          <Link href={buildCalendarHref(previousMonth, undefined, selectedPlanId)} className="rounded-2xl bg-white/10 p-3 text-slate-200" aria-label="Mese precedente">
             <ChevronLeft size={20} />
           </Link>
           <div className="text-center">
             <p className="text-xs font-semibold text-gym-info">Mese</p>
             <h2 className="text-2xl font-extrabold capitalize">{formatMonthTitle(month)}</h2>
+            <p className="mt-1 text-xs text-gym-muted">{selectedPlan ? selectedPlan.name : "Tutte le schede"}</p>
           </div>
-          <Link href={`/history/calendar?month=${nextMonth}`} className="rounded-2xl bg-white/10 p-3 text-slate-200" aria-label="Mese successivo">
+          <Link href={buildCalendarHref(nextMonth, undefined, selectedPlanId)} className="rounded-2xl bg-white/10 p-3 text-slate-200" aria-label="Mese successivo">
             <ChevronRight size={20} />
           </Link>
         </div>
@@ -95,6 +135,25 @@ export default async function CalendarHistoryPage({ searchParams }: { searchPara
           <MiniStat label="Volume" value={`${formatCompactNumber(stats.volume)} kg`} hint="stimato" />
         </div>
       </Card>
+
+      {plans.length > 1 ? (
+        <Card variant="subtle" className="p-3">
+          <p className="mb-3 text-xs font-bold uppercase tracking-wide text-gym-muted">Filtro scheda</p>
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            <PlanChip href={buildCalendarHref(month, selectedDay, null)} active={!selectedPlanId} label="Tutte" />
+            {plans.map((plan) => (
+              <PlanChip
+                key={plan.id}
+                href={buildCalendarHref(month, selectedDay, plan.id)}
+                active={selectedPlanId === plan.id}
+                label={plan.name}
+                color={plan.color}
+                status={Boolean(plan.is_active) || plan.status === "active" ? "Attiva" : "Archiviata"}
+              />
+            ))}
+          </div>
+        </Card>
+      ) : null}
 
       <Card>
         <div className="mb-3 grid grid-cols-7 gap-1 text-center text-[0.7rem] font-bold uppercase text-gym-muted">
@@ -108,13 +167,13 @@ export default async function CalendarHistoryPage({ searchParams }: { searchPara
             return (
               <Link
                 key={day.key}
-                href={`/history/calendar?month=${month}&day=${day.key}`}
+                href={buildCalendarHref(month, day.key, selectedPlanId)}
                 className={getDayClass(day.inMonth, isSelected, isToday, daySessions.length > 0)}
               >
                 <span className="text-sm font-extrabold">{day.date.getDate()}</span>
                 <span className="mt-1 flex min-h-2 justify-center gap-0.5">
-                  {daySessions.slice(0, 3).map((session) => (
-                    <span key={session.id} className={`h-1.5 w-1.5 rounded-full ${getStatusDot(session.status)}`} />
+                  {daySessions.slice(0, 4).map((session) => (
+                    <span key={session.id} className={`h-1.5 w-1.5 rounded-full ${getPlanDotClass(getPlanColorSnapshot(session))}`} />
                   ))}
                 </span>
               </Link>
@@ -122,9 +181,11 @@ export default async function CalendarHistoryPage({ searchParams }: { searchPara
           })}
         </div>
         <div className="mt-4 flex flex-wrap gap-2 text-xs text-gym-muted">
-          <Legend color="bg-gym-accent" label="Completato" />
-          <Legend color="bg-sky-300" label="In corso" />
-          <Legend color="bg-amber-300" label="Annullato" />
+          {visiblePlans.length === 0 ? (
+            <span>Nessuna sessione nel mese selezionato.</span>
+          ) : (
+            visiblePlans.map((plan) => <Legend key={plan.label + plan.color} color={getPlanDotClass(plan.color)} label={plan.label} />)
+          )}
         </div>
       </Card>
 
@@ -133,7 +194,7 @@ export default async function CalendarHistoryPage({ searchParams }: { searchPara
           <div className="rounded-2xl bg-white/10 p-3 text-gym-accent"><CalendarDays size={22} /></div>
           <div>
             <p className="text-xs font-semibold text-gym-info">Giorno selezionato</p>
-            <h2 className="text-2xl font-extrabold">{formatFullDate(selectedDay)}</h2>
+            <h2 className="text-2xl font-extrabold capitalize">{formatFullDate(selectedDay)}</h2>
           </div>
         </div>
 
@@ -148,8 +209,8 @@ export default async function CalendarHistoryPage({ searchParams }: { searchPara
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className={`text-xs font-bold uppercase ${getStatusText(session.status)}`}>{getStatusLabel(session.status)}</p>
-                      <h3 className="mt-1 text-lg font-extrabold">{relationName(session.workout_days, "Allenamento")}</h3>
-                      <p className="mt-1 text-xs text-gym-muted">{formatTime(session.started_at)} · {relationName(session.workout_plans, "Scheda")}</p>
+                      <h3 className="mt-1 text-lg font-extrabold">{getDayNameSnapshot(session)}</h3>
+                      <p className="mt-1 flex flex-wrap items-center gap-2 text-xs text-gym-muted"><span>{formatTime(session.started_at)}</span><span>·</span><span className={`h-2 w-2 rounded-full ${getPlanDotClass(getPlanColorSnapshot(session))}`} /><span>{getPlanNameSnapshot(session)}</span></p>
                     </div>
                     <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-bold">{summary.completedSets}/{summary.totalSets}</span>
                   </div>
@@ -198,6 +259,25 @@ function Legend({ color, label }: { color: string; label: string }) {
   return <span className="inline-flex items-center gap-1"><span className={`h-2 w-2 rounded-full ${color}`} />{label}</span>;
 }
 
+function PlanChip({ href, active, label, color, status }: { href: string; active: boolean; label: string; color?: string | null; status?: string }) {
+  return (
+    <Link
+      href={href}
+      className={
+        active
+          ? "min-w-max rounded-2xl bg-gym-accent px-3 py-2 text-xs font-extrabold text-slate-950"
+          : "min-w-max rounded-2xl bg-white/10 px-3 py-2 text-xs font-bold text-slate-200"
+      }
+    >
+      <span className="inline-flex items-center gap-2">
+        {color ? <span className={`h-2 w-2 rounded-full ${getPlanDotClass(color)}`} /> : null}
+        <span className="max-w-36 truncate">{label}</span>
+        {status ? <span className={active ? "text-slate-700" : "text-gym-muted"}>{status}</span> : null}
+      </span>
+    </Link>
+  );
+}
+
 function groupSessionsByDay(sessions: CalendarSession[]) {
   const map = new Map<string, CalendarSession[]>();
   for (const session of sessions) {
@@ -207,6 +287,17 @@ function groupSessionsByDay(sessions: CalendarSession[]) {
     map.set(key, list);
   }
   return map;
+}
+
+function buildVisiblePlanLegend(sessions: CalendarSession[]) {
+  const map = new Map<string, { label: string; color: string | null | undefined }>();
+  for (const session of sessions) {
+    const label = getPlanNameSnapshot(session);
+    const color = getPlanColorSnapshot(session);
+    const key = `${label}-${color ?? ""}`;
+    if (!map.has(key)) map.set(key, { label, color });
+  }
+  return [...map.values()].slice(0, 8);
 }
 
 function buildMonthGrid(month: string) {
@@ -275,6 +366,18 @@ function getMonthKey(date: Date) {
   return `${year}-${month}`;
 }
 
+function buildCalendarHref(month: string, day?: string, planId?: string | null) {
+  const params = new URLSearchParams();
+  params.set("month", month);
+  if (day) params.set("day", day);
+  if (planId) params.set("plan", planId);
+  return `/history/calendar?${params.toString()}`;
+}
+
+function buildHistoryHref(planId: string | null) {
+  return planId ? `/history?plan=${planId}` : "/history";
+}
+
 function formatMonthTitle(month: string) {
   const { start } = getMonthBounds(month);
   return start.toLocaleDateString("it-IT", { month: "long", year: "numeric" });
@@ -291,19 +394,15 @@ function formatTime(value: string | null | undefined) {
 
 function getStatusLabel(status: string) {
   if (status === "completed") return "Completato";
-  if (status === "abandoned") return "Annullato";
+  if (status === "abandoned") return "Interrotto";
+  if (status === "paused") return "In pausa";
   return "In corso";
-}
-
-function getStatusDot(status: string) {
-  if (status === "completed") return "bg-gym-accent";
-  if (status === "abandoned") return "bg-amber-300";
-  return "bg-sky-300";
 }
 
 function getStatusText(status: string) {
   if (status === "completed") return "text-gym-accent";
   if (status === "abandoned") return "text-amber-200";
+  if (status === "paused") return "text-gym-info";
   return "text-sky-200";
 }
 

@@ -2,13 +2,14 @@ export const dynamic = "force-dynamic";
 
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { BadgeCheck, CheckCircle2, Circle, Clock3, Dumbbell, PlayCircle, Repeat2 } from "lucide-react";
+import { BadgeCheck, CheckCircle2, Circle, Dumbbell, Pencil, PlayCircle, Repeat2 } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getSelectedProfileId } from "@/lib/profiles";
 import { type SessionLike } from "@/lib/progress";
 import { formatDayCount, formatExerciseCount } from "@/lib/utils/copy";
+import { formatPlanDateRange, getPlanDotClass } from "@/lib/workoutPlanHistory";
 
 async function getActivePlan(profileId: string) {
   try {
@@ -35,6 +36,7 @@ async function getCompletedSessions(profileId: string) {
       .select("id, started_at, workout_day_id, workout_days(name)")
       .eq("profile_id", profileId)
       .eq("status", "completed")
+      .is("deleted_at", null)
       .order("started_at", { ascending: false })
       .limit(60);
     return (data ?? []) as SessionLike[];
@@ -83,10 +85,17 @@ export default async function WorkoutIndexPage() {
           <div className="min-w-0">
             <p className="text-sm font-semibold text-gym-info">Scheda</p>
             <h1 className="mt-1 text-3xl font-extrabold">{plan.name}</h1>
-            <p className="mt-1 text-sm text-gym-muted">{formatDayCount(days.length)} · {formatExerciseCount(exerciseCount)}</p>
+            <p className="mt-1 flex items-center gap-2 text-sm text-gym-muted"><span className={`h-2.5 w-2.5 rounded-full ${getPlanDotClass(plan.color)}`} />{formatDayCount(days.length)} · {formatExerciseCount(exerciseCount)}</p>
+            <p className="mt-1 text-xs text-gym-muted">{formatPlanDateRange(plan.start_date, plan.end_date)}</p>
           </div>
         </div>
       </header>
+
+      <div className="grid grid-cols-3 gap-2 text-sm">
+        <Link href="/workout/edit" className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gym-accent px-3 py-3 text-center font-extrabold text-slate-950"><Pencil size={16} /> Modifica</Link>
+        <Link href="/import" className="rounded-2xl bg-white/10 px-3 py-3 text-center font-bold text-slate-200">Importa nuova</Link>
+        <Link href="/workout/archive" className="rounded-2xl bg-white/10 px-3 py-3 text-center font-bold text-slate-200">Archivio</Link>
+      </div>
 
       <section className="space-y-3">
         {days.map((day: any) => {

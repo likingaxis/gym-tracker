@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Activity, BarChart3, CalendarDays, Dumbbell, Flame, Trophy, TrendingUp } from "lucide-react";
+import { Activity, BarChart3, CalendarDays, Clock3, Dumbbell, Flame, Target, Trophy, TrendingUp } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
@@ -13,13 +13,17 @@ import {
   buildMuscleGroupSets,
   buildMuscleGroupVolume,
   buildProgressOverview,
+  buildConsistencyStats,
   formatAverage,
   formatCompactNumber,
+  formatDurationShort,
   formatShortDate,
+  getAverageWorkoutDuration,
   getExerciseRecords,
   getExerciseTrend,
+  getMuscleFrequency,
   getRecentImprovements,
-  getTrainingStreak,
+  getStalledExercises,
   type SessionLike,
 } from "@/lib/progress";
 
@@ -28,9 +32,10 @@ async function getProgressSessions(profileId: string) {
     const supabase = createServerSupabaseClient();
     const { data } = await supabase
       .from("workout_sessions")
-      .select("id, status, started_at, completed_at, workout_day_id, workout_days(name), workout_plans(name, month), session_exercises(completed, exercises(name, exercise_db_id, muscle_group), exercise_sets(completed, reps, weight, rpe, set_number))")
+      .select("id, status, started_at, completed_at, workout_day_id, total_paused_seconds, workout_days(name), workout_plans(name, month), session_exercises(completed, exercises(name, exercise_db_id, muscle_group), exercise_sets(completed, reps, weight, rpe, set_number))")
       .eq("profile_id", profileId)
       .eq("status", "completed")
+      .is("deleted_at", null)
       .order("started_at", { ascending: false })
       .limit(160);
     return (data ?? []) as SessionLike[];
@@ -46,12 +51,15 @@ export default async function ProgressPage() {
   const sessions = await getProgressSessions(profileId);
   const overview = buildProgressOverview(sessions);
   const comparison = buildMonthComparison(sessions);
-  const streak = getTrainingStreak(sessions);
+  const consistency = buildConsistencyStats(sessions);
+  const averageDuration = getAverageWorkoutDuration(sessions);
+  const muscleFrequency = getMuscleFrequency(sessions);
   const muscleGroups = buildMuscleGroupSets(overview.sessionsThisMonth);
   const muscleVolume = buildMuscleGroupVolume(overview.sessionsThisMonth);
   const exercises = buildExerciseProgress(sessions);
   const improvements = getRecentImprovements(exercises);
   const records = getExerciseRecords(exercises);
+  const stalledExercises = getStalledExercises(exercises);
   const topExercise = exercises.find((exercise) => exercise.entries.some((entry) => entry.averageWeight !== null));
   const latestExercises = exercises
     .filter((exercise) => exercise.entries.length > 0)
@@ -95,11 +103,71 @@ export default async function ProgressPage() {
       </Card>
 
       <section className="grid grid-cols-2 gap-3">
-        <StatCard icon={<CalendarDays size={18} />} label="Allenamenti" value={`${overview.sessionsThisWeek.length}`} hint="7 giorni" />
-        <StatCard icon={<Dumbbell size={18} />} label="Serie" value={`${overview.totalSetsThisWeek}`} hint="7 giorni" />
-        <StatCard icon={<Activity size={18} />} label="Volume" value={`${formatCompactNumber(overview.totalVolumeThisMonth)} kg`} hint="mese corrente" />
-        <StatCard icon={<Flame size={18} />} label="Streak" value={`${streak.currentStreak}`} hint="giorni consecutivi" />
+        <StatCard icon={<CalendarDays size={18} />} label="Allenamenti" value={`${overview.sessionsThisWeek.length}`} hint="da lunedì" />
+        <StatCard icon={<Flame size={18} />} label="Giorni svolti" value={`${consistency.trainingDaysThisWeek}`} hint="questa settimana" />
+        <StatCard icon={<Dumbbell size={18} />} label="Serie" value={`${overview.totalSetsThisWeek}`} hint="da lunedì" />
+        <StatCard icon={<Clock3 size={18} />} label="Durata media" value={formatDurationShort(averageDuration.averageSeconds)} hint={averageDuration.sampleSize ? `${averageDuration.sampleSize} sessioni` : "n/d"} />
       </section>
+
+      <Card className="border-gym-info/20">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold text-gym-info">Analytics</p>
+            <h2 className="mt-1 text-2xl font-extrabold">Costanza e frequenza</h2>
+            <p className="mt-1 text-sm text-gym-muted">La settimana parte da lunedì: niente streak giornaliera, conta quanti giorni hai davvero svolto.</p>
+          </div>
+          <Target size={22} className="text-gym-info" />
+        </div>
+        <div className="mt-4 grid grid-cols-2 gap-2 text-center text-xs">
+          <div className="rounded-2xl bg-black/20 p-3">
+            <p className="text-gym-muted">Giorni svolti</p>
+            <p className="mt-1 text-2xl font-extrabold text-slate-100">{consistency.trainingDaysThisWeek}</p>
+            <p className="text-gym-muted">da lunedì</p>
+          </div>
+          <div className="rounded-2xl bg-black/20 p-3">
+            <p className="text-gym-muted">Serie svolte</p>
+            <p className="mt-1 text-2xl font-extrabold text-slate-100">{consistency.totalSetsThisWeek}</p>
+            <p className="text-gym-muted">questa settimana</p>
+          </div>
+        </div>
+        {muscleFrequency.length ? (
+          <div className="mt-4 space-y-2">
+            {muscleFrequency.slice(0, 5).map((item) => (
+              <div key={item.group} className="flex items-center justify-between rounded-2xl bg-white/[0.045] px-3 py-2 text-sm">
+                <span className="font-bold text-slate-100">{item.group}</span>
+                <span className="text-gym-muted">{item.days} giorn{item.days === 1 ? "o" : "i"}</span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="mt-4 text-sm text-gym-muted">Completa allenamenti questa settimana per vedere la frequenza muscolare.</p>
+        )}
+      </Card>
+
+      {stalledExercises.length ? (
+        <Card>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-amber-200">Da monitorare</p>
+              <h2 className="mt-1 text-2xl font-extrabold">Esercizi fermi</h2>
+              <p className="mt-1 text-sm text-gym-muted">Esercizi senza crescita chiara nelle ultime 3 sessioni con peso.</p>
+            </div>
+          </div>
+          <div className="mt-4 space-y-2">
+            {stalledExercises.map((exercise) => (
+              <Link key={exercise.key} href={`/progress/exercise?key=${encodeURIComponent(exercise.key)}`} className="block rounded-2xl bg-black/20 p-3 transition active:scale-[0.99]">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="font-extrabold text-slate-100">{exercise.name}</p>
+                    <p className="text-xs text-gym-muted">{exercise.muscleGroup} · {exercise.sessions} sessioni</p>
+                  </div>
+                  <span className="rounded-full bg-amber-300/10 px-3 py-1 text-xs font-bold text-amber-100">stabile</span>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </Card>
+      ) : null}
 
       {records.length ? (
         <Card>

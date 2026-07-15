@@ -12,38 +12,33 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
 
   const supabase = createServerSupabaseClient();
 
-  const { data: current, error: readError } = await supabase
+  const { data: session, error: readError } = await supabase
     .from("workout_sessions")
-    .select("id, paused_at, total_paused_seconds")
+    .select("id, status, paused_at, total_paused_seconds")
     .eq("id", id)
     .eq("profile_id", profileId)
     .is("deleted_at", null)
     .single();
 
-  if (readError || !current) {
+  if (readError || !session) {
     return NextResponse.json({ success: false, error: readError?.message ?? "Sessione non trovata." }, { status: 404 });
   }
 
-  const pausedAt = current.paused_at ? new Date(current.paused_at).getTime() : null;
-  const elapsedPaused = pausedAt && Number.isFinite(pausedAt) ? Math.max(0, Math.round((Date.now() - pausedAt) / 1000)) : 0;
+  const pausedAt = session.paused_at ? new Date(session.paused_at).getTime() : null;
+  const elapsed = pausedAt && Number.isFinite(pausedAt) ? Math.max(0, Math.round((Date.now() - pausedAt) / 1000)) : 0;
+  const totalPausedSeconds = Number(session.total_paused_seconds ?? 0) + elapsed;
 
   const { data, error } = await supabase
     .from("workout_sessions")
-    .update({
-      status: "completed",
-      completed_at: new Date().toISOString(),
-      paused_at: null,
-      total_paused_seconds: Number(current.total_paused_seconds ?? 0) + elapsedPaused,
-    })
+    .update({ status: "in_progress", paused_at: null, total_paused_seconds: totalPausedSeconds })
     .eq("id", id)
     .eq("profile_id", profileId)
-    .is("deleted_at", null)
-    .select("id")
+    .select("id, status, paused_at, total_paused_seconds")
     .single();
 
   if (error || !data) {
-    return NextResponse.json({ success: false, error: error?.message ?? "Sessione non trovata." }, { status: 500 });
+    return NextResponse.json({ success: false, error: error?.message ?? "Sessione non aggiornata." }, { status: 500 });
   }
 
-  return NextResponse.json({ success: true, session_id: data.id });
+  return NextResponse.json({ success: true, session: data });
 }

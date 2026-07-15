@@ -39,8 +39,9 @@ export async function POST(request: Request) {
       .from("workout_sessions")
       .select("*, session_exercises(*, exercise_sets(*))")
       .eq("workout_day_id", body.workout_day_id)
-      .eq("status", "in_progress")
+      .in("status", ["in_progress", "paused"])
       .eq("profile_id", profileId)
+      .is("deleted_at", null)
       .order("started_at", { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -73,6 +74,26 @@ export async function POST(request: Request) {
       );
     }
 
+    const { data: dayContext, error: dayContextError } = await supabase
+      .from("workout_days")
+      .select("id, name, workout_plan_id, workout_plans!inner(id, name, color)")
+      .eq("id", body.workout_day_id)
+      .eq("workout_plan_id", body.workout_plan_id)
+      .single();
+
+    if (dayContextError || !dayContext) {
+      return NextResponse.json(
+        { success: false, error: dayContextError?.message ?? "Giorno scheda non trovato." },
+        { status: 404 },
+      );
+    }
+
+    const planContext = Array.isArray((dayContext as any).workout_plans)
+      ? (dayContext as any).workout_plans[0]
+      : (dayContext as any).workout_plans;
+
+    const currentExercises = (exercises ?? []) as CurrentExercise[];
+
     const { data: previousSessions, error: previousSessionsError } =
       await supabase
         .from("workout_sessions")
@@ -81,6 +102,7 @@ export async function POST(request: Request) {
         )
         .eq("profile_id", profileId)
         .eq("status", "completed")
+        .is("deleted_at", null)
         .order("started_at", { ascending: false })
         .limit(25);
 
@@ -92,7 +114,7 @@ export async function POST(request: Request) {
     }
 
     const previousDataByExercise = buildPreviousDataByExercise(
-      exercises ?? [],
+      currentExercises,
       previousSessions ?? [],
     );
     const previousWeightsByExercise = Object.fromEntries(
@@ -109,6 +131,9 @@ export async function POST(request: Request) {
         workout_day_id: body.workout_day_id,
         profile_id: profileId,
         status: "in_progress",
+        workout_plan_name_snapshot: planContext?.name ?? null,
+        workout_day_name_snapshot: (dayContext as any).name ?? null,
+        workout_plan_color_snapshot: planContext?.color ?? null,
       })
       .select("*")
       .single();
@@ -123,7 +148,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const exerciseRows = (exercises ?? []).map((exercise) => ({
+    const exerciseRows = currentExercises.map((exercise) => ({
       workout_session_id: session.id,
       exercise_id: exercise.id,
       completed: false,
@@ -144,8 +169,9 @@ export async function POST(request: Request) {
         );
       }
 
-      const setRows = (sessionExercises ?? []).flatMap((sessionExercise) => {
-        const sourceExercise = (exercises ?? []).find(
+      const insertedSessionExercises = (sessionExercises ?? []) as Array<{ id: string; exercise_id: string }>;
+      const setRows = insertedSessionExercises.flatMap((sessionExercise) => {
+        const sourceExercise = currentExercises.find(
           (exercise) => exercise.id === sessionExercise.exercise_id,
         );
         const setCount = Math.max(1, Number(sourceExercise?.sets ?? 1));
@@ -246,9 +272,10 @@ export async function GET() {
   const { data, error } = await supabase
     .from("workout_sessions")
     .select(
-      "*, workout_plans(name, month), workout_days(name), session_exercises(*, exercise_sets(*))",
+      "*, workout_plans(name, month, color), workout_days(name), session_exercises(*, exercise_sets(*))",
     )
     .eq("profile_id", profileId)
+    .is("deleted_at", null)
     .order("started_at", { ascending: false })
     .limit(50);
 

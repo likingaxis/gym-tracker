@@ -7,8 +7,13 @@ export type SessionLike = {
   status?: string | null;
   started_at?: string | null;
   completed_at?: string | null;
+  workout_day_id?: string | null;
+  total_paused_seconds?: number | null;
   workout_days?: MaybeRelation<{ name?: string | null }>;
-  workout_plans?: MaybeRelation<{ name?: string | null; month?: string | null }>;
+  workout_plans?: MaybeRelation<{ name?: string | null; month?: string | null; color?: string | null }>;
+  workout_plan_name_snapshot?: string | null;
+  workout_day_name_snapshot?: string | null;
+  workout_plan_color_snapshot?: string | null;
   session_exercises?: Array<{
     completed?: boolean | null;
     exercises?: MaybeRelation<{
@@ -92,16 +97,109 @@ export function normalizeText(value: string | null | undefined) {
     .trim();
 }
 
+
+export function getMondayWeekStart(reference = new Date()) {
+  const date = new Date(reference);
+  date.setHours(0, 0, 0, 0);
+  const day = date.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  date.setDate(date.getDate() + diff);
+  return date;
+}
+
+export function buildConsistencyStats(sessions: SessionLike[]) {
+  const completed = sessions.filter((session) => session.status === "completed");
+  const weekStart = getMondayWeekStart();
+  const sessionsThisWeek = completed.filter((session) => new Date(getSessionDate(session)) >= weekStart);
+  const trainingDaysThisWeek = new Set(sessionsThisWeek.map((session) => toDateKey(getSessionDate(session))).filter(Boolean)).size;
+  const totalSetsThisWeek = sessionsThisWeek.reduce((sum, session) => sum + getSessionSummary(session).completedSets, 0);
+  return {
+    weekStart,
+    sessionsThisWeek,
+    trainingDaysThisWeek,
+    totalSetsThisWeek,
+  };
+}
+
+export function getWorkoutDurationSeconds(session: SessionLike) {
+  if (!session.started_at || !session.completed_at) return null;
+  const started = new Date(session.started_at).getTime();
+  const completed = new Date(session.completed_at).getTime();
+  if (!Number.isFinite(started) || !Number.isFinite(completed) || completed <= started) return null;
+  const paused = Math.max(0, Number(session.total_paused_seconds ?? 0));
+  const duration = Math.max(0, Math.round((completed - started) / 1000) - paused);
+  return duration > 0 ? duration : null;
+}
+
+export function formatDurationShort(seconds: number | null | undefined) {
+  if (!seconds || !Number.isFinite(seconds) || seconds <= 0) return "-";
+  const minutes = Math.round(seconds / 60);
+  if (minutes < 60) return `${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  return rest ? `${hours}h ${rest}m` : `${hours}h`;
+}
+
+export function formatClockTimeFromNow(seconds: number | null | undefined, from = new Date()) {
+  if (!seconds || !Number.isFinite(seconds) || seconds <= 0) return "-";
+  const finish = new Date(from.getTime() + seconds * 1000);
+  return finish.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" });
+}
+
+export function estimateWorkoutDurationFromSessions(sessions: SessionLike[], workoutDayId?: string | null, fallbackSeconds?: number) {
+  const completed = sessions.filter((session) => session.status === "completed");
+  const sameDayDurations = completed
+    .filter((session) => !workoutDayId || session.workout_day_id === workoutDayId)
+    .map(getWorkoutDurationSeconds)
+    .filter((value): value is number => value !== null)
+    .slice(0, 6);
+
+  const allDurations = completed
+    .map(getWorkoutDurationSeconds)
+    .filter((value): value is number => value !== null)
+    .slice(0, 12);
+
+  const source = sameDayDurations.length >= 2 ? sameDayDurations : sameDayDurations.length === 1 ? sameDayDurations : allDurations;
+  if (source.length) {
+    const sorted = [...source].sort((a, b) => a - b);
+    const trimmed = sorted.length >= 4 ? sorted.slice(1, -1) : sorted;
+    const estimatedSeconds = Math.round(trimmed.reduce((sum, value) => sum + value, 0) / trimmed.length);
+    return {
+      estimatedSeconds,
+      sampleSize: source.length,
+      source: sameDayDurations.length ? "same_day" : "all_sessions",
+    } as const;
+  }
+
+  return {
+    estimatedSeconds: fallbackSeconds && fallbackSeconds > 0 ? fallbackSeconds : null,
+    sampleSize: 0,
+    source: "fallback",
+  } as const;
+}
+
+export function estimateFallbackDurationFromPlan(exercises: Array<{ sets?: number | null; rest_seconds?: number | null }> | null | undefined) {
+  const items = exercises ?? [];
+  if (!items.length) return null;
+  const totalSets = items.reduce((sum, exercise) => sum + Math.max(1, Number(exercise.sets ?? 1)), 0);
+  const restSeconds = items.reduce((sum, exercise) => {
+    const sets = Math.max(1, Number(exercise.sets ?? 1));
+    const rest = Math.max(30, Number(exercise.rest_seconds ?? 90));
+    return sum + Math.max(0, sets - 1) * rest;
+  }, 0);
+  const workSeconds = totalSets * 45;
+  const transitionSeconds = Math.max(0, items.length - 1) * 150;
+  return restSeconds + workSeconds + transitionSeconds;
+}
+
 export function buildProgressOverview(sessions: SessionLike[]) {
   const completedSessions = sessions.filter((session) => session.status === "completed");
   const now = new Date();
-  const weekStart = new Date(now);
-  weekStart.setDate(now.getDate() - 6);
-  weekStart.setHours(0, 0, 0, 0);
+  const weekStart = getMondayWeekStart(now);
 
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  const sessionsThisWeek = completedSessions.filter((session) => new Date(session.started_at ?? 0) >= weekStart);
-  const sessionsThisMonth = completedSessions.filter((session) => new Date(session.started_at ?? 0) >= monthStart);
+  const sessionsThisWeek = completedSessions.filter((session) => new Date(getSessionDate(session)) >= weekStart);
+  const sessionsThisMonth = completedSessions.filter((session) => new Date(getSessionDate(session)) >= monthStart);
 
   const totalSetsThisWeek = sessionsThisWeek.reduce((sum, session) => sum + getSessionSummary(session).completedSets, 0);
   const totalVolumeThisMonth = sessionsThisMonth.reduce((sum, session) => sum + getSessionSummary(session).volume, 0);
@@ -120,6 +218,7 @@ export function buildProgressOverview(sessions: SessionLike[]) {
     completedSessions,
     sessionsThisWeek,
     sessionsThisMonth,
+    weekStart,
     totalSetsThisWeek,
     totalVolumeThisMonth,
     averageRpeThisMonth,
@@ -377,4 +476,57 @@ export function getExerciseRecords(exercises: ReturnType<typeof buildExercisePro
       sessions: number;
       trend: ReturnType<typeof getExerciseTrend>;
     }>;
+}
+
+export function getAverageWorkoutDuration(sessions: SessionLike[]) {
+  const durations = sessions
+    .filter((session) => session.status === "completed")
+    .map(getWorkoutDurationSeconds)
+    .filter((value): value is number => value !== null)
+    .slice(0, 20);
+  if (!durations.length) return { averageSeconds: null as number | null, sampleSize: 0 };
+  const averageSeconds = Math.round(durations.reduce((sum, value) => sum + value, 0) / durations.length);
+  return { averageSeconds, sampleSize: durations.length };
+}
+
+export function getStalledExercises(exercises: ReturnType<typeof buildExerciseProgress>) {
+  return exercises
+    .map((exercise) => {
+      const entriesWithWeight = exercise.entries.filter((entry) => entry.averageWeight !== null);
+      if (entriesWithWeight.length < 3) return null;
+      const lastThree = entriesWithWeight.slice(-3);
+      const first = Number(lastThree[0].averageWeight);
+      const last = Number(lastThree[lastThree.length - 1].averageWeight);
+      const diff = last - first;
+      if (diff > 0.5) return null;
+      return {
+        key: exercise.key,
+        name: exercise.name,
+        muscleGroup: exercise.muscleGroup,
+        sessions: entriesWithWeight.length,
+        diff,
+      };
+    })
+    .filter(Boolean)
+    .slice(0, 5) as Array<{ key: string; name: string; muscleGroup: string; sessions: number; diff: number }>;
+}
+
+export function getMuscleFrequency(sessions: SessionLike[]) {
+  const map = new Map<string, Set<string>>();
+  const weekStart = getMondayWeekStart();
+  const weeklySessions = sessions.filter((session) => session.status === "completed" && new Date(getSessionDate(session)) >= weekStart);
+
+  for (const session of weeklySessions) {
+    const dateKey = toDateKey(getSessionDate(session));
+    for (const sessionExercise of session.session_exercises ?? []) {
+      const exercise = firstRelation(sessionExercise.exercises);
+      const group = exercise?.muscle_group?.trim() || "Altro";
+      if (!map.has(group)) map.set(group, new Set());
+      map.get(group)?.add(dateKey);
+    }
+  }
+
+  return Array.from(map.entries())
+    .map(([group, days]) => ({ group, days: days.size }))
+    .sort((a, b) => b.days - a.days || a.group.localeCompare(b.group));
 }

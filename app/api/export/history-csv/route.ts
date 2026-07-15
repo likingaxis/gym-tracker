@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { firstRelation, relationName } from "@/lib/relations";
+import { getDayNameSnapshot, getPlanNameSnapshot } from "@/lib/workoutPlanHistory";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getSelectedProfileId } from "@/lib/profiles";
 
@@ -20,8 +21,9 @@ export async function GET() {
 
   const { data: sessions, error } = await supabase
     .from("workout_sessions")
-    .select("*, workout_plans(name, month), workout_days(name), session_exercises(*, exercises(name, muscle_group, exercise_db_id), exercise_sets(*))")
+    .select("*, workout_plans(name, month, color), workout_days(name), session_exercises(*, exercises(name, muscle_group, exercise_db_id), exercise_sets(*))")
     .eq("profile_id", profileId)
+    .is("deleted_at", null)
     .order("started_at", { ascending: true });
 
   if (error) {
@@ -102,9 +104,9 @@ function baseSessionRow(profileName: string, session: any) {
     session_status: session.status,
     started_at: session.started_at,
     completed_at: session.completed_at ?? "",
-    workout_plan: relationName(session.workout_plans, ""),
+    workout_plan: getPlanNameSnapshot(session, ""),
     workout_month: firstRelation(session.workout_plans)?.month ?? "",
-    workout_day: relationName(session.workout_days, ""),
+    workout_day: getDayNameSnapshot(session, ""),
     general_notes: session.general_notes ?? ""
   };
 }

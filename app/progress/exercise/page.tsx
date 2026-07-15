@@ -23,6 +23,7 @@ async function getProgressSessions(profileId: string) {
       .select("id, status, started_at, completed_at, workout_day_id, workout_days(name), workout_plans(name, month), session_exercises(completed, exercises(name, exercise_db_id, muscle_group), exercise_sets(completed, reps, weight, rpe, set_number))")
       .eq("profile_id", profileId)
       .eq("status", "completed")
+      .is("deleted_at", null)
       .order("started_at", { ascending: false })
       .limit(180);
     return (data ?? []) as SessionLike[];

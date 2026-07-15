@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getSelectedProfileId } from "@/lib/profiles";
 
-type ResetAction = "abandon_in_progress" | "delete_abandoned" | "delete_sessions" | "delete_workout_data";
+type ResetAction = "trash_open_sessions" | "empty_trash" | "trash_sessions" | "delete_workout_data";
 
 type Body = {
   action?: ResetAction;
@@ -23,36 +23,39 @@ export async function POST(request: Request) {
     }
 
     const supabase = createServerSupabaseClient();
+    const now = new Date().toISOString();
 
-    if (action === "abandon_in_progress") {
+    if (action === "trash_open_sessions") {
       const { data, error } = await supabase
         .from("workout_sessions")
-        .update({ status: "abandoned", completed_at: new Date().toISOString() })
+        .update({ deleted_at: now, deleted_reason: "reset_open", paused_at: null })
         .eq("profile_id", profileId)
-        .eq("status", "in_progress")
+        .in("status", ["in_progress", "paused"])
+        .is("deleted_at", null)
         .select("id");
 
       if (error) return NextResponse.json({ success: false, error: error.message }, { status: 500 });
       return NextResponse.json({ success: true, affected: data?.length ?? 0 });
     }
 
-    if (action === "delete_abandoned") {
+    if (action === "empty_trash") {
       const { data, error } = await supabase
         .from("workout_sessions")
         .delete()
         .eq("profile_id", profileId)
-        .eq("status", "abandoned")
+        .not("deleted_at", "is", null)
         .select("id");
 
       if (error) return NextResponse.json({ success: false, error: error.message }, { status: 500 });
       return NextResponse.json({ success: true, affected: data?.length ?? 0 });
     }
 
-    if (action === "delete_sessions") {
+    if (action === "trash_sessions") {
       const { data, error } = await supabase
         .from("workout_sessions")
-        .delete()
+        .update({ deleted_at: now, deleted_reason: "reset_history", paused_at: null })
         .eq("profile_id", profileId)
+        .is("deleted_at", null)
         .select("id");
 
       if (error) return NextResponse.json({ success: false, error: error.message }, { status: 500 });

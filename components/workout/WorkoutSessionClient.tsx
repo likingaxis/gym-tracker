@@ -8,12 +8,15 @@ import {
   ChevronDown,
   ChevronUp,
   ImageIcon,
+  Pause,
   PlayCircle,
   TimerReset,
+  Trash2,
   X,
 } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { formatCountdown, formatRestTime } from "@/lib/utils/time";
+import { formatClockTimeFromNow, formatDurationShort } from "@/lib/progress";
 import { AnimatedAccordion } from "@/components/motion/AnimatedAccordion";
 import { ExerciseDbMediaPicker } from "@/components/workout/ExerciseDbMediaPicker";
 
@@ -77,17 +80,25 @@ type ActiveTimer = {
   targetEndAt: number | null;
 };
 
-type Props = {
-  day: Day;
+type DurationEstimate = {
+  estimatedSeconds: number | null;
+  sampleSize: number;
+  source: "same_day" | "all_sessions" | "fallback";
 };
 
-export function WorkoutSessionClient({ day }: Props) {
+type Props = {
+  day: Day;
+  durationEstimate?: DurationEstimate;
+};
+
+export function WorkoutSessionClient({ day, durationEstimate }: Props) {
   const router = useRouter();
   const [exercises, setExercises] = useState<Exercise[]>(day.exercises);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<Record<string, ExerciseDraft>>({});
   const [generalNotes, setGeneralNotes] = useState("");
   const [status, setStatus] = useState("Preparazione sessione...");
+  const [sessionStatus, setSessionStatus] = useState<"in_progress" | "paused" | "completed" | "abandoned">("in_progress");
   const [saving, setSaving] = useState(false);
   const [completing, setCompleting] = useState(false);
   const [activeTimer, setActiveTimer] = useState<ActiveTimer | null>(null);
@@ -125,6 +136,7 @@ export function WorkoutSessionClient({ day }: Props) {
 
       const session = result.session;
       setSessionId(session.id);
+      setSessionStatus(session.status === "paused" ? "paused" : "in_progress");
       setGeneralNotes(session.general_notes ?? "");
 
       const nextDrafts: Record<string, ExerciseDraft> = {};
@@ -176,7 +188,11 @@ export function WorkoutSessionClient({ day }: Props) {
       setDrafts(nextDrafts);
       firstSaveSkipped.current = false;
       setStatus(
-        result.resumed ? "Sessione in corso ripresa." : "Sessione iniziata.",
+        session.status === "paused"
+          ? "Sessione in pausa."
+          : result.resumed
+            ? "Sessione in corso ripresa."
+            : "Sessione iniziata.",
       );
     }
 
@@ -285,6 +301,12 @@ export function WorkoutSessionClient({ day }: Props) {
   );
   const progress =
     totalSets > 0 ? Math.round((completedSets / totalSets) * 100) : 0;
+  const estimatedRemainingSeconds = useMemo(() => {
+    const total = durationEstimate?.estimatedSeconds ?? null;
+    if (!total || totalSets <= 0) return total;
+    const remainingRatio = Math.max(0, 1 - completedSets / totalSets);
+    return Math.max(60, Math.round(total * remainingRatio));
+  }, [completedSets, durationEstimate?.estimatedSeconds, totalSets]);
 
   function updateDraft(exerciseId: string, patch: Partial<ExerciseDraft>) {
     setDrafts((current) => {
@@ -497,6 +519,56 @@ export function WorkoutSessionClient({ day }: Props) {
     );
   }
 
+
+  async function pauseSession() {
+    if (!sessionId) return;
+    setStatus("Metto in pausa...");
+    try {
+      const response = await fetch(`/api/workout-sessions/${sessionId}/pause`, { method: "POST" });
+      const result = await safeJson(response);
+      if (!response.ok || !result?.success) throw new Error(result?.error ?? "Errore pausa.");
+      pauseTimer();
+      setSessionStatus("paused");
+      setStatus("Allenamento in pausa.");
+      router.refresh();
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Errore pausa.");
+    }
+  }
+
+  async function resumeSession() {
+    if (!sessionId) return;
+    setStatus("Riprendo allenamento...");
+    try {
+      const response = await fetch(`/api/workout-sessions/${sessionId}/resume`, { method: "POST" });
+      const result = await safeJson(response);
+      if (!response.ok || !result?.success) throw new Error(result?.error ?? "Errore ripresa.");
+      setSessionStatus("in_progress");
+      setStatus("Allenamento ripreso.");
+      router.refresh();
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Errore ripresa.");
+    }
+  }
+
+  async function deleteSessionToTrash() {
+    if (!sessionId) return;
+    const confirmed = window.confirm("Vuoi eliminare questo allenamento? Verrà spostato nel cestino e potrai recuperarlo.");
+    if (!confirmed) return;
+    setCompleting(true);
+    setStatus("Sposto nel cestino...");
+    try {
+      const response = await fetch(`/api/workout-sessions/${sessionId}`, { method: "DELETE" });
+      const result = await safeJson(response);
+      if (!response.ok || !result?.success) throw new Error(result?.error ?? "Errore eliminazione.");
+      router.push("/history");
+      router.refresh();
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Errore eliminazione.");
+      setCompleting(false);
+    }
+  }
+
   async function completeSession() {
     if (!sessionId) return;
 
@@ -571,6 +643,49 @@ export function WorkoutSessionClient({ day }: Props) {
         ) : null}
       </Card>
 
+      <Card variant={sessionStatus === "paused" ? "info" : "subtle"} className="p-3">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-wide text-gym-muted">Sessione</p>
+            <p className="mt-1 text-sm font-extrabold text-slate-100">{sessionStatus === "paused" ? "Allenamento in pausa" : status}</p>
+            {durationEstimate?.estimatedSeconds ? (
+              <p className="mt-1 text-xs text-gym-muted">
+                Durata stimata {formatDurationShort(durationEstimate.estimatedSeconds)} · fine circa {formatClockTimeFromNow(estimatedRemainingSeconds)}
+              </p>
+            ) : null}
+          </div>
+          <div className="flex shrink-0 gap-2">
+            {sessionStatus === "paused" ? (
+              <button
+                type="button"
+                onClick={resumeSession}
+                disabled={!sessionId || completing}
+                className="inline-flex items-center gap-1 rounded-2xl bg-gym-info px-3 py-2 text-xs font-extrabold text-slate-950 disabled:opacity-50"
+              >
+                <PlayCircle size={15} /> Riprendi
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={pauseSession}
+                disabled={!sessionId || completing}
+                className="inline-flex items-center gap-1 rounded-2xl bg-white/10 px-3 py-2 text-xs font-extrabold text-slate-100 disabled:opacity-50"
+              >
+                <Pause size={15} /> Pausa
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={deleteSessionToTrash}
+              disabled={!sessionId || completing}
+              className="inline-flex items-center gap-1 rounded-2xl border border-red-400/25 bg-red-500/10 px-3 py-2 text-xs font-extrabold text-red-100 disabled:opacity-50"
+            >
+              <Trash2 size={15} /> Elimina
+            </button>
+          </div>
+        </div>
+      </Card>
+
       <WorkoutProgressSheet
         open={progressOpen}
         onClose={() => setProgressOpen(false)}
@@ -586,6 +701,8 @@ export function WorkoutSessionClient({ day }: Props) {
           goToNextIncompleteExercise();
         }}
         onCompleteSession={completeSession}
+        durationEstimate={durationEstimate}
+        estimatedRemainingSeconds={estimatedRemainingSeconds}
       />
 
       <AnimatePresence initial={false}>
@@ -732,6 +849,8 @@ function WorkoutProgressSheet({
   saving,
   onGoCurrent,
   onCompleteSession,
+  durationEstimate,
+  estimatedRemainingSeconds,
 }: {
   open: boolean;
   onClose: () => void;
@@ -744,6 +863,8 @@ function WorkoutProgressSheet({
   saving: boolean;
   onGoCurrent: () => void;
   onCompleteSession: () => void;
+  durationEstimate?: DurationEstimate;
+  estimatedRemainingSeconds: number | null;
 }) {
   const reduceMotion = useReducedMotion();
 
@@ -775,6 +896,12 @@ function WorkoutProgressSheet({
                 <p className="mt-1 text-sm text-gym-muted">
                   {completedSets}/{totalSets} serie · {progress}% · {saving ? "Salvataggio..." : "Salvato"}
                 </p>
+                {durationEstimate?.estimatedSeconds ? (
+                  <p className="mt-1 text-sm text-gym-muted">
+                    Fine stimata {formatClockTimeFromNow(estimatedRemainingSeconds)} · media {formatDurationShort(durationEstimate.estimatedSeconds)}
+                    {durationEstimate.sampleSize ? ` · ${durationEstimate.sampleSize} sessioni` : " · stima da scheda"}
+                  </p>
+                ) : null}
               </div>
               <button
                 type="button"

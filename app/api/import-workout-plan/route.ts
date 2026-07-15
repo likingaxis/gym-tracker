@@ -3,6 +3,7 @@ import { parseWorkoutPlanJson } from "@/lib/import/parseJson";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getSelectedProfileId } from "@/lib/profiles";
 import { isDirectImageUrl, resolveExerciseDbMediaById } from "@/lib/exerciseDb";
+import { pickPlanColor } from "@/lib/workoutPlanHistory";
 
 function errorResponse(
   errors: { path: string; message: string }[],
@@ -58,23 +59,15 @@ export async function POST(request: Request) {
 
     const supabase = createServerSupabaseClient();
     const plan = parsed.data;
-    const replaceCurrentPlan =
-      request.headers.get("x-replace-current-plan") === "true";
+    const makeActivePlan =
+      request.headers.get("x-replace-current-plan") !== "false";
 
-    if (replaceCurrentPlan) {
-      const { error: deleteError } = await supabase
-        .from("workout_plans")
-        .delete()
-        .eq("is_active", true)
-        .eq("profile_id", profileId);
+    const { count: planCount } = await supabase
+      .from("workout_plans")
+      .select("id", { count: "exact", head: true })
+      .eq("profile_id", profileId);
 
-      if (deleteError) {
-        return errorResponse(
-          [{ path: "database.workout_plans", message: deleteError.message }],
-          500,
-        );
-      }
-    }
+    const planColor = pickPlanColor(planCount ?? 0);
 
     const { data: planRow, error: planError } = await supabase
       .from("workout_plans")
@@ -83,7 +76,10 @@ export async function POST(request: Request) {
         month: plan.month,
         start_date: cleanDate(plan.start_date),
         end_date: cleanDate(plan.end_date),
-        is_active: true,
+        is_active: makeActivePlan,
+        status: makeActivePlan ? "active" : "archived",
+        color: planColor,
+        archived_at: makeActivePlan ? null : new Date().toISOString(),
         profile_id: profileId,
       })
       .select("id")
@@ -101,17 +97,24 @@ export async function POST(request: Request) {
       );
     }
 
-    const { error: deactivateError } = await supabase
-      .from("workout_plans")
-      .update({ is_active: false })
-      .eq("profile_id", profileId)
-      .neq("id", planRow.id);
+    if (makeActivePlan) {
+      const { error: deactivateError } = await supabase
+        .from("workout_plans")
+        .update({
+          is_active: false,
+          status: "archived",
+          archived_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("profile_id", profileId)
+        .neq("id", planRow.id);
 
-    if (deactivateError) {
-      return errorResponse(
-        [{ path: "database.workout_plans", message: deactivateError.message }],
-        500,
-      );
+      if (deactivateError) {
+        return errorResponse(
+          [{ path: "database.workout_plans", message: deactivateError.message }],
+          500,
+        );
+      }
     }
 
     let daysCreated = 0;
@@ -236,6 +239,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: true,
       workout_plan_id: planRow.id,
+      archived_previous_plan: makeActivePlan,
       days_created: daysCreated,
       exercises_created: exercisesCreated,
       warnings: [...parsed.warnings, ...exerciseDbWarnings],

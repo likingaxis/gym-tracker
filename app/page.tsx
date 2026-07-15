@@ -10,11 +10,14 @@ import { getSelectedProfileId } from "@/lib/profiles";
 import {
   buildExerciseProgress,
   buildProgressOverview,
+  estimateFallbackDurationFromPlan,
+  estimateWorkoutDurationFromSessions,
+  formatDurationShort,
   getRecentImprovements,
   getSessionSummary,
   type SessionLike,
 } from "@/lib/progress";
-import { relationName } from "@/lib/relations";
+import { getDayNameSnapshot, getPlanColorSnapshot, getPlanDotClass, getPlanNameSnapshot } from "@/lib/workoutPlanHistory";
 import { formatDayCount, formatExerciseCount, formatWorkoutCount, formatSetCount } from "@/lib/utils/copy";
 
 async function getSelectedProfile(profileId: string) {
@@ -53,9 +56,10 @@ async function getCompletedSessions(profileId: string) {
     const supabase = createServerSupabaseClient();
     const { data } = await supabase
       .from("workout_sessions")
-      .select("id, status, started_at, completed_at, workout_day_id, workout_days(name), workout_plans(name, month), session_exercises(completed, exercises(name, exercise_db_id, muscle_group), exercise_sets(completed, reps, weight, rpe, set_number))")
+      .select("id, status, started_at, completed_at, workout_day_id, total_paused_seconds, workout_plan_name_snapshot, workout_day_name_snapshot, workout_plan_color_snapshot, workout_days(name), workout_plans(name, month, color), session_exercises(completed, exercises(name, exercise_db_id, muscle_group), exercise_sets(completed, reps, weight, rpe, set_number))")
       .eq("profile_id", profileId)
       .eq("status", "completed")
+      .is("deleted_at", null)
       .order("started_at", { ascending: false })
       .limit(80);
     return (data ?? []) as SessionLike[];
@@ -83,6 +87,13 @@ export default async function DashboardPage() {
   const exerciseCount = days.reduce((total: number, day: any) => total + (day.exercises?.length ?? 0), 0);
   const lastByDay = buildLastSessionByDay(completedSessions);
   const recommendedDay = getRecommendedDay(days, lastByDay);
+  const recommendedDuration = recommendedDay
+    ? estimateWorkoutDurationFromSessions(
+        completedSessions,
+        recommendedDay.id,
+        estimateFallbackDurationFromPlan(recommendedDay.exercises ?? []) ?? undefined,
+      )
+    : null;
 
   return (
     <div className="space-y-5">
@@ -119,6 +130,12 @@ export default async function DashboardPage() {
                 {lastByDay.get(recommendedDay.id) ? `Ultima volta ${formatDate(lastByDay.get(recommendedDay.id)?.started_at)}` : "Mai completato"}
                 <span className="mx-2 text-slate-600">·</span>
                 {formatExerciseCount(recommendedDay.exercises?.length ?? 0)}
+                {recommendedDuration?.estimatedSeconds ? (
+                  <>
+                    <span className="mx-2 text-slate-600">·</span>
+                    circa {formatDurationShort(recommendedDuration.estimatedSeconds)}
+                  </>
+                ) : null}
               </p>
             </div>
           </div>
@@ -134,8 +151,9 @@ export default async function DashboardPage() {
             <Card variant="subtle" className="h-full transition active:scale-[0.99]">
               <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-2xl bg-white/10 text-slate-300"><Clock3 size={16} /></div>
               <p className="text-sm font-semibold text-gym-muted">Ultimo</p>
-              <h2 className="mt-1 line-clamp-2 text-lg font-extrabold">{relationName(lastSession.workout_days, "Allenamento")}</h2>
-              <p className="mt-2 text-xs text-gym-muted">{formatDate(lastSession.started_at)} · {formatSetCount(getSessionSummary(lastSession).completedSets)}</p>
+              <h2 className="mt-1 line-clamp-2 text-lg font-extrabold">{getDayNameSnapshot(lastSession)}</h2>
+              <p className="mt-2 flex items-center gap-1.5 text-xs text-gym-muted"><span>{formatDate(lastSession.started_at)}</span><span>·</span><span className={`h-1.5 w-1.5 rounded-full ${getPlanDotClass(getPlanColorSnapshot(lastSession))}`} /><span className="line-clamp-1">{getPlanNameSnapshot(lastSession)}</span></p>
+              <p className="mt-1 text-xs text-gym-muted">{formatSetCount(getSessionSummary(lastSession).completedSets)}</p>
             </Card>
           </Link>
         ) : (
@@ -188,7 +206,7 @@ export default async function DashboardPage() {
             <span className="text-gym-muted">·</span>
             <p className="text-xl font-extrabold text-slate-100">{formatSetCount(overview.totalSetsThisWeek)}</p>
           </div>
-          <p className="mt-1 text-xs text-gym-muted">ultimi 7 giorni</p>
+          <p className="mt-1 text-xs text-gym-muted">da lunedì</p>
         </Card>
       ) : null}
 

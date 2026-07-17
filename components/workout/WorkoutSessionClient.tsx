@@ -8,6 +8,7 @@ import {
   CheckCircle2,
   ChevronDown,
   ChevronUp,
+  ExternalLink,
   ImageIcon,
   Maximize2,
   Pause,

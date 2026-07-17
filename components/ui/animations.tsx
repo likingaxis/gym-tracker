@@ -9,9 +9,9 @@ const appleSpring = {
   stiffness: 260,
   damping: 30,
   mass: 1,
-};
+} as const;
 
-const appleEase = [0.25, 0.1, 0.25, 1];
+const appleEase = [0.25, 0.1, 0.25, 1] as const;
 
 export function PageTransition({ children, className }: { children: ReactNode; className?: string }) {
   return (

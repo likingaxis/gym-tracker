@@ -21,6 +21,7 @@ type EditableExercise = {
   tips?: string | null;
   trainer_notes?: string | null;
   exercise_db_query?: string | null;
+  exercise_db_name?: string | null;
   exercise_db_id?: string | null;
   media_url?: string | null;
 };
@@ -286,7 +287,7 @@ export function WorkoutPlanEditor({ initialPlan }: { initialPlan: EditablePlan }
               <Field label="Note trainer"><textarea className="input min-h-24" value={editingExercise.trainer_notes ?? ""} onChange={(event) => updateExercise(selectedExercise.dayIndex, selectedExercise.exerciseIndex, { trainer_notes: event.target.value })} /></Field>
               <div className="pt-2">
                 <ExerciseDbMediaPicker
-                  exerciseId={editingExercise.id}
+                  exerciseId={editingExercise.id ?? ""}
                   exerciseName={editingExercise.name}
                   currentMediaUrl={editingExercise.media_url}
                   currentExerciseDbName={editingExercise.exercise_db_name}

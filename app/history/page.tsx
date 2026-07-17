@@ -11,6 +11,7 @@ import { getDayNameSnapshot, getPlanColorSnapshot, getPlanDotClass, getPlanNameS
 import { SessionActions } from "@/components/history/SessionActions";
 import { formatCompactNumber, getSessionSummary as getSmartSessionSummary } from "@/lib/progress";
 import { formatSetCount, formatWorkoutCount } from "@/lib/utils/copy";
+import { FadeIn, SlideUp, StaggeredList, StaggeredItem } from "@/components/ui/animations";
 
 type Filter = "completed" | "in_progress" | "paused" | "abandoned" | "all";
 
@@ -86,18 +87,22 @@ export default async function HistoryPage({ searchParams }: { searchParams?: Pro
 
   return (
     <div className="space-y-5">
-      <header>
-        <p className="text-sm font-semibold text-gym-info">Storico</p>
-        <h1 className="mt-2 text-3xl font-extrabold">Allenamenti recenti</h1>
-        <p className="mt-2 text-gym-muted">Ogni sessione resta collegata alla scheda con cui è stata eseguita.</p>
-      </header>
+      <FadeIn delay={0.1}>
+        <header className="app-hero">
+          <p className="technical-label text-gym-info">Storico</p>
+          <h1 className="mt-2 text-4xl font-extrabold leading-none text-white">Allenamenti recenti</h1>
+          <p className="mt-2 text-base text-white/65">Ogni sessione resta collegata alla scheda con cui è stata eseguita.</p>
+        </header>
+      </FadeIn>
 
-      <div className="grid grid-cols-2 gap-2 text-sm">
-        <Link href={buildHistoryHref(filter, selectedPlanId)} className="flex items-center justify-center gap-2 rounded-lg bg-gym-accent px-3 py-3 text-center font-extrabold text-slate-950 "><HistoryIcon size={15} /> Lista</Link>
-        <Link href={buildCalendarHref(selectedPlanId)} className="flex items-center justify-center gap-2 rounded-lg bg-white/10 px-3 py-3 text-center font-bold text-slate-200"><CalendarDays size={15} /> Calendario</Link>
-      </div>
+      <SlideUp delay={0.2}>
+        <div className="grid grid-cols-2 gap-2 text-sm">
+          <Link href={buildHistoryHref(filter, selectedPlanId)} className="flex items-center justify-center gap-2 rounded-lg bg-gym-accent px-3 py-3 text-center font-extrabold text-slate-950 "><HistoryIcon size={15} /> Lista</Link>
+          <Link href={buildCalendarHref(selectedPlanId)} className="flex items-center justify-center gap-2 rounded-lg bg-white/10 px-3 py-3 text-center font-bold text-slate-200"><CalendarDays size={15} /> Calendario</Link>
+        </div>
+      </SlideUp>
 
-      <Card variant="subtle" className="p-3">
+      <SlideUp delay={0.3} className="app-list p-3">
         <div className="flex items-center justify-between gap-3 text-sm">
           <div>
             <p className="font-bold text-slate-200">Questa vista</p>
@@ -105,7 +110,7 @@ export default async function HistoryPage({ searchParams }: { searchParams?: Pro
           </div>
           <details className="relative text-right">
             <summary className="cursor-pointer rounded-lg bg-white/10 px-3 py-2 text-xs font-bold text-slate-200">Filtra</summary>
-            <div className="absolute right-0 z-20 mt-2 grid w-44 gap-2 rounded-lg border border-white/10 bg-gym-panel p-2 ">
+            <div className="absolute right-0 z-20 mt-2 grid w-44 gap-2 rounded-lg border border-white/10 bg-white/[0.035] p-2 ">
               <FilterLink href={buildHistoryHref("completed", selectedPlanId)} active={filter === "completed"} label="Completati" />
               <FilterLink href={buildHistoryHref("in_progress", selectedPlanId)} active={filter === "in_progress"} label="In corso" />
               <FilterLink href={buildHistoryHref("paused", selectedPlanId)} active={filter === "paused"} label="In pausa" />
@@ -115,10 +120,10 @@ export default async function HistoryPage({ searchParams }: { searchParams?: Pro
             </div>
           </details>
         </div>
-      </Card>
+      </SlideUp>
 
       {plans.length > 1 ? (
-        <Card variant="subtle" className="p-3">
+        <SlideUp delay={0.4} className="app-list p-3">
           <p className="mb-3 text-xs font-bold uppercase tracking-wide text-gym-muted">Filtro scheda</p>
           <div className="flex gap-2 overflow-x-auto pb-1">
             <PlanChip href={buildHistoryHref(filter, null)} active={!selectedPlanId} label="Tutte" />
@@ -133,7 +138,7 @@ export default async function HistoryPage({ searchParams }: { searchParams?: Pro
               />
             ))}
           </div>
-        </Card>
+        </SlideUp>
       ) : null}
 
       {sessions.length === 0 ? (
@@ -143,7 +148,7 @@ export default async function HistoryPage({ searchParams }: { searchParams?: Pro
           description={selectedPlan ? "Questa scheda non ha sessioni con il filtro selezionato." : "Completa una sessione per vedere lo storico."}
         />
       ) : (
-        <div className="space-y-3">
+        <StaggeredList className="app-list">
           {sessions.map((session: any) => {
             const summary = getSmartSessionSummary(session);
             const startedAt = new Date(session.started_at).toLocaleDateString("it-IT", {
@@ -152,16 +157,16 @@ export default async function HistoryPage({ searchParams }: { searchParams?: Pro
             });
 
             return (
-              <Card key={session.id} className={getCardClass(session.status)}>
-                <Link href={`/history/${session.id}`} className="block transition active:scale-[0.99]">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
+              <StaggeredItem key={session.id} className={`app-row block !py-4 ${getCardClass(session.status) || ""}`}>
+                <Link href={`/history/${session.id}`} className="block w-full transition active:scale-[0.99]">
+                  <div className="flex w-full items-start gap-3">
+                    <div className="min-w-0 flex-1">
                       <p className={`text-xs font-bold ${getStatusColor(session.status)}`}>{getStatusLabel(session.status)}</p>
-                      <h2 className="mt-1 text-xl font-extrabold">{getDayNameSnapshot(session)}</h2>
-                      <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-gym-muted"><span>{startedAt}</span><span>·</span><span className={`h-2 w-2 rounded-full ${getPlanDotClass(getPlanColorSnapshot(session))}`} /><span>{getPlanNameSnapshot(session)}</span></p>
+                      <h2 className="mt-1 truncate text-xl font-extrabold text-white">{getDayNameSnapshot(session)}</h2>
+                      <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-gym-muted"><span>{startedAt}</span><span>·</span><span className={`h-2 w-2 shrink-0 rounded-full ${getPlanDotClass(getPlanColorSnapshot(session))}`} /><span>{getPlanNameSnapshot(session)}</span></p>
                       <p className="mt-2 text-sm text-slate-300">{summary.completedSets}/{summary.totalSets} serie · {formatCompactNumber(summary.volume)} kg</p>
                     </div>
-                    <span className="rounded-full bg-white/10 px-3 py-1 text-sm font-bold">Dettaglio</span>
+                    <span className="ml-auto shrink-0 whitespace-nowrap rounded-full bg-white/10 px-3 py-1 text-sm font-bold">Dettaglio</span>
                   </div>
                 </Link>
 
@@ -178,10 +183,10 @@ export default async function HistoryPage({ searchParams }: { searchParams?: Pro
                     </div>
                   </details>
                 ) : null}
-              </Card>
+              </StaggeredItem>
             );
           })}
-        </div>
+        </StaggeredList>
       )}
     </div>
   );

@@ -6,23 +6,25 @@ const config: Config = {
     extend: {
       colors: {
         gym: {
-          bg: "#070A0F",
-          panel: "#0F172A",
-          card: "#151E2E",
-          raised: "#1B2638",
-          active: "#1F2F46",
-          accent: "#34D399",
-          info: "#60A5FA",
-          warning: "#FBBF24",
-          danger: "#F87171",
-          muted: "#94A3B8",
-          soft: "#CBD5E1"
+          bg: "#050708",
+          panel: "rgba(255, 255, 255, 0.045)",
+          card: "rgba(255, 255, 255, 0.035)",
+          raised: "rgba(255, 255, 255, 0.06)",
+          active: "rgba(255, 255, 255, 0.08)",
+          line: "rgba(255, 255, 255, 0.08)",
+          accent: "#C65F37",
+          info: "#A9B0AD",
+          warning: "#C65F37",
+          success: "#607D6D",
+          danger: "#A94E48",
+          muted: "#8A938F",
+          soft: "#D6D9D3"
         }
       },
       boxShadow: {
-        glow: "0 0 32px rgba(52, 211, 153, 0.18)",
-        info: "0 0 30px rgba(96, 165, 250, 0.14)",
-        card: "0 18px 50px rgba(0, 0, 0, 0.24)"
+        glow: "0 0 32px rgba(198, 95, 55, 0.18)",
+        info: "0 0 30px rgba(169, 176, 173, 0.14)",
+        card: "0 18px 50px rgba(0, 0, 0, 0.5)"
       }
     }
   },

@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Archive, BadgeCheck, CheckCircle2, ChevronRight, Dumbbell, Pencil, Play } from "lucide-react";
+import { Archive, BadgeCheck, CheckCircle2, ChevronRight, Dumbbell, Eye, Pencil, Play } from "lucide-react";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getSelectedProfileId } from "@/lib/profiles";
 import { type SessionLike } from "@/lib/progress";
@@ -68,24 +68,24 @@ export default async function WorkoutIndexPage() {
 
   return (
     <div className="space-y-7">
-      <header>
+      <header className="app-hero">
         <div className="flex items-center gap-2">
           <span className={`h-2.5 w-2.5 rounded-full ${getPlanDotClass(plan.color)}`} />
-          <p className="technical-label">Scheda attiva</p>
+          <p className="technical-label text-gym-warning">Scheda attiva</p>
         </div>
-        <h1 className="page-title mt-2">{plan.name}</h1>
-        <p className="mt-2 text-base text-gym-muted">
+        <h1 className="mt-2 text-4xl font-extrabold leading-none text-white">{plan.name}</h1>
+        <p className="mt-2 text-base text-white/65">
           {formatPlanDateRange(plan.start_date, plan.end_date)} · {formatDayCount(days.length)} · {formatExerciseCount(exerciseCount)}
         </p>
       </header>
 
       <nav className="grid grid-cols-3 gap-2" aria-label="Azioni scheda">
-        <Link href="/workout/edit" className="secondary-button"><Pencil size={17} /> Modifica</Link>
-        <Link href="/import" className="secondary-button"><Dumbbell size={17} /> Nuova</Link>
-        <Link href="/workout/archive" className="secondary-button"><Archive size={17} /> Archivio</Link>
+        <Link href="/workout/edit" className="secondary-button"><Pencil size={20} /> Modifica</Link>
+        <Link href="/import" className="secondary-button"><Dumbbell size={20} /> Nuova</Link>
+        <Link href="/workout/archive" className="secondary-button"><Archive size={20} /> Archivio</Link>
       </nav>
 
-      <section className="section-block">
+      <section className="section-block border-t-0 pt-0">
         <div className="mb-3 flex items-end justify-between gap-3">
           <div>
             <p className="technical-label">Giorni</p>
@@ -93,13 +93,13 @@ export default async function WorkoutIndexPage() {
           </div>
         </div>
 
-        <div className="technical-list">
+        <div className="app-list">
           {days.map((day: any) => {
             const last = lastByDay.get(day.id);
             const isRecommended = recommended?.id === day.id;
             return (
-              <article key={day.id} className={`day-row ${isRecommended ? "day-row-recommended" : ""}`}>
-                <Link href={`/workout/${day.id}/preview`} className="min-w-0 flex-1 py-4 pr-3 focus-visible:outline-none">
+              <article key={day.id} className={`app-row relative ${isRecommended ? "day-row-recommended" : ""}`}>
+                <Link href={`/workout/${day.id}/preview`} className="min-w-0 flex-1 py-1 pr-3 focus-visible:outline-none">
                   <div className="flex items-center gap-2">
                     <span className="mono-type text-xs text-gym-muted">G{day.day_order}</span>
                     {isRecommended ? <span className="status-pill status-signal"><BadgeCheck size={12} /> Consigliato</span> : null}
@@ -115,10 +115,10 @@ export default async function WorkoutIndexPage() {
                 </Link>
                 <div className="flex shrink-0 items-center gap-2">
                   <Link href={`/workout/${day.id}/preview`} className="touch-icon" aria-label={`Visualizza ${day.name}`}>
-                    <ChevronRight size={20} />
+                    <Eye size={22} />
                   </Link>
                   <Link href={`/workout/${day.id}`} className="start-button" aria-label={`Inizia ${day.name}`}>
-                    <Play size={17} fill="currentColor" />
+                    <Play size={18} fill="currentColor" />
                     <span className="sr-only">Inizia</span>
                   </Link>
                 </div>

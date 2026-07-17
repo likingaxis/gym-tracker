@@ -32,6 +32,7 @@ type Props = {
   currentExerciseDbName?: string | null;
   currentExerciseDbId?: string | null;
   onSaved: (exercise: UpdatedExercise) => void;
+  offlineMode?: boolean;
 };
 
 async function readJson(response: Response) {
@@ -51,6 +52,7 @@ export function ExerciseDbMediaPicker({
   currentExerciseDbName,
   currentExerciseDbId,
   onSaved,
+  offlineMode = false,
 }: Props) {
   const { confirmDialog } = useAppDialog();
   const [open, setOpen] = useState(false);
@@ -100,14 +102,33 @@ export function ExerciseDbMediaPicker({
     };
   }, [open, query]);
 
-  async function saveCandidate(candidate: Candidate) {
+  async function saveMedia(candidate: Candidate) {
     setSavingId(candidate.exercise_db_id);
-    setStatus("Salvataggio GIF...");
+    setStatus("Salvataggio in corso...");
     try {
+      if (offlineMode) {
+        onSaved({
+          media_url: candidate.gifUrl,
+          exercise_db_id: candidate.exercise_db_id,
+          exercise_db_name: candidate.name,
+          exercise_db_confidence: String(candidate.score),
+          exercise_db_match_score: candidate.score,
+        });
+        setStatus("GIF applicata.");
+        setOpen(false);
+        return;
+      }
+
       const response = await fetch(`/api/exercises/${exerciseId}/media`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ exercise_db_id: candidate.exercise_db_id }),
+        body: JSON.stringify({
+          media_url: candidate.gifUrl,
+          exercise_db_id: candidate.exercise_db_id,
+          exercise_db_name: candidate.name,
+          exercise_db_confidence: candidate.score ? String(candidate.score) : null,
+          exercise_db_match_score: candidate.score,
+        }),
       });
       const data = await readJson(response);
       if (!response.ok || !data?.success) {
@@ -130,6 +151,13 @@ export function ExerciseDbMediaPicker({
     setSavingId("remove");
     setStatus("Rimozione GIF...");
     try {
+      if (offlineMode) {
+        onSaved({ media_url: null, exercise_db_id: null, exercise_db_name: null, exercise_db_match_score: null });
+        setStatus("GIF rimossa.");
+        setOpen(false);
+        return;
+      }
+
       const response = await fetch(`/api/exercises/${exerciseId}/media`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -171,7 +199,7 @@ export function ExerciseDbMediaPicker({
             role="dialog"
             aria-modal="true"
             aria-label="Cambia GIF ExerciseDB"
-            className="max-h-[86dvh] w-full max-w-md overflow-y-auto rounded-t-2xl border border-gym-line bg-gym-panel p-4 shadow-2xl shadow-black/60"
+            className="max-h-[86dvh] w-full max-w-md overflow-y-auto rounded-t-2xl border border-white/10 bg-white/[0.035] p-4 shadow-2xl shadow-black/60"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="flex items-start justify-between gap-3">
@@ -191,14 +219,14 @@ export function ExerciseDbMediaPicker({
             </div>
 
             {hasCurrentMedia ? (
-              <div className="mt-4 flex justify-center rounded-lg border border-gym-line bg-black/20 p-3">
+              <div className="mt-4 flex justify-center rounded-lg border border-white/10 bg-black/20 p-3">
                 <img src={cleanCurrentMedia} alt={exerciseName} className="h-36 w-36 rounded-lg object-contain" loading="lazy" />
               </div>
             ) : null}
 
             <label className="mt-4 block">
               <span className="field-label">Cerca nel catalogo</span>
-              <div className="flex items-center gap-2 rounded-lg border border-gym-line bg-black/20 px-3 py-2">
+              <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-black/20 px-3 py-2">
                 <Search size={16} className="text-gym-muted" />
                 <input
                   value={query}
@@ -214,7 +242,7 @@ export function ExerciseDbMediaPicker({
               {results.length > 0 ? results.map((candidate) => {
                 const isCurrent = candidate.exercise_db_id === currentExerciseDbId;
                 return (
-                  <div key={candidate.exercise_db_id} className="rounded-lg border border-gym-line bg-white/[0.04] p-3">
+                  <div key={candidate.exercise_db_id} className="rounded-lg border border-white/10 bg-white/[0.04] p-3">
                     <div className="flex gap-3">
                       <img src={candidate.gifUrl} alt={candidate.name} className="h-20 w-20 shrink-0 rounded-lg bg-black/20 object-contain" loading="lazy" />
                       <div className="min-w-0 flex-1">
@@ -225,7 +253,7 @@ export function ExerciseDbMediaPicker({
                     </div>
                     <button
                       type="button"
-                      onClick={() => saveCandidate(candidate)}
+                      onClick={() => saveMedia(candidate)}
                       disabled={Boolean(savingId) || isCurrent}
                       className={isCurrent
                         ? "mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-gym-accent/15 px-4 py-3 text-sm font-extrabold text-gym-accent disabled:opacity-80"

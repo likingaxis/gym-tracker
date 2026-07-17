@@ -125,12 +125,12 @@ export function PinSettings({ profile }: PinSettingsProps) {
       </form>
 
       {pinEnabled ? (
-        <form onSubmit={deletePin} className="space-y-3 rounded-3xl border border-red-400/20 bg-red-950/20 p-4">
-          <h3 className="text-lg font-black">Rimuovi PIN</h3>
+        <form onSubmit={deletePin} className="space-y-3 rounded-3xl border border-red-500/10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-red-500/10 to-transparent p-4">
+          <h3 className="text-lg font-black text-red-200">Rimuovi PIN</h3>
           <PinInput label="PIN attuale" value={removePin} onChange={setRemovePin} />
           <button
             disabled={isSaving || removePin.length !== 4}
-            className="w-full rounded-2xl bg-red-500 px-4 py-3 text-sm font-black text-white disabled:opacity-50"
+            className="w-full rounded-[1rem] bg-red-500/20 px-4 py-3 text-sm font-black text-red-200 border border-red-500/30 shadow-inner disabled:opacity-50 transition active:scale-[0.98]"
           >
             Rimuovi PIN
           </button>
@@ -139,7 +139,7 @@ export function PinSettings({ profile }: PinSettingsProps) {
 
       <button
         onClick={lockProfile}
-        className="w-full rounded-2xl bg-white/10 px-4 py-3 text-sm font-black text-slate-200"
+        className="w-full rounded-[1rem] bg-white/[0.04] border border-white/10 px-4 py-3 text-sm font-black text-slate-200 shadow-inner transition active:scale-[0.98]"
       >
         Blocca profilo / cambia utente
       </button>
@@ -159,7 +159,7 @@ function PinInput({ label, value, onChange }: { label: string; value: string; on
         inputMode="numeric"
         type="password"
         placeholder="••••"
-        className="mt-2 w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-center text-2xl font-black tracking-[0.35em] text-white outline-none focus:border-gym-accent"
+        className="mt-2 w-full rounded-[1rem] border border-white/10 bg-white/[0.04] px-4 py-3 text-center text-2xl font-black tracking-[0.35em] text-white outline-none focus:border-gym-accent shadow-inner transition"
       />
     </label>
   );

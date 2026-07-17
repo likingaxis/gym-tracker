@@ -308,13 +308,13 @@ export function buildExerciseProgress(sessions: SessionLike[]) {
 export function getRecentImprovements(exercises: ReturnType<typeof buildExerciseProgress>) {
   return exercises
     .map((exercise) => {
-      const entriesWithWeight = exercise.entries.filter((entry) => entry.averageWeight !== null);
+      const entriesWithWeight = exercise.entries.filter((entry) => entry.maxWeight !== null);
       if (entriesWithWeight.length < 2) return null;
       const previous = entriesWithWeight[entriesWithWeight.length - 2];
       const current = entriesWithWeight[entriesWithWeight.length - 1];
-      const diff = Number(current.averageWeight) - Number(previous.averageWeight);
+      const diff = Number(current.maxWeight) - Number(previous.maxWeight);
       if (diff <= 0) return null;
-      return { name: exercise.name, muscleGroup: exercise.muscleGroup, diff, current: current.averageWeight };
+      return { name: exercise.name, muscleGroup: exercise.muscleGroup, diff, current: current.maxWeight };
     })
     .filter(Boolean)
     .sort((a: any, b: any) => b.diff - a.diff)
@@ -435,11 +435,11 @@ export function toDateKey(value: string | null | undefined) {
   return date.toISOString().slice(0, 10);
 }
 
-export function getExerciseTrend(entries: Array<{ averageWeight: number | null }>) {
-  const weighted = entries.filter((entry) => entry.averageWeight !== null) as Array<{ averageWeight: number }>;
+export function getExerciseTrend(entries: Array<{ maxWeight: number | null }>) {
+  const weighted = entries.filter((entry) => entry.maxWeight !== null) as Array<{ maxWeight: number }>;
   if (weighted.length < 2) return { label: "Dati insufficienti", diff: null as number | null, direction: "flat" as const };
-  const previous = weighted[weighted.length - 2].averageWeight;
-  const current = weighted[weighted.length - 1].averageWeight;
+  const previous = weighted[weighted.length - 2].maxWeight;
+  const current = weighted[weighted.length - 1].maxWeight;
   const diff = current - previous;
   if (diff > 0) return { label: `+${diff.toFixed(1).replace(".", ",")} kg`, diff, direction: "up" as const };
   if (diff < 0) return { label: `${diff.toFixed(1).replace(".", ",")} kg`, diff, direction: "down" as const };
@@ -459,6 +459,7 @@ export function getExerciseRecords(exercises: ReturnType<typeof buildExercisePro
         name: exercise.name,
         muscleGroup: exercise.muscleGroup,
         bestWeight: best.maxWeight,
+        bestReps: best.repsLabel,
         bestDate: best.date,
         lastAverageWeight: last.averageWeight,
         sessions: exercise.entries.length,
@@ -471,6 +472,7 @@ export function getExerciseRecords(exercises: ReturnType<typeof buildExercisePro
       name: string;
       muscleGroup: string;
       bestWeight: number | null;
+      bestReps: string;
       bestDate: string;
       lastAverageWeight: number | null;
       sessions: number;
@@ -492,13 +494,13 @@ export function getAverageWorkoutDuration(sessions: SessionLike[]) {
 export function getStalledExercises(exercises: ReturnType<typeof buildExerciseProgress>) {
   return exercises
     .map((exercise) => {
-      const entriesWithWeight = exercise.entries.filter((entry) => entry.averageWeight !== null);
+      const entriesWithWeight = exercise.entries.filter((entry) => entry.maxWeight !== null);
       if (entriesWithWeight.length < 3) return null;
       const lastThree = entriesWithWeight.slice(-3);
-      const first = Number(lastThree[0].averageWeight);
-      const last = Number(lastThree[lastThree.length - 1].averageWeight);
+      const first = Number(lastThree[0].maxWeight);
+      const last = Number(lastThree[lastThree.length - 1].maxWeight);
       const diff = last - first;
-      if (diff > 0.5) return null;
+      if (Math.abs(diff) > 1.0) return null;
       return {
         key: exercise.key,
         name: exercise.name,

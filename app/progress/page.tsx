@@ -1,31 +1,33 @@
 export const dynamic = "force-dynamic";
 
 import Link from "next/link";
-import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
-import { AlertTriangle, CalendarDays, ChevronRight, Clock3, Dumbbell, Target, Trophy, TrendingUp } from "lucide-react";
-import { EmptyState } from "@/components/ui/EmptyState";
+import { AlertTriangle, CalendarDays, ChevronRight, Dumbbell, Target, Trophy, TrendingUp, TrendingDown, Flame, Activity, Clock3 } from "lucide-react";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getSelectedProfileId } from "@/lib/profiles";
 import {
   buildExerciseProgress,
   buildMonthComparison,
   buildMuscleGroupSets,
-  buildMuscleGroupVolume,
   buildProgressOverview,
-  buildConsistencyStats,
-  formatAverage,
   formatCompactNumber,
-  formatDurationShort,
-  formatShortDate,
   getAverageWorkoutDuration,
   getExerciseRecords,
   getExerciseTrend,
   getMuscleFrequency,
   getRecentImprovements,
   getStalledExercises,
+  getTrainingStreak,
   type SessionLike,
 } from "@/lib/progress";
+
+// Client Components for animated charts
+import {
+  ActivityChartClient,
+  DurationChartClient,
+  SparklineClient,
+  CombinedMuscleRowClient
+} from "@/components/progress/ProgressChartsClient";
 
 async function getProgressSessions(profileId: string) {
   try {
@@ -51,207 +53,209 @@ export default async function ProgressPage() {
   const sessions = await getProgressSessions(profileId);
   const overview = buildProgressOverview(sessions);
   const comparison = buildMonthComparison(sessions);
-  const consistency = buildConsistencyStats(sessions);
   const averageDuration = getAverageWorkoutDuration(sessions);
+  const consistency = getTrainingStreak(sessions);
   const muscleFrequency = getMuscleFrequency(sessions);
-  const muscleGroups = buildMuscleGroupSets(overview.sessionsThisMonth);
-  const muscleVolume = buildMuscleGroupVolume(overview.sessionsThisMonth);
+  const muscleSets = buildMuscleGroupSets(overview.sessionsThisMonth);
   const exercises = buildExerciseProgress(sessions);
   const improvements = getRecentImprovements(exercises);
   const records = getExerciseRecords(exercises);
   const stalledExercises = getStalledExercises(exercises);
-  const topExercise = exercises.find((exercise) => exercise.entries.some((entry) => entry.averageWeight !== null));
   const latestExercises = exercises.filter((exercise) => exercise.entries.length > 0).slice(0, 8);
   const primaryImprovement = improvements[0];
   const primaryStall = stalledExercises[0];
 
+  const avgDurationMins = Math.round((averageDuration.averageSeconds ?? 0) / 60);
+
+  function formatDuration(minutes: number): { value: number | string, suffix: string } {
+    if (minutes < 60) return { value: minutes, suffix: " m" };
+    const h = Math.floor(minutes / 60);
+    const m = minutes % 60;
+    if (m === 0) return { value: h, suffix: " h" };
+    return { value: `${h}h ${m}`, suffix: "m" };
+  }
+  
+  const avgDurationFormatted = formatDuration(avgDurationMins);
+
   return (
-    <div className="space-y-7">
-      <header className="statistics-hero">
+    <div className="pb-12 space-y-7">
+      {/* HEADER & HERO DASHBOARD */}
+      <header className="app-hero">
         <p className="technical-label text-gym-accent">Statistiche</p>
-        <h1 className="mt-3 text-4xl font-extrabold leading-none">Rapporto tecnico</h1>
-        <p className="mt-3 text-base text-gym-muted">Prestazioni, frequenza e carichi in un’unica vista.</p>
+        <h1 className="mt-3 text-4xl font-extrabold leading-none text-white">Rapporto tecnico</h1>
+        <p className="mt-3 text-base text-white/65">Analisi avanzata e oggettiva dei tuoi allenamenti.</p>
       </header>
 
-      <section className={primaryImprovement ? "insight-hero insight-growth" : primaryStall ? "insight-hero insight-warning" : "insight-hero"}>
+      {/* DASHBOARD PANORAMICA MESE CORRENTE */}
+      <section className="px-4">
+        <div className="grid grid-cols-3 gap-3">
+          <DeltaCard label="Workout" value={comparison.currentMonthSessions.length} diff={comparison.sessionDiff} suffix="" color="orange" />
+          <DeltaCard label="Costanza" value={consistency.currentStreak} diff={null} suffix=" gg" color="green" />
+          <DeltaCard label="Durata Media" value={avgDurationFormatted.value} diff={null} suffix={avgDurationFormatted.suffix} color="violet" />
+        </div>
+      </section>
+
+      {/* ATTIVITA' CHART - SERIE COMPLETATE CON ANIMAZIONI E ASSI */}
+      <ActivityChartClient sessions={sessions} />
+      
+      {/* TEMPO DI ALLENAMENTO CHART CON ANIMAZIONI E ASSI */}
+      <DurationChartClient sessions={sessions} />
+
+      {/* INSIGHT FOCUS */}
+      <section className="px-4">
         {primaryImprovement ? (
-          <>
-            <span className="status-pill status-success"><TrendingUp size={13} /> In crescita</span>
-            <h2 className="mt-4 text-3xl font-extrabold leading-none">{primaryImprovement.name}</h2>
-            <p className="mt-3 text-lg font-bold text-gym-success">+{primaryImprovement.diff.toFixed(1).replace(".", ",")} kg dall’ultima sessione</p>
-          </>
+          <div className="relative overflow-hidden rounded-[1.5rem] bg-gradient-to-br from-gym-success/15 to-[#050708] border border-gym-success/20 p-5 shadow-[0_0_30px_rgba(16,185,129,0.05)]">
+            <div className="absolute -right-4 -top-4 opacity-[0.06] text-gym-success">
+               <TrendingUp size={120} />
+            </div>
+            <div className="relative z-10">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-gym-success/20 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-gym-success shadow-[0_0_10px_rgba(16,185,129,0.2)]">
+                <Flame size={12} /> Record Battuto
+              </span>
+              <h2 className="mt-3 line-clamp-1 text-2xl font-black text-white">{primaryImprovement.name}</h2>
+              <p className="mt-1 text-sm font-bold text-gym-success leading-snug">
+                Hai sollevato un carico massimo di <strong className="text-base text-white">+{primaryImprovement.diff.toFixed(1).replace(".", ",")} kg</strong> in più rispetto alla sessione precedente!
+              </p>
+            </div>
+          </div>
         ) : primaryStall ? (
-          <>
-            <span className="status-pill status-warning"><AlertTriangle size={13} /> Da monitorare</span>
-            <h2 className="mt-4 text-3xl font-extrabold leading-none">{primaryStall.name}</h2>
-            <p className="mt-3 text-base text-gym-muted">Carico stabile nelle ultime sessioni registrate.</p>
-          </>
+          <div className="relative overflow-hidden rounded-[1.5rem] bg-gradient-to-br from-gym-warning/15 to-[#050708] border border-gym-warning/20 p-5 shadow-[0_0_30px_rgba(245,158,11,0.05)]">
+            <div className="absolute -right-4 -top-4 opacity-[0.06] text-gym-warning">
+               <AlertTriangle size={120} />
+            </div>
+            <div className="relative z-10">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-gym-warning/20 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-gym-warning shadow-[0_0_10px_rgba(245,158,11,0.2)]">
+                <Target size={12} /> Da monitorare
+              </span>
+              <h2 className="mt-3 line-clamp-1 text-2xl font-black text-white">{primaryStall.name}</h2>
+              <p className="mt-1 text-sm font-bold text-gym-warning leading-snug">
+                I massimali sono fermi. Potresti aver raggiunto uno stallo, prova a variare schema serie o aumentare il recupero.
+              </p>
+            </div>
+          </div>
         ) : (
-          <>
-            <span className="status-pill">Dati insufficienti</span>
-            <h2 className="mt-4 text-3xl font-extrabold leading-none">Registra i carichi</h2>
-            <p className="mt-3 text-base text-gym-muted">Servono almeno tre sessioni comparabili.</p>
-          </>
+          <div className="relative overflow-hidden rounded-[1.5rem] bg-gradient-to-br from-white/5 to-[#050708] border border-white/10 p-5">
+            <div className="relative z-10">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-gym-muted">
+                <Dumbbell size={12} /> Dati in elaborazione
+              </span>
+              <h2 className="mt-3 line-clamp-1 text-xl font-black text-white">Continua ad allenarti</h2>
+              <p className="mt-1 text-sm font-bold text-gym-muted">
+                Servono almeno 3 sessioni per elaborare i trend massimali.
+              </p>
+            </div>
+          </div>
         )}
       </section>
 
-      <section className="section-block">
-        <p className="technical-label">Questa settimana</p>
-        <div className="metric-grid mt-3">
-          <Metric icon={<CalendarDays size={18} />} label="Giorni" value={`${consistency.trainingDaysThisWeek}`} hint="da lunedì" tone="blue" />
-          <Metric icon={<Dumbbell size={18} />} label="Serie" value={`${overview.totalSetsThisWeek}`} hint="completate" tone="violet" />
-          <Metric icon={<Clock3 size={18} />} label="Durata media" value={formatDurationShort(averageDuration.averageSeconds)} hint={averageDuration.sampleSize ? `${averageDuration.sampleSize} sessioni` : "nessun dato"} tone="orange" />
-          <Metric icon={<Target size={18} />} label="Sessioni" value={`${overview.sessionsThisWeek.length}`} hint="da lunedì" tone="green" />
-        </div>
-      </section>
-
-      <section className="section-block">
-        <div className="flex items-end justify-between gap-3">
-          <div>
-            <p className="technical-label">Frequenza</p>
-            <h2 className="section-title">Gruppi allenati</h2>
+      {/* RECORD CAROUSEL */}
+      {records.length > 0 && (
+        <section>
+          <div className="px-5 mb-4 flex items-center justify-between">
+            <h2 className="text-xl font-black text-white">I tuoi Record</h2>
+            <Trophy size={18} className="text-gym-warning" />
           </div>
-        </div>
-        {muscleFrequency.length ? (
-          <div className="mt-4 space-y-4">
-            {muscleFrequency.slice(0, 6).map((item, index) => (
-              <FrequencyRow key={item.group} label={item.group} value={item.days} max={Math.max(...muscleFrequency.map((entry) => entry.days), 1)} tone={index % 4} />
-            ))}
-          </div>
-        ) : (
-          <p className="mt-3 text-base text-gym-muted">Nessun allenamento completato questa settimana.</p>
-        )}
-      </section>
-
-      <section className="section-block">
-        <div className="flex items-end justify-between gap-3">
-          <div>
-            <p className="technical-label">Esercizi</p>
-            <h2 className="section-title">Andamento recente</h2>
-          </div>
-        </div>
-        {latestExercises.length ? (
-          <div className="technical-list mt-3">
-            {latestExercises.map((exercise) => {
-              const last = exercise.entries[exercise.entries.length - 1];
-              const trend = getExerciseTrend(exercise.entries);
-              return (
-                <Link key={exercise.key} href={`/progress/exercise?key=${encodeURIComponent(exercise.key)}`} className="row-link px-0">
-                  <span className={`trend-mark trend-${trend.direction}`} aria-hidden="true" />
-                  <span className="min-w-0 flex-1">
-                    <strong className="block truncate text-lg text-gym-soft">{exercise.name}</strong>
-                    <span className="mt-1 block text-sm text-gym-muted">{formatShortDate(last?.date)} · {last?.repsLabel || "ripetizioni non registrate"}</span>
-                  </span>
-                  <span className="shrink-0 text-right">
-                    <strong className="block text-lg text-gym-soft">{last?.averageWeight ? `${last.averageWeight.toFixed(1).replace(".", ",")} kg` : "-"}</strong>
-                    <TrendLabel direction={trend.direction} label={trend.label} sessions={exercise.entries.length} />
-                  </span>
-                  <ChevronRight size={19} className="text-gym-muted" />
-                </Link>
-              );
-            })}
-          </div>
-        ) : (
-          <EmptyState icon={<Dumbbell size={20} />} title="Nessun esercizio" description="Completa una sessione per iniziare l’analisi." />
-        )}
-      </section>
-
-      {records.length ? (
-        <section className="section-block">
-          <div className="flex items-center justify-between gap-3">
-            <div><p className="technical-label">Record</p><h2 className="section-title">Migliori carichi</h2></div>
-            <Trophy size={22} className="text-gym-warning" />
-          </div>
-          <div className="technical-list mt-3">
-            {records.slice(0, 5).map((record) => (
-              <Link key={record.key} href={`/progress/exercise?key=${encodeURIComponent(record.key)}`} className="row-link px-0">
-                <span className="semantic-icon semantic-orange"><Trophy size={17} /></span>
-                <span className="min-w-0 flex-1"><strong className="block truncate text-gym-soft">{record.name}</strong><span className="mt-1 block text-sm text-gym-muted">{record.sessions} sessioni</span></span>
-                <strong className="text-lg text-gym-soft">{record.bestWeight ? `${record.bestWeight.toFixed(1).replace(".", ",")} kg` : "-"}</strong>
-                <ChevronRight size={19} className="text-gym-muted" />
+          <div className="flex gap-4 overflow-x-auto px-5 pb-4 snap-x hide-scrollbar">
+            {records.slice(0, 8).map((record) => (
+              <Link key={record.key} href={`/progress/exercise?key=${encodeURIComponent(record.key)}`} className="snap-start shrink-0 w-[160px] rounded-[1.25rem] border border-white/5 bg-gradient-to-b from-white/[0.04] to-transparent p-4 shadow-inner transition active:scale-95">
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gym-warning/15 text-gym-warning shadow-inner">
+                  <Trophy size={14} />
+                </span>
+                <p className="mt-3 truncate text-xs font-bold text-slate-400">{record.name}</p>
+                <div className="mt-1 flex items-baseline gap-1">
+                  <p className="text-2xl font-black text-white">{record.bestWeight ? `${record.bestWeight.toFixed(1).replace(".", ",")} kg` : "-"}</p>
+                </div>
+                {record.bestReps && record.bestWeight && (
+                  <p className="mt-0.5 text-xs font-bold text-gym-muted">Per {record.bestReps} ripetizioni</p>
+                )}
               </Link>
             ))}
           </div>
         </section>
-      ) : null}
+      )}
 
-      {topExercise ? (
-        <section className="section-block">
-          <div className="flex items-start justify-between gap-3">
-            <div><p className="technical-label">Miglior set comparabile</p><h2 className="section-title">{topExercise.name}</h2></div>
-            <Link href={`/progress/exercise?key=${encodeURIComponent(topExercise.key)}`} className="secondary-button min-h-10 px-3 text-sm">Dettaglio</Link>
+      {/* TREND ESERCIZI (WITH SPARKLINES) */}
+      {latestExercises.length > 0 && (
+        <section className="px-4">
+          <div className="mb-4">
+            <h2 className="text-xl font-black text-white">Tracciato Forza (Carico Max)</h2>
           </div>
-          <WeightLineChart entries={topExercise.entries.slice(-8)} />
+          <div className="space-y-3">
+            {latestExercises.map((exercise) => {
+              const entriesWithMax = exercise.entries.filter(e => e.maxWeight !== null);
+              const last = entriesWithMax[entriesWithMax.length - 1];
+              const trend = getExerciseTrend(exercise.entries);
+              return (
+                <Link key={exercise.key} href={`/progress/exercise?key=${encodeURIComponent(exercise.key)}`} className="flex items-center gap-4 rounded-[1.25rem] border border-white/5 bg-[#050708] p-4 shadow-inner transition active:scale-[0.98]">
+                  <div className="min-w-0 flex-1">
+                    <strong className="block truncate text-base font-extrabold text-white">{exercise.name}</strong>
+                    <span className="mt-1 flex items-center gap-1.5 text-xs font-bold text-gym-muted">
+                       <TrendIcon direction={trend.direction} /> {last?.maxWeight ? `${last.maxWeight.toFixed(1).replace(".", ",")} kg` : "-"}
+                    </span>
+                  </div>
+                  <div className="w-20 shrink-0">
+                    <SparklineClient entries={exercise.entries} direction={trend.direction} />
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
         </section>
-      ) : null}
+      )}
 
-      <section className="section-block">
-        <div><p className="technical-label">Distribuzione</p><h2 className="section-title">Volume muscolare</h2></div>
-        {muscleVolume.length ? (
-          <div className="mt-4 space-y-5">
-            {muscleVolume.slice(0, 8).map((item, index) => (
-              <div key={item.group}>
-                <BarRow label={item.group} value={item.sets} max={muscleGroups[0]?.sets ?? item.sets} tone={index % 4} />
-                <div className="mt-2 flex items-center justify-between text-sm text-gym-muted"><span>{formatCompactNumber(item.volume)} kg</span><span>RPE {formatAverage(item.averageRpe)}</span></div>
-              </div>
-            ))}
-          </div>
-        ) : <p className="mt-3 text-base text-gym-muted">Nessun dato mensile.</p>}
-      </section>
-
-      <section className="section-block">
-        <p className="technical-label">Questo mese</p>
-        <div className="metric-strip mt-3">
-          <DeltaStat label="Allenamenti" value={comparison.currentMonthSessions.length} diff={comparison.sessionDiff} suffix="" />
-          <DeltaStat label="Serie" value={comparison.currentSets} diff={comparison.setsDiff} suffix="" />
-          <DeltaStat label="Volume" value={Math.round(comparison.currentVolume)} diff={Math.round(comparison.volumeDiff)} suffix=" kg" />
+      {/* ANALISI MUSCOLARE UNIFICATA - ORA CON LE SERIE AL POSTO DEI KG */}
+      <section className="px-4">
+        <div className="mb-4">
+          <h2 className="text-xl font-black text-white">Focus Ipertrofia Mensile</h2>
+          <p className="mt-1 text-xs font-bold text-gym-muted">Serie effettive accumulate per muscolo</p>
+        </div>
+        <div className="space-y-3">
+           {muscleSets.length > 0 ? muscleSets.map((item, index) => {
+              const frequency = muscleFrequency.find(f => f.group === item.group)?.days ?? 0;
+              return <CombinedMuscleRowClient key={item.group} label={item.group} sets={item.sets} maxSets={muscleSets[0].sets} days={frequency} tone={index % 4} />
+           }) : (
+             <div className="rounded-[1.25rem] border border-white/5 bg-[#050708] p-5 text-center">
+               <p className="text-sm font-bold text-gym-muted">Nessuna serie allenante questo mese.</p>
+             </div>
+           )}
         </div>
       </section>
+
     </div>
   );
 }
 
-function Metric({ icon, label, value, hint, tone }: { icon: ReactNode; label: string; value: string; hint: string; tone: "blue" | "green" | "orange" | "violet" }) {
-  return <div className={`metric-cell metric-${tone}`}><span className="metric-icon">{icon}</span><p className="mt-3 text-sm text-gym-muted">{label}</p><p className="mt-1 text-3xl font-extrabold leading-none text-gym-soft">{value}</p><p className="mt-2 text-sm text-gym-muted">{hint}</p></div>;
-}
+// ---- SOTTO-COMPONENTI ----
 
-function FrequencyRow({ label, value, max, tone }: { label: string; value: number; max: number; tone: number }) {
-  const width = Math.max(8, Math.round((value / max) * 100));
-  return <div><div className="mb-2 flex items-center justify-between"><strong className="text-gym-soft">{label}</strong><span className="text-sm text-gym-muted">{value} giorn{value === 1 ? "o" : "i"}</span></div><div className="h-2 overflow-hidden rounded-full bg-gym-line"><div className={`h-full rounded-full bar-tone-${tone}`} style={{ width: `${width}%` }} /></div></div>;
-}
-
-function TrendLabel({ direction, label, sessions }: { direction: string; label: string; sessions: number }) {
-  if (sessions < 3) return <span className="text-sm text-gym-muted">{sessions} session{sessions === 1 ? "e" : "i"}</span>;
-  return <span className={direction === "up" ? "text-sm font-bold text-gym-success" : direction === "down" ? "text-sm font-bold text-gym-danger" : "text-sm font-bold text-gym-warning"}>{label}</span>;
-}
-
-function DeltaStat({ label, value, diff, suffix }: { label: string; value: number; diff: number; suffix: string }) {
-  const displayDiff = `${diff > 0 ? "+" : ""}${new Intl.NumberFormat("it-IT", { maximumFractionDigits: 0 }).format(diff)}${suffix}`;
-  return <div className="p-3 text-center"><p className="text-sm text-gym-muted">{label}</p><p className="mt-1 text-xl font-extrabold text-gym-soft">{formatCompactNumber(value)}{suffix}</p><p className={diff > 0 ? "mt-1 text-sm font-bold text-gym-success" : diff < 0 ? "mt-1 text-sm font-bold text-gym-warning" : "mt-1 text-sm text-gym-muted"}>{displayDiff}</p></div>;
-}
-
-function BarRow({ label, value, max, tone }: { label: string; value: number; max: number; tone: number }) {
-  const width = max > 0 ? Math.max(8, Math.round((value / max) * 100)) : 0;
-  return <div><div className="mb-2 flex items-center justify-between text-sm"><strong className="text-gym-soft">{label}</strong><span className="text-gym-muted">{value} serie</span></div><div className="h-2 overflow-hidden rounded-full bg-gym-line"><div className={`h-full rounded-full bar-tone-${tone}`} style={{ width: `${width}%` }} /></div></div>;
-}
-
-function WeightLineChart({ entries }: { entries: Array<{ date: string; averageWeight: number | null }> }) {
-  const points = entries.filter((entry) => entry.averageWeight !== null) as Array<{ date: string; averageWeight: number }>;
-  if (points.length < 2) return <p className="mt-4 text-gym-muted">Servono almeno due sessioni con peso.</p>;
-  const values = points.map((entry) => entry.averageWeight);
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const range = Math.max(1, max - min);
-  const svgPoints = points.map((entry, index) => ({ x: points.length === 1 ? 160 : 20 + (index * 280) / (points.length - 1), y: 130 - ((entry.averageWeight - min) * 100) / range, ...entry }));
-  const polyline = svgPoints.map((point) => `${point.x},${point.y}`).join(" ");
+function DeltaCard({ label, value, diff, suffix, color }: { label: string; value: number | string; diff: number | null; suffix: string; color: "orange" | "green" | "violet" }) {
+  const displayDiff = diff !== null ? `${diff > 0 ? "+" : ""}${new Intl.NumberFormat("it-IT", { maximumFractionDigits: 1 }).format(diff)}${suffix}` : "";
+  
+  // Mappa dei gradienti circolari per dare quel look premium analytics
+  const glowMap = {
+    orange: "from-[#c65f37]/20",
+    green: "from-gym-success/20",
+    violet: "from-[#8d62a8]/20"
+  };
+  
   return (
-    <div className="chart-surface mt-4">
-      <svg viewBox="0 0 320 160" className="h-44 w-full" role="img" aria-label="Andamento del peso">
-        <line x1="20" y1="130" x2="300" y2="130" stroke="rgba(255,255,255,0.15)" strokeWidth="2" />
-        <line x1="20" y1="30" x2="300" y2="30" stroke="rgba(255,255,255,0.08)" strokeWidth="1" />
-        <polyline points={polyline} fill="none" stroke="currentColor" strokeWidth="4" className="text-gym-accent" strokeLinecap="round" strokeLinejoin="round" />
-        {svgPoints.map((point) => <g key={`${point.date}-${point.x}`}><circle cx={point.x} cy={point.y} r="5" fill="currentColor" className="text-gym-accent" /><text x={point.x} y={point.y - 10} textAnchor="middle" fontSize="10" fill="rgba(240,241,237,0.9)">{point.averageWeight.toFixed(0)}kg</text><text x={point.x} y="150" textAnchor="middle" fontSize="9" fill="rgba(169,176,173,0.9)">{formatShortDate(point.date)}</text></g>)}
-      </svg>
+    <div className={`relative overflow-hidden flex flex-col items-center justify-center rounded-[1.25rem] border border-white/5 bg-[#050708] p-3 text-center shadow-inner`}>
+      <div className={`absolute -top-4 -right-4 h-16 w-16 rounded-full bg-gradient-to-bl ${glowMap[color]} to-transparent blur-xl`} />
+      <div className="relative z-10">
+        <p className="text-[9px] font-bold uppercase tracking-wider text-gym-muted">{label}</p>
+        <p className="mt-1 text-2xl font-black text-white">{typeof value === "number" ? formatCompactNumber(value) : value}{suffix}</p>
+        {diff !== null && (
+          <div className={`mt-1.5 inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[9px] font-black uppercase ${diff > 0 ? "bg-gym-success/15 text-gym-success" : diff < 0 ? "bg-gym-warning/15 text-gym-warning" : "bg-white/5 text-gym-muted"}`}>
+            {diff > 0 ? <TrendingUp size={10} strokeWidth={3} /> : diff < 0 ? <TrendingDown size={10} strokeWidth={3} /> : <Target size={10} strokeWidth={3} />}
+            {displayDiff}
+          </div>
+        )}
+      </div>
     </div>
   );
+}
+
+function TrendIcon({ direction }: { direction: string }) {
+  if (direction === "up") return <TrendingUp size={14} className="text-gym-success" />;
+  if (direction === "down") return <TrendingDown size={14} className="text-gym-danger" />;
+  return <Target size={14} className="text-gym-warning" />;
 }

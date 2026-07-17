@@ -87,7 +87,7 @@ export function DataManagement({ profileName }: DataManagementProps) {
 
   return (
     <div className="space-y-4">
-      <div className="divide-y divide-gym-line rounded-lg border border-gym-line bg-black/10">
+      <div className="divide-y divide-gym-line rounded-lg border border-white/10 bg-black/10">
         <DataLink href="/api/export/history-csv" icon={<FileDown size={17} />} title="Esporta CSV" description="Storico allenamenti in formato tabellare." />
         <DataLink href="/api/export/backup-json" icon={<Download size={17} />} title="Scarica backup JSON" description={`Copia completa del profilo ${profileName}.`} />
         <DataLink href="/history/trash" icon={<Trash2 size={17} />} title="Cestino" description="Sessioni eliminate, ripristino e svuotamento." />
@@ -128,7 +128,7 @@ export function DataManagement({ profileName }: DataManagementProps) {
                     className={
                       config.danger
                         ? "min-w-max rounded-lg border border-gym-danger/40 bg-gym-danger/15 px-3 py-2 text-xs font-extrabold text-red-100 disabled:opacity-50"
-                        : "min-w-max rounded-lg border border-gym-line bg-white/10 px-3 py-2 text-xs font-extrabold text-gym-soft disabled:opacity-50"
+                        : "min-w-max rounded-lg border border-white/10 bg-white/10 px-3 py-2 text-xs font-extrabold text-gym-soft disabled:opacity-50"
                     }
                   >
                     {pendingAction === action ? "In corso" : config.danger ? "Esegui" : "Sposta"}

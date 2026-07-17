@@ -29,29 +29,33 @@ export default async function WorkoutDayPreviewPage({ params }: { params: Promis
 
   return (
     <div className="space-y-7 pb-24">
-      <header>
-        <Link href="/workout" className="inline-flex min-h-11 items-center gap-2 text-sm font-bold text-gym-muted">
+      <header className="app-hero">
+        <Link href="/workout" className="inline-flex min-h-11 items-center gap-2 text-sm font-bold text-white/65 hover:text-white transition">
           <ArrowLeft size={18} /> Scheda
         </Link>
-        <p className="technical-label mt-4">Anteprima giorno</p>
-        <h1 className="page-title mt-1">{day.name}</h1>
-        <div className="mt-3 flex flex-wrap gap-3 text-sm text-gym-muted">
+        <p className="technical-label text-gym-info mt-2">Anteprima giorno</p>
+        <h1 className="mt-1 text-4xl font-extrabold leading-none text-white">{day.name}</h1>
+        <div className="mt-4 flex flex-wrap gap-3 text-sm text-white/65">
           <span className="inline-flex items-center gap-1.5"><Dumbbell size={16} /> {exercises.length} esercizi</span>
           {duration ? <span className="inline-flex items-center gap-1.5"><Clock3 size={16} /> circa {formatDurationShort(duration)}</span> : null}
         </div>
-        {day.description ? <p className="mt-4 text-base leading-7 text-gym-soft">{day.description}</p> : null}
+        {day.description ? <p className="mt-4 text-base leading-7 text-white/80">{day.description}</p> : null}
       </header>
 
-      <section className="section-block">
+      <div className="px-1 pt-2">
+        <Link href={`/workout/${dayId}`} className="primary-link w-full"><Play size={18} fill="currentColor" /> Inizia allenamento</Link>
+      </div>
+
+      <section className="section-block border-t-0 pt-3">
         <p className="technical-label">Programma</p>
-        <div className="technical-list mt-3">
+        <div className="app-list mt-3">
           {exercises.map((exercise: any, index: number) => (
-            <article key={exercise.id} className="preview-exercise-row">
-              <span className="mono-type w-7 shrink-0 text-sm text-gym-muted">{String(index + 1).padStart(2, "0")}</span>
+            <article key={exercise.id} className="app-row">
+              <span className="mono-type w-7 shrink-0 text-sm font-bold text-gym-muted">{String(index + 1).padStart(2, "0")}</span>
               {exercise.media_url ? (
-                <img src={exercise.media_url} alt="" className="h-14 w-14 shrink-0 rounded-lg border border-gym-line bg-gym-bg object-contain" />
+                <img src={exercise.media_url} alt="" className="h-14 w-14 shrink-0 rounded-lg border border-white/10 bg-gym-bg object-contain" />
               ) : (
-                <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg border border-gym-line bg-gym-panel text-gym-muted"><Dumbbell size={20} /></span>
+                <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/[0.035] text-gym-muted"><Dumbbell size={20} /></span>
               )}
               <div className="min-w-0 flex-1">
                 <h2 className="text-lg font-extrabold leading-tight text-gym-soft">{exercise.name}</h2>
@@ -64,10 +68,6 @@ export default async function WorkoutDayPreviewPage({ params }: { params: Promis
           ))}
         </div>
       </section>
-
-      <div className="fixed inset-x-0 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-30 mx-auto max-w-md px-4">
-        <Link href={`/workout/${dayId}`} className="primary-link"><Play size={18} fill="currentColor" /> Inizia allenamento</Link>
-      </div>
     </div>
   );
 }

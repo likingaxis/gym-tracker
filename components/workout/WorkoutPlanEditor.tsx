@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowDown, ArrowUp, CalendarRange, ChevronDown, ChevronRight, CirclePlus, Dumbbell, Save, X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { ExerciseDbMediaPicker } from "@/components/workout/ExerciseDbMediaPicker";
 
 type EditableExercise = {
   id?: string;
@@ -170,7 +171,7 @@ export function WorkoutPlanEditor({ initialPlan }: { initialPlan: EditablePlan }
           <p className="technical-label">Editor</p>
           <h1 className="page-title mt-1">Modifica scheda</h1>
         </div>
-        <div className="mono-type rounded-lg border border-gym-line bg-gym-panel px-3 py-2 text-right text-sm text-gym-muted">
+        <div className="mono-type rounded-lg border border-white/10 bg-white/[0.035] px-3 py-2 text-right text-sm text-gym-muted">
           <strong className="block text-lg text-gym-soft">{plan.days.length}</strong>
           {exerciseCount} esercizi
         </div>
@@ -255,7 +256,7 @@ export function WorkoutPlanEditor({ initialPlan }: { initialPlan: EditablePlan }
 
       {message ? <div className={message === "Salvato" ? "status-banner status-success" : "status-banner status-error"}>{message}</div> : null}
 
-      <div className="fixed inset-x-0 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-30 mx-auto max-w-md px-4">
+      <div className="fixed inset-x-0 bottom-[calc(6.5rem+env(safe-area-inset-bottom))] z-30 mx-auto max-w-md px-4">
         <div className="save-dock">
           <span className="min-w-0 flex-1 truncate text-sm text-gym-muted">{message ?? "Modifiche non salvate"}</span>
           <Button type="button" onClick={save} disabled={saving} className="min-h-11 shrink-0 px-4 py-2 text-sm"><Save size={16} /> {saving ? "Salvataggio…" : "Salva"}</Button>
@@ -265,7 +266,7 @@ export function WorkoutPlanEditor({ initialPlan }: { initialPlan: EditablePlan }
       {editingExercise && selectedExercise ? (
         <div className="fixed inset-0 z-[90] flex items-end justify-center bg-black/60 px-3 pt-12 backdrop-blur-sm" onClick={() => setSelectedExercise(null)}>
           <section className="editor-sheet" role="dialog" aria-modal="true" aria-label={`Modifica ${editingExercise.name}`} onClick={(event) => event.stopPropagation()}>
-            <div className="sticky top-0 z-10 flex items-start justify-between gap-3 border-b border-gym-line bg-gym-raised px-4 pb-4 pt-2">
+            <div className="sticky top-0 z-10 flex items-start justify-between gap-3 border-b border-white/10 bg-gym-raised px-4 pb-4 pt-2">
               <div className="min-w-0"><p className="technical-label">Esercizio {editingExercise.exercise_order}</p><h2 className="mt-1 truncate text-2xl font-extrabold text-gym-soft">{editingExercise.name}</h2></div>
               <button type="button" onClick={() => setSelectedExercise(null)} className="touch-icon" aria-label="Chiudi"><X size={20} /></button>
             </div>
@@ -283,6 +284,17 @@ export function WorkoutPlanEditor({ initialPlan }: { initialPlan: EditablePlan }
               <Field label="Peso suggerito"><input className="input" value={editingExercise.suggested_weight ?? ""} onChange={(event) => updateExercise(selectedExercise.dayIndex, selectedExercise.exerciseIndex, { suggested_weight: event.target.value })} /></Field>
               <Field label="Note tecniche"><textarea className="input min-h-24" value={editingExercise.technique_notes ?? ""} onChange={(event) => updateExercise(selectedExercise.dayIndex, selectedExercise.exerciseIndex, { technique_notes: event.target.value })} /></Field>
               <Field label="Note trainer"><textarea className="input min-h-24" value={editingExercise.trainer_notes ?? ""} onChange={(event) => updateExercise(selectedExercise.dayIndex, selectedExercise.exerciseIndex, { trainer_notes: event.target.value })} /></Field>
+              <div className="pt-2">
+                <ExerciseDbMediaPicker
+                  exerciseId={editingExercise.id}
+                  exerciseName={editingExercise.name}
+                  currentMediaUrl={editingExercise.media_url}
+                  currentExerciseDbName={editingExercise.exercise_db_name}
+                  currentExerciseDbId={editingExercise.exercise_db_id}
+                  offlineMode={true}
+                  onSaved={(updated) => updateExercise(selectedExercise.dayIndex, selectedExercise.exerciseIndex, updated)}
+                />
+              </div>
               <button type="button" onClick={() => setSelectedExercise(null)} className="primary-link w-full">Fatto</button>
             </div>
           </section>

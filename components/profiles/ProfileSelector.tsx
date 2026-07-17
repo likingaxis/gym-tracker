@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { LockKeyhole } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { FadeIn, StaggeredList, StaggeredItem } from "@/components/ui/animations";
 
 type Profile = {
   id: string;
@@ -115,25 +116,26 @@ export function ProfileSelector({ initialProfiles }: { initialProfiles: Profile[
   return (
     <div className="space-y-6">
       {profiles.length > 0 ? (
-        <section className="grid grid-cols-2 gap-3">
+        <StaggeredList className="grid grid-cols-2 gap-3">
           {profiles.map((profile) => (
-            <button
-              key={profile.id}
-              onClick={() => handleProfileClick(profile)}
-              className="profile-tile relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gym-accent"
-            >
-              {profile.pin_enabled ? (
-                <span className="absolute right-3 top-3 rounded-lg border border-gym-line bg-gym-bg p-2 text-gym-accent">
-                  <LockKeyhole size={16} />
-                </span>
-              ) : null}
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10 text-3xl">
-                {profile.avatar_emoji || "🏋️"}
-              </div>
-              <p className="mt-3 text-xl font-extrabold leading-none">{profile.name}</p>
-            </button>
+            <StaggeredItem key={profile.id}>
+              <button
+                onClick={() => handleProfileClick(profile)}
+                className="profile-tile w-full relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gym-accent"
+              >
+                {profile.pin_enabled ? (
+                  <span className="absolute right-3 top-3 rounded-lg border border-white/10 bg-gym-bg p-2 text-gym-accent">
+                    <LockKeyhole size={16} />
+                  </span>
+                ) : null}
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10 text-3xl">
+                  {profile.avatar_emoji || "🏋️"}
+                </div>
+                <p className="mt-3 text-xl font-extrabold leading-none">{profile.name}</p>
+              </button>
+            </StaggeredItem>
           ))}
-        </section>
+        </StaggeredList>
       ) : (
         <Card>
           <h2 className="text-xl font-black">Nessun profilo</h2>
@@ -144,7 +146,8 @@ export function ProfileSelector({ initialProfiles }: { initialProfiles: Profile[
       )}
 
       {pinProfile ? (
-        <Card className="border-gym-accent/40">
+        <FadeIn delay={0.2}>
+          <Card className="border-gym-accent/40">
           <div className="text-center">
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-white/10 text-4xl">
               {pinProfile.avatar_emoji || "🏋️"}
@@ -177,20 +180,24 @@ export function ProfileSelector({ initialProfiles }: { initialProfiles: Profile[
             </div>
           </form>
         </Card>
+        </FadeIn>
       ) : null}
 
       {!showCreateForm ? (
-        <button
-          type="button"
-          onClick={() => setShowCreateForm(true)}
-          className="secondary-button w-full"
-        >
-          Aggiungi profilo
-        </button>
+        <FadeIn delay={0.3}>
+          <button
+            type="button"
+            onClick={() => setShowCreateForm(true)}
+            className="secondary-button w-full"
+          >
+            Aggiungi profilo
+          </button>
+        </FadeIn>
       ) : (
-      <Card>
-        <h2 className="text-xl font-black">Aggiungi profilo</h2>
-        <form onSubmit={createProfile} className="mt-4 space-y-4">
+      <FadeIn delay={0.3}>
+        <Card>
+          <h2 className="text-xl font-black">Aggiungi profilo</h2>
+          <form onSubmit={createProfile} className="mt-4 space-y-4">
           <label className="block text-sm font-semibold text-slate-300">
             Nome
             <input
@@ -224,9 +231,10 @@ export function ProfileSelector({ initialProfiles }: { initialProfiles: Profile[
           </Button>
         </form>
       </Card>
+      </FadeIn>
       )}
 
-      {status ? <p className="rounded-lg border border-gym-line bg-gym-panel p-3 text-sm text-slate-200">{status}</p> : null}
+      {status ? <p className="rounded-lg border border-white/10 bg-white/[0.035] p-3 text-sm text-slate-200">{status}</p> : null}
     </div>
   );
 }

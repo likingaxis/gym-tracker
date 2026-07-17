@@ -2,9 +2,10 @@ export const dynamic = "force-dynamic";
 
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ChevronRight, Clock3, FileText, Play, Settings, TrendingUp } from "lucide-react";
+import { ChevronRight, Clock3, Eye, FileText, Play, Settings, TrendingUp } from "lucide-react";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getSelectedProfileId } from "@/lib/profiles";
+import { ConcentricRings } from "@/components/progress/ConcentricRings";
 import {
   buildExerciseProgress,
   buildProgressOverview,
@@ -17,6 +18,7 @@ import {
 } from "@/lib/progress";
 import { getDayNameSnapshot, getPlanColorSnapshot, getPlanDotClass, getPlanNameSnapshot } from "@/lib/workoutPlanHistory";
 import { formatDayCount, formatExerciseCount, formatSetCount } from "@/lib/utils/copy";
+import { FadeIn, SlideUp, StaggeredList, StaggeredItem, PulseActive } from "@/components/ui/animations";
 
 async function getSelectedProfile(profileId: string) {
   try {
@@ -95,120 +97,152 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-7">
-      <header className="flex items-start justify-between gap-4">
-        <div>
-          <p className="technical-label">Settimana {getItalianWeekNumber()}</p>
-          <h1 className="page-title mt-1">Ciao {profile?.name ?? "atleta"}</h1>
-        </div>
-        <Link href="/settings" className="touch-icon" aria-label="Apri impostazioni">
-          <Settings size={21} />
-        </Link>
-      </header>
+      <FadeIn delay={0.1}>
+        <header className="app-hero flex items-start justify-between gap-4">
+          <div>
+            <p className="technical-label text-gym-warning">Settimana {getItalianWeekNumber()}</p>
+            <h1 className="mt-2 text-4xl font-extrabold leading-none text-white">Ciao {profile?.name ?? "atleta"}</h1>
+          </div>
+          <Link href="/settings" className="icon-action bg-black/20 border-white/10 text-white" aria-label="Apri impostazioni">
+            <Settings size={21} />
+          </Link>
+        </header>
+      </FadeIn>
 
       {!plan ? (
-        <section className="surface-accent p-5">
-          <span className="status-pill status-signal">Primo passo</span>
-          <h2 className="mt-3 text-3xl font-extrabold leading-none">Carica la tua scheda</h2>
-          <Link href="/import" className="primary-link mt-5">Importa scheda</Link>
-        </section>
+        <FadeIn delay={0.2}>
+          <section className="surface-accent p-5">
+            <span className="status-pill status-signal">Primo passo</span>
+            <h2 className="mt-3 text-3xl font-extrabold leading-none">Carica la tua scheda</h2>
+            <Link href="/import" className="primary-link mt-5">Importa scheda</Link>
+          </section>
+        </FadeIn>
       ) : null}
 
       {plan && recommendedDay ? (
-        <section className="surface-accent p-5">
-          <div className="flex items-center justify-between gap-3">
-            <span className="status-pill status-signal">Consigliato</span>
-            <span className="mono-type text-sm text-gym-muted">G{recommendedDay.day_order}</span>
-          </div>
-          <h2 className="mt-4 text-4xl font-extrabold leading-[0.95]">{getShortDayName(recommendedDay.name)}</h2>
-          <div className="mt-4 flex flex-wrap gap-x-3 gap-y-1 text-sm text-gym-muted">
-            <span>{lastByDay.get(recommendedDay.id) ? `Ultima volta ${formatDate(lastByDay.get(recommendedDay.id)?.started_at)}` : "Prima sessione"}</span>
-            <span>{formatExerciseCount(recommendedDay.exercises?.length ?? 0)}</span>
-            {recommendedDuration?.estimatedSeconds ? <span>circa {formatDurationShort(recommendedDuration.estimatedSeconds)}</span> : null}
-          </div>
-          <div className="mt-5 grid grid-cols-[1fr_auto] gap-2">
-            <Link href={`/workout/${recommendedDay.id}`} className="primary-link"><Play size={18} fill="currentColor" /> Inizia</Link>
-            <Link href={`/workout/${recommendedDay.id}/preview`} className="secondary-button px-4">Vedi</Link>
-          </div>
-        </section>
+        <SlideUp delay={0.2}>
+          <section className="surface-accent p-5">
+            <div className="flex items-center justify-between gap-3">
+              <span className="status-pill status-signal">Consigliato</span>
+              <span className="mono-type text-sm text-gym-muted">G{recommendedDay.day_order}</span>
+            </div>
+            <h2 className="mt-4 text-4xl font-extrabold leading-[0.95]">{getShortDayName(recommendedDay.name)}</h2>
+            <div className="mt-4 flex flex-wrap gap-x-3 gap-y-1 text-sm text-gym-muted">
+              <span>{lastByDay.get(recommendedDay.id) ? `Ultima volta ${formatDate(lastByDay.get(recommendedDay.id)?.started_at)}` : "Prima sessione"}</span>
+              <span>{formatExerciseCount(recommendedDay.exercises?.length ?? 0)}</span>
+              {recommendedDuration?.estimatedSeconds ? <span>circa {formatDurationShort(recommendedDuration.estimatedSeconds)}</span> : null}
+            </div>
+            <div className="mt-5 grid grid-cols-[1fr_auto] gap-2">
+              <PulseActive className="w-full">
+                <Link href={`/workout/${recommendedDay.id}`} className="primary-link w-full"><Play size={18} fill="currentColor" /> Inizia</Link>
+              </PulseActive>
+              <Link href={`/workout/${recommendedDay.id}/preview`} className="secondary-button px-4" aria-label="Vedi anteprima"><Eye size={18} /></Link>
+            </div>
+          </section>
+        </SlideUp>
       ) : null}
 
       {plan ? (
-        <section className="section-block">
-          <div className="flex items-end justify-between gap-3">
-            <div>
-              <p className="technical-label">Questa settimana</p>
-              <h2 className="section-title">{completedThisWeek.size} di {days.length} giorni</h2>
+        <SlideUp delay={0.3}>
+          <section className="section-block flex flex-row items-center gap-6 p-4">
+            <div className="shrink-0">
+              <ConcentricRings
+                size={110}
+                rings={[
+                  { label: "Giorni", value: Math.min((completedThisWeek.size / Math.max(days.length, 1)) * 100, 100), color: "text-gym-accent" },
+                  { label: "Serie", value: Math.min((overview.totalSetsThisWeek / Math.max(days.length * 15, 1)) * 100, 100), color: "text-white/80" },
+                ]}
+              />
             </div>
-            <p className="mono-type text-sm text-gym-muted">{formatSetCount(overview.totalSetsThisWeek)}</p>
-          </div>
-          <div className="mt-4 grid gap-2" style={{ gridTemplateColumns: `repeat(${Math.max(days.length, 1)}, minmax(0, 1fr))` }}>
-            {days.map((day: any) => {
-              const done = completedThisWeek.has(day.id);
-              const recommended = recommendedDay?.id === day.id;
-              return <div key={day.id} className={`h-2 rounded-full ${done ? "bg-gym-success" : recommended ? "bg-gym-accent" : "bg-gym-line"}`} title={day.name} />;
-            })}
-          </div>
-        </section>
+            <div className="flex-1">
+              <p className="technical-label">Questa settimana</p>
+              <h2 className="mt-1 text-2xl font-extrabold leading-tight">
+                {completedThisWeek.size} di {days.length} giorni
+              </h2>
+              <p className="mt-1 text-sm text-gym-muted">
+                {formatSetCount(overview.totalSetsThisWeek)} completate
+              </p>
+            </div>
+          </section>
+        </SlideUp>
       ) : null}
 
       <section className="section-block">
-        <div className="technical-list">
-          {lastSession ? (
-            <Link href={`/history/${lastSession.id}`} className="row-link">
-              <span className="semantic-icon semantic-blue"><Clock3 size={19} /></span>
-              <span className="min-w-0 flex-1">
-                <span className="technical-label">Ultima sessione</span>
-                <strong className="mt-1 block truncate text-lg text-gym-soft">{getDayNameSnapshot(lastSession)}</strong>
-                <span className="mt-1 flex items-center gap-2 text-sm text-gym-muted">
-                  {formatDate(lastSession.started_at)} · {formatSetCount(getSessionSummary(lastSession).completedSets)}
-                  <span className={`h-1.5 w-1.5 rounded-full ${getPlanDotClass(getPlanColorSnapshot(lastSession))}`} />
-                  <span className="truncate">{getPlanNameSnapshot(lastSession)}</span>
+        <FadeIn delay={0.4}>
+          <p className="technical-label">Attività e Progressi</p>
+        </FadeIn>
+        <StaggeredList className="app-list mt-3">
+          <StaggeredItem>
+            {lastSession ? (
+              <Link href={`/history/${lastSession.id}`} className="app-row transition active:scale-[0.99]">
+                <span className="semantic-icon semantic-blue"><Clock3 size={19} /></span>
+                <span className="min-w-0 flex-1">
+                  <span className="technical-label">Ultima sessione</span>
+                  <strong className="mt-1 block truncate text-lg text-gym-soft">{getDayNameSnapshot(lastSession)}</strong>
+                  <span className="mt-1 flex items-center gap-2 text-sm text-gym-muted">
+                    {formatDate(lastSession.started_at)} · {formatSetCount(getSessionSummary(lastSession).completedSets)}
+                    <span className={`h-1.5 w-1.5 rounded-full ${getPlanDotClass(getPlanColorSnapshot(lastSession))}`} />
+                    <span className="truncate">{getPlanNameSnapshot(lastSession)}</span>
+                  </span>
                 </span>
+                <ChevronRight size={20} className="text-gym-muted" />
+              </Link>
+            ) : (
+              <div className="app-row cursor-default">
+                <span className="semantic-icon semantic-blue"><Clock3 size={19} /></span>
+                <span className="min-w-0 flex-1">
+                  <span className="technical-label">Ultima sessione</span>
+                  <strong className="mt-1 block text-lg text-gym-soft">Nessun allenamento</strong>
+                </span>
+              </div>
+            )}
+          </StaggeredItem>
+
+          <StaggeredItem>
+            <Link href="/progress" className="app-row transition active:scale-[0.99]">
+              <span className="semantic-icon semantic-green"><TrendingUp size={19} /></span>
+              <span className="min-w-0 flex-1">
+                <span className="technical-label">Progressione</span>
+                {firstImprovement ? (
+                  <>
+                    <strong className="mt-1 block text-lg text-gym-soft">{firstImprovement.name}</strong>
+                    <span className="mt-1 block text-sm font-bold text-gym-success">+{firstImprovement.diff.toFixed(1).replace(".", ",")} kg dall’ultima volta</span>
+                  </>
+                ) : (
+                  <strong className="mt-1 block text-lg text-gym-soft">Dati insufficienti</strong>
+                )}
               </span>
               <ChevronRight size={20} className="text-gym-muted" />
             </Link>
-          ) : (
-            <div className="row-link cursor-default">
-              <span className="semantic-icon semantic-blue"><Clock3 size={19} /></span>
-              <span className="min-w-0 flex-1">
-                <span className="technical-label">Ultima sessione</span>
-                <strong className="mt-1 block text-lg text-gym-soft">Nessun allenamento</strong>
-              </span>
-            </div>
-          )}
-
-          <Link href="/progress" className="row-link">
-            <span className="semantic-icon semantic-green"><TrendingUp size={19} /></span>
-            <span className="min-w-0 flex-1">
-              <span className="technical-label">Progressione</span>
-              {firstImprovement ? (
-                <>
-                  <strong className="mt-1 block text-lg text-gym-soft">{firstImprovement.name}</strong>
-                  <span className="mt-1 block text-sm font-bold text-gym-success">+{firstImprovement.diff.toFixed(1).replace(".", ",")} kg dall’ultima volta</span>
-                </>
-              ) : (
-                <strong className="mt-1 block text-lg text-gym-soft">Dati insufficienti</strong>
-              )}
-            </span>
-            <ChevronRight size={20} className="text-gym-muted" />
-          </Link>
-        </div>
+          </StaggeredItem>
+        </StaggeredList>
       </section>
 
       {plan ? (
         <section className="section-block">
-          <div className="row-link cursor-default px-0">
-            <span className="semantic-icon semantic-violet"><FileText size={19} /></span>
-            <span className="min-w-0 flex-1">
-              <span className="technical-label">Scheda attiva</span>
-              <strong className="mt-1 block truncate text-lg text-gym-soft">{plan.name}</strong>
-              <span className="mt-1 block text-sm text-gym-muted">{formatDayCount(days.length)} · {formatExerciseCount(exerciseCount)}</span>
-            </span>
-          </div>
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            <Link href="/workout" className="secondary-button">Apri scheda</Link>
-            <Link href="/import" className="secondary-button">Importa nuova</Link>
-          </div>
+          <FadeIn delay={0.5}>
+            <p className="technical-label">Scheda corrente</p>
+          </FadeIn>
+          <StaggeredList className="app-list mt-3">
+            <StaggeredItem>
+              <div className="app-row cursor-default">
+                <span className="semantic-icon semantic-violet"><FileText size={19} /></span>
+                <span className="min-w-0 flex-1">
+                  <span className="technical-label">Scheda attiva</span>
+                  <strong className="mt-1 block truncate text-lg text-gym-soft">{plan.name}</strong>
+                  <span className="mt-1 block text-sm text-gym-muted">{formatDayCount(days.length)} · {formatExerciseCount(exerciseCount)}</span>
+                </span>
+              </div>
+            </StaggeredItem>
+            <StaggeredItem>
+              <div className="app-row">
+                <div className="w-full grid grid-cols-2 gap-2">
+                  <Link href="/workout" className="secondary-button">Apri scheda</Link>
+                  <Link href="/import" className="secondary-button">Importa nuova</Link>
+                </div>
+              </div>
+            </StaggeredItem>
+          </StaggeredList>
         </section>
       ) : null}
     </div>

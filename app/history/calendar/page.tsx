@@ -103,7 +103,7 @@ export default async function CalendarHistoryPage({ searchParams }: { searchPara
 
   return (
     <div className="space-y-5">
-      <header className="rounded-[2rem] border border-white/10 bg-gym-panel p-5">
+      <header className="rounded-[2rem] border border-white/10 bg-white/[0.035] p-5">
         <p className="text-sm font-semibold text-gym-info">Calendario</p>
         <h1 className="mt-2 text-3xl font-extrabold">Allenamenti</h1>
         <p className="mt-2 text-sm text-gym-muted">Ogni pallino indica la scheda usata in quel giorno.</p>
@@ -407,10 +407,10 @@ function getStatusText(status: string) {
 }
 
 function getDayClass(inMonth: boolean, selected: boolean, today: boolean, hasSessions: boolean) {
-  const base = "flex min-h-14 flex-col items-center justify-center rounded-lg border text-center transition active:scale-[0.98]";
-  if (selected) return `${base} border-gym-accent bg-gym-accent text-slate-950 `;
-  if (hasSessions) return `${base} border-gym-accent/30 bg-gym-accent/10 text-slate-100`;
+  const base = "flex min-h-[3.5rem] flex-col items-center justify-center rounded-2xl border text-center transition active:scale-[0.96]";
+  if (selected) return `${base} border-gym-accent bg-gym-accent text-[#050708] shadow-[0_4px_15px_rgba(198,95,55,0.4)]`;
+  if (hasSessions) return `${base} border-gym-accent/40 bg-[radial-gradient(ellipse_at_top_right,_rgba(198,95,55,0.2),_transparent)] text-slate-100`;
   if (today) return `${base} border-white/20 bg-white/10 text-slate-100`;
   if (!inMonth) return `${base} border-transparent bg-transparent text-slate-700`;
-  return `${base} border-white/5 bg-white/[0.03] text-slate-400`;
+  return `${base} border-white/5 bg-white/[0.02] text-slate-400`;
 }

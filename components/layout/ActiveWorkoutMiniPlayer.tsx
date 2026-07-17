@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { motion, useReducedMotion } from "framer-motion";
+import { motion, useReducedMotion, type PanInfo } from "framer-motion";
 import { LoaderCircle, Pause, Play, Trash2 } from "lucide-react";
 import { AnimatedProgressBar } from "@/components/motion/AnimatedProgressBar";
 import { useAppDialog } from "@/components/ui/AppDialogProvider";
@@ -107,60 +107,62 @@ export function ActiveWorkoutMiniPlayer() {
   const isPaused = session.status === "paused";
   const toggleAction = isPaused ? "resume" : "pause";
 
+  const handleDragEnd = (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+    if (Math.abs(info.offset.x) > 80 && !pending) {
+      runAction("delete");
+    }
+  };
+
   return (
     <motion.aside
       initial={reduceMotion ? false : { opacity: 0, y: 14 }}
       animate={reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
       transition={{ duration: 0.18, ease: "easeOut" }}
-      className="fixed inset-x-0 bottom-[82px] z-40 mx-auto max-w-md px-4"
+      className="fixed inset-x-0 bottom-[96px] z-40 mx-auto max-w-md px-4"
       aria-label="Allenamento in corso"
       aria-busy={Boolean(pending)}
     >
-      <div className={`session-dock ${isPaused ? "session-dock-paused" : "session-dock-active"}`}>
+      <motion.div
+        drag="x"
+        dragConstraints={{ left: 0, right: 0 }}
+        dragElastic={0.6}
+        onDragEnd={handleDragEnd}
+        className={`session-dock cursor-grab active:cursor-grabbing ${isPaused ? "session-dock-paused" : "session-dock-active"}`}
+      >
+        <motion.button
+          whileTap={reduceMotion ? {} : { scale: 0.85 }}
+          type="button"
+          onClick={() => runAction(toggleAction)}
+          disabled={Boolean(pending)}
+          className="session-dock-icon session-dock-icon-primary shrink-0"
+          aria-label={isPaused ? "Riprendi allenamento" : "Metti in pausa"}
+          title={isPaused ? "Riprendi" : "Pausa"}
+        >
+          {pending === toggleAction ? (
+            <LoaderCircle size={20} className="animate-spin" />
+          ) : isPaused ? (
+            <Play size={20} fill="currentColor" />
+          ) : (
+            <Pause size={20} />
+          )}
+        </motion.button>
+
         <Link
           href={`/workout/${session.workout_day_id}`}
           className="session-dock-content min-w-0 flex-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gym-accent"
         >
-          <span className="session-dock-state">{isPaused ? "Allenamento in pausa" : "Allenamento in corso"}</span>
-          <strong className="session-dock-title">{dayName}</strong>
-          <span className="session-dock-meta">
-            {summary.completed}/{summary.total} serie · {summary.progress}% completato
+          <span className="block text-[11px] font-bold uppercase tracking-wider text-gym-muted mb-1.5">{isPaused ? "Allenamento in pausa" : "Allenamento in corso"}</span>
+          <strong className="block text-xl font-extrabold text-white leading-none mb-1.5 truncate">{dayName}</strong>
+          <span className="block text-sm font-medium text-slate-300">
+            {summary.completed}/{summary.total} serie completate
           </span>
         </Link>
 
-        <div className="session-dock-actions">
-          <button
-            type="button"
-            onClick={() => runAction(toggleAction)}
-            disabled={Boolean(pending)}
-            className="session-dock-icon session-dock-icon-primary"
-            aria-label={isPaused ? "Riprendi allenamento" : "Metti in pausa"}
-            title={isPaused ? "Riprendi" : "Pausa"}
-          >
-            {pending === toggleAction ? (
-              <LoaderCircle size={20} className="animate-spin" />
-            ) : isPaused ? (
-              <Play size={20} fill="currentColor" />
-            ) : (
-              <Pause size={20} />
-            )}
-          </button>
-          <button
-            type="button"
-            onClick={() => runAction("delete")}
-            disabled={Boolean(pending)}
-            className="session-dock-icon session-dock-icon-danger"
-            aria-label="Elimina allenamento"
-            title="Sposta nel cestino"
-          >
-            {pending === "delete" ? <LoaderCircle size={20} className="animate-spin" /> : <Trash2 size={20} />}
-          </button>
-        </div>
 
         <div className="session-dock-progress" aria-hidden="true">
           <AnimatedProgressBar value={summary.progress} />
         </div>
-      </div>
+      </motion.div>
     </motion.aside>
   );
 }

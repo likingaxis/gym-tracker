@@ -7,7 +7,11 @@ import { AppDialogProvider } from "@/components/ui/AppDialogProvider";
 export const metadata: Metadata = {
   title: "Gym Tracker",
   description: "PWA mobile-first per schede palestra personali",
-  manifest: "/manifest.json"
+  manifest: "/manifest.json",
+  icons: {
+    icon: "/icons/icon-192.png",
+    apple: "/icons/icon-512.png",
+  },
 };
 
 export const viewport: Viewport = {

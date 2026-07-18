@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { motion, useReducedMotion, type PanInfo } from "framer-motion";
-import { LoaderCircle, Pause, Play, Trash2 } from "lucide-react";
+import { LoaderCircle, Pause, Play, Trash2, Dumbbell } from "lucide-react";
 import { AnimatedProgressBar } from "@/components/motion/AnimatedProgressBar";
 import { useAppDialog } from "@/components/ui/AppDialogProvider";
 import { relationName } from "@/lib/relations";
@@ -30,6 +30,14 @@ export function ActiveWorkoutMiniPlayer() {
   const isWorkoutSessionPage = /^\/workout\/(?!edit(?:\/|$)|archive(?:\/|$))[^/]+\/?$/.test(pathname);
   const shouldHide = pathname === "/profiles" || pathname.startsWith("/profiles/") || isWorkoutSessionPage;
 
+  // When the user explicitly navigates to the workout page, clear the dismiss flag
+  // so that the MiniPlayer can show a newly created session.
+  useEffect(() => {
+    if (isWorkoutSessionPage) {
+      sessionStorage.removeItem("hide_miniplayer_until_new");
+    }
+  }, [isWorkoutSessionPage]);
+
   useEffect(() => {
     if (shouldHide) return;
 
@@ -42,8 +50,16 @@ export function ActiveWorkoutMiniPlayer() {
         const openSession = (result.sessions ?? []).find(
           (item: ActiveSession) => item.status === "in_progress" || item.status === "paused",
         );
+        if (openSession) {
+          // Check if user dismissed the miniplayer globally — don't show it again
+          const dismissed = sessionStorage.getItem("hide_miniplayer_until_new");
+          if (dismissed === "true") {
+            setSession(null);
+            return;
+          }
+        }
         setSession(openSession ?? null);
-      } catch {
+      } catch (err) {
         if (!cancelled) setSession(null);
       }
     }
@@ -61,6 +77,7 @@ export function ActiveWorkoutMiniPlayer() {
 
   async function runAction(action: "pause" | "resume" | "delete") {
     if (!session) return;
+    const currentSessionId = session.id;
 
     if (action === "delete") {
       const accepted = await confirmDialog({
@@ -70,27 +87,38 @@ export function ActiveWorkoutMiniPlayer() {
         tone: "danger",
       });
       if (!accepted) return;
+      
+      // ELIMINAZIONE OTTIMISTICA E GLOBALE
+      // Nascondiamo il player fino a che non viene avviata una nuova sessione.
+      sessionStorage.setItem("hide_miniplayer_until_new", "true");
+      setSession(null);
+    } else {
+      setPending(action);
+      // Aggiornamento ottimistico per pausa/riprendi
+      setSession((current) =>
+        current
+          ? { ...current, status: action === "pause" ? "paused" : "in_progress" }
+          : current,
+      );
     }
 
-    setPending(action);
     try {
       const endpoint =
         action === "delete"
-          ? `/api/workout-sessions/${session.id}`
-          : `/api/workout-sessions/${session.id}/${action}`;
-      const response = await fetch(endpoint, { method: action === "delete" ? "DELETE" : "POST" });
+          ? `/api/workout-sessions/${currentSessionId}`
+          : `/api/workout-sessions/${currentSessionId}/${action}`;
+          
+      // Se è un delete, non blocchiamo l'UI. Eseguiamo la fetch in background 
+      // con keepalive: true in modo che il browser non la cancelli se l'utente cambia pagina!
+      if (action === "delete") {
+        fetch(endpoint, { method: "DELETE", keepalive: true }).catch(() => {});
+        return; // Usciamo subito, l'UI è già aggiornata ottimisticamente.
+      }
+
+      const response = await fetch(endpoint, { method: "POST" });
       const result = await response.json().catch(() => null);
       if (!response.ok || !result?.success) throw new Error(result?.error ?? "Azione non riuscita.");
 
-      if (action === "delete") {
-        setSession(null);
-      } else {
-        setSession((current) =>
-          current
-            ? { ...current, status: action === "pause" ? "paused" : "in_progress" }
-            : current,
-        );
-      }
       router.refresh();
     } catch (error) {
       await showDialog({
@@ -99,7 +127,9 @@ export function ActiveWorkoutMiniPlayer() {
         tone: "danger",
       });
     } finally {
-      setPending(null);
+      if (action !== "delete") {
+        setPending(null);
+      }
     }
   }
 
@@ -127,40 +157,65 @@ export function ActiveWorkoutMiniPlayer() {
         dragConstraints={{ left: 0, right: 0 }}
         dragElastic={0.6}
         onDragEnd={handleDragEnd}
-        className={`session-dock cursor-grab active:cursor-grabbing ${isPaused ? "session-dock-paused" : "session-dock-active"}`}
+        className="relative overflow-hidden rounded-[1.4rem] bg-[#121518]/95 backdrop-blur-xl shadow-[0_12px_40px_rgba(0,0,0,0.6)] border border-white/10 flex items-center gap-3 p-2 pr-2.5 cursor-grab active:cursor-grabbing"
       >
+        {/* Background glow */}
+        <div className={`absolute inset-0 opacity-15 bg-gradient-to-r ${isPaused ? "from-white/10" : "from-gym-accent/50"} to-transparent pointer-events-none`} />
+
+        {/* Left Icon (Album Art style) */}
+        <div className={`relative flex h-12 w-12 shrink-0 items-center justify-center rounded-[1rem] bg-gradient-to-br ${isPaused ? "from-white/10 to-white/5" : "from-gym-accent/20 to-gym-accent/5"} border border-white/5 shadow-inner`}>
+           <Dumbbell size={22} className={isPaused ? "text-white/50" : "text-gym-accent"} />
+           {/* Pulsing indicator when active */}
+           {!isPaused && (
+             <span className="absolute -top-1 -right-1 flex h-3 w-3">
+               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-gym-accent opacity-75"></span>
+               <span className="relative inline-flex rounded-full h-3 w-3 bg-gym-accent border-2 border-[#121518]"></span>
+             </span>
+           )}
+        </div>
+
+        {/* Middle Text Content */}
+        <Link
+          href={`/workout/${session.workout_day_id}`}
+          className="flex-1 min-w-0 py-1 focus-visible:outline-none"
+        >
+          <strong className="block text-[15px] font-extrabold text-white leading-tight truncate mb-0.5">
+            {dayName}
+          </strong>
+          <span className="block text-[10.5px] font-bold text-white/50 tracking-wide uppercase">
+            {isPaused ? "In Pausa" : "In Corso"} • {summary.completed}/{summary.total} serie
+          </span>
+        </Link>
+
+        {/* Right Action Button */}
         <motion.button
-          whileTap={reduceMotion ? {} : { scale: 0.85 }}
+          whileTap={reduceMotion ? {} : { scale: 0.9 }}
           type="button"
           onClick={() => runAction(toggleAction)}
           disabled={Boolean(pending)}
-          className="session-dock-icon session-dock-icon-primary shrink-0"
+          className={`relative z-10 flex h-12 w-12 shrink-0 items-center justify-center rounded-full shadow-lg transition-all duration-300 ${
+            isPaused ? "bg-white text-black hover:bg-gray-200" : "bg-gym-accent text-white hover:brightness-110"
+          }`}
           aria-label={isPaused ? "Riprendi allenamento" : "Metti in pausa"}
           title={isPaused ? "Riprendi" : "Pausa"}
         >
           {pending === toggleAction ? (
-            <LoaderCircle size={20} className="animate-spin" />
+            <LoaderCircle size={22} className="animate-spin text-current" />
           ) : isPaused ? (
-            <Play size={20} fill="currentColor" />
+            <Play size={22} fill="currentColor" className="ml-1" />
           ) : (
-            <Pause size={20} />
+            <Pause size={22} fill="currentColor" />
           )}
         </motion.button>
 
-        <Link
-          href={`/workout/${session.workout_day_id}`}
-          className="session-dock-content min-w-0 flex-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gym-accent"
-        >
-          <span className="block text-[11px] font-bold uppercase tracking-wider text-gym-muted mb-1.5">{isPaused ? "Allenamento in pausa" : "Allenamento in corso"}</span>
-          <strong className="block text-xl font-extrabold text-white leading-none mb-1.5 truncate">{dayName}</strong>
-          <span className="block text-sm font-medium text-slate-300">
-            {summary.completed}/{summary.total} serie completate
-          </span>
-        </Link>
-
-
-        <div className="session-dock-progress" aria-hidden="true">
-          <AnimatedProgressBar value={summary.progress} />
+        {/* Edge-to-edge Progress Bar */}
+        <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/5" aria-hidden="true">
+          <motion.div 
+            className={`h-full ${isPaused ? "bg-white/30" : "bg-gym-accent"}`}
+            initial={{ width: 0 }}
+            animate={{ width: `${summary.progress}%` }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+          />
         </div>
       </motion.div>
     </motion.aside>

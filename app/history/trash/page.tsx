@@ -11,6 +11,8 @@ import { getDayNameSnapshot, getPlanColorSnapshot, getPlanDotClass, getPlanNameS
 import { formatCompactNumber, getSessionSummary } from "@/lib/progress";
 import { TrashSessionActions } from "@/components/history/TrashSessionActions";
 
+import { EmptyTrashAction } from "@/components/history/EmptyTrashAction";
+
 async function getDeletedSessions(profileId: string) {
   try {
     const supabase = createServerSupabaseClient();
@@ -39,10 +41,13 @@ export default async function TrashPage() {
         <ArrowLeft size={16} /> Storico
       </Link>
 
-      <header>
-        <p className="text-sm font-semibold text-red-100">Cestino</p>
-        <h1 className="mt-2 text-3xl font-extrabold">Sessioni eliminate</h1>
-        <p className="mt-2 text-gym-muted">Qui trovi gli allenamenti eliminati. Puoi ripristinarli o eliminarli definitivamente.</p>
+      <header className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-sm font-semibold text-red-100">Cestino</p>
+          <h1 className="mt-2 text-3xl font-extrabold leading-none">Sessioni eliminate</h1>
+          <p className="mt-2 text-sm text-gym-muted">Qui trovi gli allenamenti eliminati. Puoi ripristinarli o eliminarli definitivamente.</p>
+        </div>
+        <EmptyTrashAction hasSessions={sessions.length > 0} />
       </header>
 
       {sessions.length === 0 ? (

@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { Archive, ChevronRight, DatabaseBackup, FileText, Shield, UserRound } from "lucide-react";
+import { Archive, ChevronRight, DatabaseBackup, FileText, Shield, UserRound, Trash2 } from "lucide-react";
 import { redirect } from "next/navigation";
 import { PinSettings } from "@/components/profiles/PinSettings";
 import { DataManagement } from "@/components/settings/DataManagement";
@@ -39,7 +39,8 @@ export default async function SettingsPage() {
         <p className="technical-label">Profilo</p>
         <div className="app-list mt-3">
           <SettingsLink href="/profiles" icon={<UserRound size={18} />} title="Gestisci profili" description="Profilo attivo e accesso." />
-          <div className="p-4">
+          <SettingsLink href="/settings/body" icon={<UserRound size={18} />} title="Dati Fisici" description="Peso, altezza, età e sesso." />
+          <div className="p-4 border-t border-white/5">
             <div className="mb-3 flex items-center gap-3">
               <div className="icon-action"><Shield size={18} /></div>
               <div>
@@ -61,16 +62,19 @@ export default async function SettingsPage() {
       </section>
 
       <section className="section-block">
-        <p className="technical-label">Dati</p>
-        <div className="app-list mt-3 p-4">
-          <div className="mb-4 flex items-center gap-3">
-            <div className="icon-action"><DatabaseBackup size={18} /></div>
-            <div>
-              <h2 className="font-extrabold text-gym-soft">Backup e manutenzione</h2>
-              <p className="text-sm text-gym-muted">Esporta, ripristina o elimina dati.</p>
+        <p className="technical-label">Dati e Archiviazione</p>
+        <div className="app-list mt-3">
+          <SettingsLink href="/history/trash" icon={<Trash2 size={18} />} title="Cestino" description="Recupera o elimina definitivamente gli allenamenti." />
+          <div className="p-4 border-t border-white/5">
+            <div className="mb-4 flex items-center gap-3">
+              <div className="icon-action"><DatabaseBackup size={18} /></div>
+              <div>
+                <h2 className="font-extrabold text-gym-soft">Backup e manutenzione</h2>
+                <p className="text-sm text-gym-muted">Esporta, ripristina o elimina dati.</p>
+              </div>
             </div>
+            <DataManagement profileName={profile.name} />
           </div>
-          <DataManagement profileName={profile.name} />
         </div>
       </section>
 

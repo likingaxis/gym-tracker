@@ -410,20 +410,16 @@ export function getTrainingStreak(sessions: SessionLike[]) {
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const yesterday = new Date(today);
-  yesterday.setDate(today.getDate() - 1);
-  const todayKey = toDateKey(today.toISOString());
-  const yesterdayKey = toDateKey(yesterday.toISOString());
+  const dayOfWeek = today.getDay(); 
+  // Calcoliamo la differenza per arrivare a Lunedì. (Domenica = 0 -> 6, Lunedì = 1 -> 0, ecc.)
+  const diff = (dayOfWeek + 6) % 7;
+  const monday = new Date(today);
+  monday.setDate(today.getDate() - diff);
+  const mondayKey = toDateKey(monday.toISOString());
 
-  let cursorKey = days.includes(todayKey) ? todayKey : days.includes(yesterdayKey) ? yesterdayKey : null;
-  let currentStreak = 0;
-
-  while (cursorKey && days.includes(cursorKey)) {
-    currentStreak += 1;
-    const cursor = new Date(`${cursorKey}T00:00:00`);
-    cursor.setDate(cursor.getDate() - 1);
-    cursorKey = toDateKey(cursor.toISOString());
-  }
+  // Conta i giorni di allenamento a partire da Lunedì
+  const daysThisWeek = days.filter(day => day >= mondayKey);
+  const currentStreak = daysThisWeek.length;
 
   return { currentStreak, lastTrainingDate: days[0], trainingDays: days.length };
 }

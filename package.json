@@ -13,13 +13,14 @@
     "@supabase/ssr": "latest",
     "@supabase/supabase-js": "latest",
     "clsx": "latest",
+    "date-fns": "^4.4.0",
+    "framer-motion": "latest",
     "lucide-react": "latest",
+    "mammoth": "latest",
     "next": "latest",
     "react": "latest",
     "react-dom": "latest",
-    "zod": "latest",
-    "framer-motion": "latest",
-    "mammoth": "latest"
+    "zod": "latest"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "latest",

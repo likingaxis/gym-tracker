@@ -46,31 +46,25 @@ function NavItem({ href, icon, label }: { href: string; icon: ReactNode; label: 
     <motion.div whileTap={reduceMotion ? undefined : { scale: 0.94 }} transition={{ duration: 0.1 }}>
       <Link
         href={href}
-        className={`relative flex min-h-12 items-center justify-center gap-2 rounded-full transition-all duration-200 ${
-          isActive
-            ? "bg-white/10 px-4 py-2 text-white shadow-sm"
-            : "px-3 py-2 text-gym-muted hover:text-white"
+        className={`relative flex min-h-12 items-center justify-center rounded-full px-4 py-2 transition-colors duration-300 ${
+          isActive ? "text-white" : "text-gym-muted hover:text-white"
         }`}
       >
-        <span className="relative z-10 shrink-0">{icon}</span>
-        {isActive ? (
-          <motion.span
-            layoutId="nav-label"
-            className="relative z-10 text-[0.85rem] font-bold"
-            initial={{ opacity: 0, width: 0 }}
-            animate={{ opacity: 1, width: "auto" }}
-            transition={{ duration: 0.2 }}
-          >
-            {label}
-          </motion.span>
-        ) : null}
         {isActive ? (
           <motion.span
             layoutId="nav-pill-bg"
-            className="absolute inset-0 z-0 rounded-full bg-white/5"
-            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            className="absolute inset-0 z-0 rounded-full bg-white/10 shadow-sm"
+            transition={{ type: "spring", stiffness: 400, damping: 30 }}
           />
         ) : null}
+        <span className="relative z-10 shrink-0">{icon}</span>
+        <span
+          className={`relative z-10 text-[0.85rem] font-bold overflow-hidden whitespace-nowrap transition-all duration-300 ease-out ${
+            isActive ? "max-w-[100px] opacity-100 ml-2" : "max-w-0 opacity-0 ml-0"
+          }`}
+        >
+          {label}
+        </span>
       </Link>
     </motion.div>
   );

@@ -158,21 +158,25 @@ export function ImportUploader() {
       <ImportModeTabs mode={mode} onChange={(next) => { setMode(next); setFileName(undefined); resetResult(); }} />
       <ImportSteps fileReady={Boolean(fileName)} previewReady={Boolean(preview)} imported={imported} />
 
-      <section className="surface p-4">
-        <div className="flex items-center gap-3">
-          <span className={`semantic-icon ${mode === "ai" ? "semantic-blue" : "semantic-violet"}`}>
-            {mode === "ai" ? <Bot size={20} /> : <FileJson size={20} />}
-          </span>
+      <section className="app-row flex-col items-stretch !p-6 border-[#c65f37]/20 shadow-lg">
+        <div className="flex items-center gap-4">
+          <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-[1rem] ${mode === "ai" ? "bg-blue-500/10 text-blue-400" : "bg-violet-500/10 text-violet-400"}`}>
+            {mode === "ai" ? <Bot size={24} /> : <FileJson size={24} />}
+          </div>
           <div>
-            <h2 className="text-xl font-extrabold text-gym-soft">{mode === "ai" ? "Documento del trainer" : "JSON già pronto"}</h2>
-            <p className="mt-1 text-sm text-gym-muted">{mode === "ai" ? "PDF, DOCX, immagine o testo" : "File .json"}</p>
+            <h2 className="text-xl font-extrabold text-white">{mode === "ai" ? "Documento del trainer" : "JSON già pronto"}</h2>
+            <p className="mt-1 text-sm font-semibold text-gym-muted">{mode === "ai" ? "PDF, DOCX, immagine o testo" : "File .json"}</p>
           </div>
         </div>
 
-        <label htmlFor={mode === "ai" ? "ai-file" : "json-file"} className="file-drop mt-4">
-          <UploadCloud size={24} />
-          <span className="font-extrabold">{fileName ?? "Seleziona file"}</span>
-          <span className="text-sm text-gym-muted">{fileName ? "Tocca per sostituirlo" : "Massimo 10 MB"}</span>
+        <label htmlFor={mode === "ai" ? "ai-file" : "json-file"} className="group relative mt-6 flex cursor-pointer flex-col items-center justify-center gap-3 rounded-[1.5rem] border-2 border-dashed border-white/10 bg-white/[0.01] p-8 text-center transition-all hover:border-[#c65f37]/50 hover:bg-[#c65f37]/5">
+          <div className="rounded-full bg-white/5 p-4 text-gym-muted transition-colors group-hover:bg-[#c65f37]/20 group-hover:text-[#c65f37]">
+            <UploadCloud size={32} />
+          </div>
+          <div>
+            <span className="block text-lg font-extrabold text-white">{fileName ?? "Seleziona file"}</span>
+            <span className="mt-1 block text-sm font-semibold text-gym-muted">{fileName ? "Tocca per sostituirlo" : "Massimo 10 MB"}</span>
+          </div>
         </label>
         <input
           id={mode === "ai" ? "ai-file" : "json-file"}
@@ -183,12 +187,15 @@ export function ImportUploader() {
           className="sr-only"
         />
 
-        <label className="toggle-row mt-4">
+        <label className="mt-6 flex cursor-pointer items-center justify-between rounded-xl bg-white/[0.03] p-4 transition-colors hover:bg-white/[0.05]">
           <span>
-            <strong className="block text-gym-soft">Attiva nuova scheda</strong>
-            <span className="mt-1 block text-sm text-gym-muted">La precedente resta in archivio.</span>
+            <strong className="block text-base font-bold text-white">Attiva nuova scheda</strong>
+            <span className="mt-1 block text-sm font-medium text-gym-muted">La precedente resta in archivio.</span>
           </span>
-          <input type="checkbox" checked={makeActivePlan} onChange={(event) => setMakeActivePlan(event.target.checked)} className="toggle-input" />
+          <div className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors ${makeActivePlan ? "bg-[#c65f37]" : "bg-white/10"}`}>
+             <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${makeActivePlan ? "translate-x-6" : "translate-x-1"}`} />
+          </div>
+          <input type="checkbox" checked={makeActivePlan} onChange={(event) => setMakeActivePlan(event.target.checked)} className="sr-only" />
         </label>
       </section>
 
@@ -271,24 +278,27 @@ export function ImportUploader() {
 
 function ImportModeTabs({ mode, onChange }: { mode: ImportMode; onChange: (mode: ImportMode) => void }) {
   return (
-    <div className="segmented" role="tablist" aria-label="Metodo di importazione">
-      <button type="button" role="tab" aria-selected={mode === "ai"} onClick={() => onChange("ai")} className={mode === "ai" ? "segmented-item segmented-active" : "segmented-item"}><Bot size={17} /> Documento</button>
-      <button type="button" role="tab" aria-selected={mode === "json"} onClick={() => onChange("json")} className={mode === "json" ? "segmented-item segmented-active" : "segmented-item"}><FileJson size={17} /> JSON</button>
+    <div className="flex rounded-2xl bg-white/[0.03] p-1.5 border border-white/5" role="tablist" aria-label="Metodo di importazione">
+      <button type="button" role="tab" aria-selected={mode === "ai"} onClick={() => onChange("ai")} className={`flex flex-1 items-center justify-center gap-2 rounded-xl py-3 text-sm font-extrabold transition-all duration-300 ${mode === "ai" ? "bg-gradient-to-br from-[#c65f37] to-[#ea580c] text-white shadow-[0_0_15px_rgba(198,95,55,0.3)]" : "text-gym-muted hover:text-white"}`}><Bot size={18} /> Documento</button>
+      <button type="button" role="tab" aria-selected={mode === "json"} onClick={() => onChange("json")} className={`flex flex-1 items-center justify-center gap-2 rounded-xl py-3 text-sm font-extrabold transition-all duration-300 ${mode === "json" ? "bg-gradient-to-br from-[#c65f37] to-[#ea580c] text-white shadow-[0_0_15px_rgba(198,95,55,0.3)]" : "text-gym-muted hover:text-white"}`}><FileJson size={18} /> JSON</button>
     </div>
   );
 }
 
 function ImportSteps({ fileReady, previewReady, imported }: { fileReady: boolean; previewReady: boolean; imported: boolean }) {
   const steps = [
-    { label: "File", done: fileReady },
-    { label: "Revisione", done: previewReady },
-    { label: "Attiva", done: imported },
+    { label: "File", active: true, done: fileReady },
+    { label: "Revisione", active: fileReady, done: previewReady },
+    { label: "Attiva", active: previewReady, done: imported },
   ];
   return (
-    <ol className="stepper" aria-label="Avanzamento importazione">
+    <ol className="flex items-center justify-between px-2" aria-label="Avanzamento importazione">
       {steps.map((step, index) => (
-        <li key={step.label} className={step.done ? "stepper-item stepper-done" : "stepper-item"}>
-          <span>{step.done ? <Check size={14} /> : index + 1}</span>{step.label}
+        <li key={step.label} className={`flex flex-col items-center gap-2 ${step.active ? "text-white" : "text-gym-muted opacity-50"}`}>
+          <div className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-black transition-all duration-500 ${step.done ? "bg-[#c65f37] text-white shadow-[0_0_10px_rgba(198,95,55,0.4)]" : step.active ? "border-2 border-[#c65f37] text-[#c65f37]" : "border-2 border-gym-muted"}`}>
+            {step.done ? <Check size={16} strokeWidth={3} /> : index + 1}
+          </div>
+          <span className="text-[11px] font-bold uppercase tracking-wider">{step.label}</span>
         </li>
       ))}
     </ol>

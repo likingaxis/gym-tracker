@@ -19,6 +19,7 @@ import {
 import { getDayNameSnapshot, getPlanColorSnapshot, getPlanDotClass, getPlanNameSnapshot } from "@/lib/workoutPlanHistory";
 import { formatDayCount, formatExerciseCount, formatSetCount } from "@/lib/utils/copy";
 import { FadeIn, SlideUp, StaggeredList, StaggeredItem, PulseActive } from "@/components/ui/animations";
+import { MediaPrefetcher } from "@/components/utils/MediaPrefetcher";
 
 async function getSelectedProfile(profileId: string) {
   try {
@@ -97,6 +98,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-7">
+      <MediaPrefetcher exercises={recommendedDay?.exercises ?? []} />
       <FadeIn delay={0.1}>
         <header className="app-hero flex items-start justify-between gap-4">
           <div>

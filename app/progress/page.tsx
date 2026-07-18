@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { AlertTriangle, CalendarDays, ChevronRight, Dumbbell, Target, Trophy, TrendingUp, TrendingDown, Flame, Activity, Clock3 } from "lucide-react";
+import { AlertTriangle, ChevronRight, Dumbbell, Target, Trophy, TrendingUp, TrendingDown, Flame, Activity, Clock3, Zap } from "lucide-react";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getSelectedProfileId } from "@/lib/profiles";
 import {
@@ -21,13 +21,15 @@ import {
   type SessionLike,
 } from "@/lib/progress";
 
-// Client Components for animated charts
 import {
   ActivityChartClient,
   DurationChartClient,
-  SparklineClient,
-  CombinedMuscleRowClient
 } from "@/components/progress/ProgressChartsClient";
+
+import { PhysicalProfileCard } from "@/components/progress/PhysicalProfileCard";
+import { MuscleDonutChart } from "@/components/progress/MuscleDonutChart";
+import { RPEIntensityChart } from "@/components/progress/RPEIntensityChart";
+import { ExpandableSparklinesList } from "@/components/progress/ExpandableSparklinesList";
 
 async function getProgressSessions(profileId: string) {
   try {
@@ -46,22 +48,34 @@ async function getProgressSessions(profileId: string) {
   }
 }
 
+async function getProfileData(profileId: string) {
+  const supabase = createServerSupabaseClient();
+  const { data } = await supabase
+    .from("app_profiles")
+    .select("id, gender, birth_date, height_cm, weight_kg")
+    .eq("id", profileId)
+    .single();
+  return data;
+}
+
 export default async function ProgressPage() {
   const profileId = await getSelectedProfileId();
   if (!profileId) redirect("/profiles");
 
-  const sessions = await getProgressSessions(profileId);
+  const [sessions, profile] = await Promise.all([
+    getProgressSessions(profileId),
+    getProfileData(profileId)
+  ]);
+  
   const overview = buildProgressOverview(sessions);
   const comparison = buildMonthComparison(sessions);
   const averageDuration = getAverageWorkoutDuration(sessions);
   const consistency = getTrainingStreak(sessions);
-  const muscleFrequency = getMuscleFrequency(sessions);
   const muscleSets = buildMuscleGroupSets(overview.sessionsThisMonth);
   const exercises = buildExerciseProgress(sessions);
   const improvements = getRecentImprovements(exercises);
   const records = getExerciseRecords(exercises);
   const stalledExercises = getStalledExercises(exercises);
-  const latestExercises = exercises.filter((exercise) => exercise.entries.length > 0).slice(0, 8);
   const primaryImprovement = improvements[0];
   const primaryStall = stalledExercises[0];
 
@@ -86,14 +100,23 @@ export default async function ProgressPage() {
         <p className="mt-3 text-base text-white/65">Analisi avanzata e oggettiva dei tuoi allenamenti.</p>
       </header>
 
+      {/* DATI FISICI E BMI */}
+      <PhysicalProfileCard profile={profile} />
+
       {/* DASHBOARD PANORAMICA MESE CORRENTE */}
       <section className="px-4">
         <div className="grid grid-cols-3 gap-3">
-          <DeltaCard label="Workout" value={comparison.currentMonthSessions.length} diff={comparison.sessionDiff} suffix="" color="orange" />
-          <DeltaCard label="Costanza" value={consistency.currentStreak} diff={null} suffix=" gg" color="green" />
-          <DeltaCard label="Durata Media" value={avgDurationFormatted.value} diff={null} suffix={avgDurationFormatted.suffix} color="violet" />
+          <DeltaCard label="Workout" value={comparison.currentMonthSessions.length} diff={comparison.sessionDiff} suffix="" />
+          <DeltaCard label="Costanza" value={consistency.currentStreak} diff={null} suffix=" gg" />
+          <DeltaCard label="Durata Media" value={avgDurationFormatted.value} diff={null} suffix={avgDurationFormatted.suffix} />
         </div>
       </section>
+
+      {/* GRAFICO VOLUME MUSCOLARE */}
+      <MuscleDonutChart data={muscleSets} />
+
+      {/* NUOVO GRAFICO RPE E QUALITÀ DELLO SFORZO */}
+      <RPEIntensityChart sessions={sessions} />
 
       {/* ATTIVITA' CHART - SERIE COMPLETATE CON ANIMAZIONI E ASSI */}
       <ActivityChartClient sessions={sessions} />
@@ -174,52 +197,8 @@ export default async function ProgressPage() {
         </section>
       )}
 
-      {/* TREND ESERCIZI (WITH SPARKLINES) */}
-      {latestExercises.length > 0 && (
-        <section className="px-4">
-          <div className="mb-4">
-            <h2 className="text-xl font-black text-white">Tracciato Forza (Carico Max)</h2>
-          </div>
-          <div className="space-y-3">
-            {latestExercises.map((exercise) => {
-              const entriesWithMax = exercise.entries.filter(e => e.maxWeight !== null);
-              const last = entriesWithMax[entriesWithMax.length - 1];
-              const trend = getExerciseTrend(exercise.entries);
-              return (
-                <Link key={exercise.key} href={`/progress/exercise?key=${encodeURIComponent(exercise.key)}`} className="flex items-center gap-4 rounded-[1.25rem] border border-white/5 bg-[#050708] p-4 shadow-inner transition active:scale-[0.98]">
-                  <div className="min-w-0 flex-1">
-                    <strong className="block truncate text-base font-extrabold text-white">{exercise.name}</strong>
-                    <span className="mt-1 flex items-center gap-1.5 text-xs font-bold text-gym-muted">
-                       <TrendIcon direction={trend.direction} /> {last?.maxWeight ? `${last.maxWeight.toFixed(1).replace(".", ",")} kg` : "-"}
-                    </span>
-                  </div>
-                  <div className="w-20 shrink-0">
-                    <SparklineClient entries={exercise.entries} direction={trend.direction} />
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
-        </section>
-      )}
-
-      {/* ANALISI MUSCOLARE UNIFICATA - ORA CON LE SERIE AL POSTO DEI KG */}
-      <section className="px-4">
-        <div className="mb-4">
-          <h2 className="text-xl font-black text-white">Focus Ipertrofia Mensile</h2>
-          <p className="mt-1 text-xs font-bold text-gym-muted">Serie effettive accumulate per muscolo</p>
-        </div>
-        <div className="space-y-3">
-           {muscleSets.length > 0 ? muscleSets.map((item, index) => {
-              const frequency = muscleFrequency.find(f => f.group === item.group)?.days ?? 0;
-              return <CombinedMuscleRowClient key={item.group} label={item.group} sets={item.sets} maxSets={muscleSets[0].sets} days={frequency} tone={index % 4} />
-           }) : (
-             <div className="rounded-[1.25rem] border border-white/5 bg-[#050708] p-5 text-center">
-               <p className="text-sm font-bold text-gym-muted">Nessuna serie allenante questo mese.</p>
-             </div>
-           )}
-        </div>
-      </section>
+      {/* TREND ESERCIZI (ESPANDIBILE CON SOSPENSIONE OPACA) */}
+      <ExpandableSparklinesList exercises={exercises} />
 
     </div>
   );
@@ -227,22 +206,15 @@ export default async function ProgressPage() {
 
 // ---- SOTTO-COMPONENTI ----
 
-function DeltaCard({ label, value, diff, suffix, color }: { label: string; value: number | string; diff: number | null; suffix: string; color: "orange" | "green" | "violet" }) {
+function DeltaCard({ label, value, diff, suffix }: { label: string; value: number | string; diff: number | null; suffix: string }) {
   const displayDiff = diff !== null ? `${diff > 0 ? "+" : ""}${new Intl.NumberFormat("it-IT", { maximumFractionDigits: 1 }).format(diff)}${suffix}` : "";
   
-  // Mappa dei gradienti circolari per dare quel look premium analytics
-  const glowMap = {
-    orange: "from-[#c65f37]/20",
-    green: "from-gym-success/20",
-    violet: "from-[#8d62a8]/20"
-  };
-  
   return (
-    <div className={`relative overflow-hidden flex flex-col items-center justify-center rounded-[1.25rem] border border-white/5 bg-[#050708] p-3 text-center shadow-inner`}>
-      <div className={`absolute -top-4 -right-4 h-16 w-16 rounded-full bg-gradient-to-bl ${glowMap[color]} to-transparent blur-xl`} />
+    <div className="relative overflow-hidden flex flex-col items-center justify-center rounded-[1.25rem] border border-[#c65f37]/25 bg-gradient-to-br from-[#c65f37]/[0.09] via-white/[0.02] to-transparent p-3 text-center shadow-[0_4px_20px_rgba(198,95,55,0.06)] backdrop-blur-md">
+      <div className="absolute -top-4 -right-4 h-16 w-16 rounded-full bg-gradient-to-bl from-[#c65f37]/30 to-transparent blur-xl pointer-events-none" />
       <div className="relative z-10">
-        <p className="text-[9px] font-bold uppercase tracking-wider text-gym-muted">{label}</p>
-        <p className="mt-1 text-2xl font-black text-white">{typeof value === "number" ? formatCompactNumber(value) : value}{suffix}</p>
+        <p className="text-[9px] font-black uppercase tracking-widest text-[#c65f37]/80">{label}</p>
+        <p className="mt-1 text-2xl font-black text-white tracking-tight">{typeof value === "number" ? formatCompactNumber(value) : value}{suffix}</p>
         {diff !== null && (
           <div className={`mt-1.5 inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[9px] font-black uppercase ${diff > 0 ? "bg-gym-success/15 text-gym-success" : diff < 0 ? "bg-gym-warning/15 text-gym-warning" : "bg-white/5 text-gym-muted"}`}>
             {diff > 0 ? <TrendingUp size={10} strokeWidth={3} /> : diff < 0 ? <TrendingDown size={10} strokeWidth={3} /> : <Target size={10} strokeWidth={3} />}
@@ -252,10 +224,4 @@ function DeltaCard({ label, value, diff, suffix, color }: { label: string; value
       </div>
     </div>
   );
-}
-
-function TrendIcon({ direction }: { direction: string }) {
-  if (direction === "up") return <TrendingUp size={14} className="text-gym-success" />;
-  if (direction === "down") return <TrendingDown size={14} className="text-gym-danger" />;
-  return <Target size={14} className="text-gym-warning" />;
 }

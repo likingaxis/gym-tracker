@@ -68,21 +68,30 @@ export default async function WorkoutIndexPage() {
 
   return (
     <div className="space-y-7">
-      <header className="app-hero">
-        <div className="flex items-center gap-2">
-          <span className={`h-2.5 w-2.5 rounded-full ${getPlanDotClass(plan.color)}`} />
-          <p className="technical-label text-gym-warning">Scheda attiva</p>
+      <header className="relative overflow-hidden rounded-[2rem] border border-[#c65f37]/20 bg-gradient-to-br from-[#c65f37]/[0.12] via-black/40 to-black p-6 shadow-2xl backdrop-blur-xl">
+        <div className="absolute -top-12 -right-12 h-40 w-40 rounded-full bg-gradient-to-bl from-[#c65f37]/25 to-transparent blur-3xl pointer-events-none" />
+        <div className="relative z-10">
+          <div className="flex items-center gap-2">
+            <span className={`h-2.5 w-2.5 rounded-full shadow-[0_0_8px_rgba(255,255,255,0.5)] ${getPlanDotClass(plan.color)}`} />
+            <p className="text-[11px] font-black uppercase tracking-widest text-[#c65f37]">Scheda attiva</p>
+          </div>
+          <h1 className="mt-3 text-4xl font-black leading-tight text-white tracking-tight">{plan.name}</h1>
+          <p className="mt-2 text-sm font-semibold text-gym-muted">
+            {formatPlanDateRange(plan.start_date, plan.end_date)} <span className="mx-1.5 text-white/20">•</span> {formatDayCount(days.length)} <span className="mx-1.5 text-white/20">•</span> {formatExerciseCount(exerciseCount)}
+          </p>
         </div>
-        <h1 className="mt-2 text-4xl font-extrabold leading-none text-white">{plan.name}</h1>
-        <p className="mt-2 text-base text-white/65">
-          {formatPlanDateRange(plan.start_date, plan.end_date)} · {formatDayCount(days.length)} · {formatExerciseCount(exerciseCount)}
-        </p>
       </header>
 
-      <nav className="grid grid-cols-3 gap-2" aria-label="Azioni scheda">
-        <Link href="/workout/edit" className="secondary-button"><Pencil size={20} /> Modifica</Link>
-        <Link href="/import" className="secondary-button"><Dumbbell size={20} /> Nuova</Link>
-        <Link href="/workout/archive" className="secondary-button"><Archive size={20} /> Archivio</Link>
+      <nav className="grid grid-cols-3 gap-2 px-1" aria-label="Azioni scheda">
+        <Link href="/workout/edit" className="flex items-center justify-center gap-2 rounded-2xl border border-white/5 bg-white/[0.03] py-3 text-xs font-bold text-white transition-all active:scale-95 hover:bg-white/[0.06] hover:border-white/10 shadow-inner">
+          <Pencil size={16} className="text-gym-muted" /> Modifica
+        </Link>
+        <Link href="/import" className="flex items-center justify-center gap-2 rounded-2xl border border-white/5 bg-white/[0.03] py-3 text-xs font-bold text-white transition-all active:scale-95 hover:bg-white/[0.06] hover:border-white/10 shadow-inner">
+          <Dumbbell size={16} className="text-gym-muted" /> Nuova
+        </Link>
+        <Link href="/workout/archive" className="flex items-center justify-center gap-2 rounded-2xl border border-white/5 bg-white/[0.03] py-3 text-xs font-bold text-white transition-all active:scale-95 hover:bg-white/[0.06] hover:border-white/10 shadow-inner">
+          <Archive size={16} className="text-gym-muted" /> Archivio
+        </Link>
       </nav>
 
       <section className="section-block border-t-0 pt-0">
@@ -93,33 +102,61 @@ export default async function WorkoutIndexPage() {
           </div>
         </div>
 
-        <div className="app-list">
+        <div className="flex flex-col gap-3">
           {days.map((day: any) => {
             const last = lastByDay.get(day.id);
             const isRecommended = recommended?.id === day.id;
+            
+            // Revert back to app-row for the base satiny background, add glow for recommended
+            const cardStyle = isRecommended 
+              ? "app-row day-row-recommended !p-4 !border-[#c65f37]/40 !shadow-[0_0_20px_rgba(198,95,55,0.15)]"
+              : "app-row !p-4";
+              
+            const pillStyle = isRecommended
+              ? "bg-[#c65f37]/20 text-[#c65f37] border border-[#c65f37]/30"
+              : "bg-white/5 text-gym-muted border border-white/5";
+
             return (
-              <article key={day.id} className={`app-row relative ${isRecommended ? "day-row-recommended" : ""}`}>
-                <Link href={`/workout/${day.id}/preview`} className="min-w-0 flex-1 py-1 pr-3 focus-visible:outline-none">
+              <article key={day.id} className={`group relative flex items-center justify-between transition-all duration-300 ${cardStyle}`}>
+                <Link href={`/workout/${day.id}/preview`} className="min-w-0 flex-1 pr-4 focus-visible:outline-none">
                   <div className="flex items-center gap-2">
-                    <span className="mono-type text-xs text-gym-muted">G{day.day_order}</span>
-                    {isRecommended ? <span className="status-pill status-signal"><BadgeCheck size={12} /> Consigliato</span> : null}
+                    <span className={`inline-flex items-center justify-center rounded-md px-1.5 py-0.5 text-[10px] font-black uppercase tracking-wider ${pillStyle}`}>
+                      G{day.day_order}
+                    </span>
+                    {isRecommended ? (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider text-[#c65f37]">
+                        <BadgeCheck size={12} strokeWidth={3} /> Consigliato
+                      </span>
+                    ) : null}
                   </div>
-                  <h2 className="mt-2 text-2xl font-extrabold leading-none text-gym-soft">{getShortDayName(day.name)}</h2>
-                  <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-gym-muted">
+                  
+                  <h2 className={`mt-2 text-xl font-black leading-tight ${isRecommended ? "text-white" : "text-white/90"}`}>
+                    {getShortDayName(day.name)}
+                  </h2>
+                  
+                  <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-bold text-gym-muted uppercase tracking-wider">
                     <span>{formatExerciseCount(day.exercises?.length ?? 0)}</span>
                     <span className="inline-flex items-center gap-1.5">
-                      {last ? <CheckCircle2 size={15} className="text-gym-success" /> : null}
-                      {last ? `Ultima volta ${formatDate(last.started_at)}` : "Mai completato"}
+                      {last ? <CheckCircle2 size={13} className="text-gym-success" strokeWidth={3} /> : null}
+                      {last ? `Ultimo ${formatDate(last.started_at)}` : "Mai completato"}
                     </span>
                   </div>
                 </Link>
-                <div className="flex shrink-0 items-center gap-2">
-                  <Link href={`/workout/${day.id}/preview`} className="touch-icon" aria-label={`Visualizza ${day.name}`}>
-                    <Eye size={22} />
+
+                <div className="flex shrink-0 items-center gap-3">
+                  <Link 
+                    href={`/workout/${day.id}/preview`} 
+                    className="flex h-10 w-10 items-center justify-center rounded-full bg-white/5 text-white/60 transition hover:bg-white/10 hover:text-white"
+                    aria-label={`Visualizza ${day.name}`}
+                  >
+                    <Eye size={18} />
                   </Link>
-                  <Link href={`/workout/${day.id}`} className="start-button" aria-label={`Inizia ${day.name}`}>
-                    <Play size={18} fill="currentColor" />
-                    <span className="sr-only">Inizia</span>
+                  <Link 
+                    href={`/workout/${day.id}`} 
+                    className={`flex h-14 w-14 items-center justify-center rounded-full shadow-lg transition active:scale-90 ${isRecommended ? "bg-gradient-to-br from-[#c65f37] to-[#ea580c] text-white shadow-[#c65f37]/30" : "bg-white/10 text-white hover:bg-white/20"}`}
+                    aria-label={`Inizia ${day.name}`}
+                  >
+                    <Play size={24} fill="currentColor" className="ml-1" />
                   </Link>
                 </div>
               </article>

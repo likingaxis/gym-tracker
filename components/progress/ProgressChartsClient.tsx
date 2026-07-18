@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Clock3, TrendingUp, TrendingDown, Target, CalendarDays } from "lucide-react";
 import { formatCompactNumber } from "@/lib/progress";
@@ -24,8 +25,10 @@ export function DurationChartClient({ sessions }: { sessions: SessionLike[] }) {
   const points = durations.map((d, i) => {
     const x = (i * w) / (durations.length - 1);
     const y = h - (d.duration / maxDuration) * h;
-    return { x, y, duration: Math.round(d.duration / 60) };
+    return { x, y, duration: Math.round(d.duration / 60), date: d.date };
   });
+  
+  const [activePoint, setActivePoint] = useState<typeof points[0] | null>(null);
   
   const polyline = points.map(p => `${p.x},${p.y}`).join(" ");
   const area = `0,${h + 4} ${polyline} ${w},${h + 4}`;
@@ -39,15 +42,31 @@ export function DurationChartClient({ sessions }: { sessions: SessionLike[] }) {
     return `${hours}h ${mins}m`;
   }
 
+  function formatDate(iso: string | null) {
+    if (!iso) return "";
+    const d = new Date(iso);
+    return d.toLocaleDateString("it-IT", { day: '2-digit', month: 'short', year: 'numeric' });
+  }
+
   return (
     <div className="px-4 mt-2">
-      <div className="rounded-[1.5rem] border border-[#8d62a8]/20 bg-[#8d62a8]/[0.02] p-5 shadow-inner">
-        <div className="mb-6 flex items-center justify-between">
-           <div>
+      <div className="rounded-[1.5rem] border border-[#3b82f6]/20 bg-[#3b82f6]/[0.02] p-5 shadow-inner">
+        <div className="mb-6 flex items-start justify-between">
+           <div className="min-h-[40px]">
              <h3 className="text-sm font-black text-white uppercase tracking-wider">Durata Allenamenti</h3>
-             <p className="mt-0.5 text-[10px] font-bold text-gym-muted">Ultime 10 sessioni</p>
+             {activePoint ? (
+               <motion.p 
+                 initial={{ opacity: 0, y: -5 }} 
+                 animate={{ opacity: 1, y: 0 }} 
+                 className="mt-0.5 text-[11px] font-bold text-[#3b82f6]"
+               >
+                 {formatDate(activePoint.date)}: <span className="text-white">{formatDurationFromMinutes(activePoint.duration)}</span>
+               </motion.p>
+             ) : (
+               <p className="mt-0.5 text-[10px] font-bold text-gym-muted">Ultime 10 sessioni</p>
+             )}
            </div>
-           <Clock3 size={16} className="text-[#8d62a8]" />
+           <Clock3 size={16} className="text-[#3b82f6] mt-0.5" />
         </div>
         <div className="relative">
           {/* Y Axis Labels */}
@@ -60,8 +79,8 @@ export function DurationChartClient({ sessions }: { sessions: SessionLike[] }) {
           <svg viewBox={`0 -4 ${w} ${h + 10}`} className="w-full h-20 overflow-visible pl-8" aria-hidden="true">
              <defs>
                <linearGradient id="durationGrad" x1="0" x2="0" y1="0" y2="1">
-                 <stop offset="0%" stopColor="#8d62a8" stopOpacity="0.4" />
-                 <stop offset="100%" stopColor="#8d62a8" stopOpacity="0.0" />
+                 <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.4" />
+                 <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.0" />
                </linearGradient>
              </defs>
              <motion.polygon 
@@ -75,25 +94,36 @@ export function DurationChartClient({ sessions }: { sessions: SessionLike[] }) {
              <motion.polyline 
                points={polyline} 
                fill="none" 
-               stroke="#8d62a8" 
+               stroke="#3b82f6" 
                strokeWidth="3" 
                strokeLinecap="round" 
                strokeLinejoin="round" 
-               className="drop-shadow-[0_0_8px_rgba(141,98,168,0.5)]" 
+               className="drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]" 
                initial={{ pathLength: 0 }}
                whileInView={{ pathLength: 1 }}
                viewport={{ once: true, margin: "-30px" }}
                transition={{ duration: 1.5, ease: "easeInOut" }}
              />
              {points.map((p, i) => (
-               <motion.circle 
+               <g 
                  key={i} 
-                 cx={p.x} cy={p.y} r="3" fill="#8d62a8" 
-                 initial={{ scale: 0 }}
-                 whileInView={{ scale: 1 }}
-                 viewport={{ once: true, margin: "-30px" }}
-                 transition={{ delay: 1 + (i * 0.05) }}
-               />
+                 onClick={() => setActivePoint(activePoint === p ? null : p)} 
+                 className="cursor-pointer"
+                 style={{ touchAction: 'manipulation' }}
+               >
+                 <motion.circle 
+                   cx={p.x} cy={p.y} 
+                   r={activePoint === p ? "5" : "3"} 
+                   fill={activePoint === p ? "#ffffff" : "#3b82f6"} 
+                   initial={{ scale: 0 }}
+                   whileInView={{ scale: 1 }}
+                   viewport={{ once: true, margin: "-30px" }}
+                   transition={{ delay: 1 + (i * 0.05) }}
+                   className={activePoint === p ? "drop-shadow-[0_0_6px_rgba(255,255,255,0.8)]" : ""}
+                 />
+                 {/* Invisible larger circle for easier clicking on mobile */}
+                 <circle cx={p.x} cy={p.y} r="15" fill="transparent" />
+               </g>
              ))}
           </svg>
         </div>

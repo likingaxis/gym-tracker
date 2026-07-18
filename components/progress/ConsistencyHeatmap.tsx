@@ -31,13 +31,13 @@ export function ConsistencyHeatmap({ sessions }: { sessions: any[] }) {
   }, [sessions]);
 
   // Group into weeks for the columns
-  const weeks = [];
+  const weeks: Array<typeof days> = [];
   for (let i = 0; i < days.length; i += 7) {
     weeks.push(days.slice(i, i + 7));
   }
 
   // Month labels
-  const monthLabels = [];
+  const monthLabels: { label: string; index: number }[] = [];
   weeks.forEach((week, i) => {
     if (week.length > 0) {
       const d = week[0].date;

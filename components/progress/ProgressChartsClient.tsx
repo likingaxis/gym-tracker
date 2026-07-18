@@ -60,7 +60,7 @@ export function DurationChartClient({ sessions }: { sessions: SessionLike[] }) {
                  animate={{ opacity: 1, y: 0 }} 
                  className="mt-0.5 text-[11px] font-bold text-[#3b82f6]"
                >
-                 {formatDate(activePoint.date)}: <span className="text-white">{formatDurationFromMinutes(activePoint.duration)}</span>
+                 {formatDate(activePoint.date || null)}: <span className="text-white">{formatDurationFromMinutes(activePoint.duration)}</span>
                </motion.p>
              ) : (
                <p className="mt-0.5 text-[10px] font-bold text-gym-muted">Ultime 10 sessioni</p>

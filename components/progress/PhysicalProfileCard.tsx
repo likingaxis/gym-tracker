@@ -78,7 +78,7 @@ export function PhysicalProfileCard({ profile }: { profile: any }) {
                onClick={() => showDialog({
                  title: "Che cos'è il BMI?",
                  message: "L'Indice di Massa Corporea (BMI) è un indicatore che mette in relazione peso e altezza. Attenzione: nei soggetti molto muscolosi può risultare 'sballato' e sovrastimare il grasso corporeo, in quanto la formula matematica non fa distinzione tra massa grassa e massa magra.",
-                 tone: "info"
+                 tone: "default"
                })}
                className="rounded-full bg-white/5 border border-white/5 p-2 text-white/60 transition hover:bg-white/10 hover:text-white cursor-pointer"
                title="Cosa significano questi dati?"

@@ -27,7 +27,7 @@ import {
   Loader2,
   AlertCircle,
 } from "lucide-react";
-import { savePendingPatch, syncPendingPatchToServer, useOnlineStatus } from "@/lib/sync/offlineSync";
+import { savePendingPatch, syncPendingPatchToServer, useOnlineStatus, saveSessionSnapshot, getSessionSnapshot } from "@/lib/sync/offlineSync";
 import { prefetchExerciseMedia } from "@/lib/utils/prefetchMedia";
 import { Card } from "@/components/ui/Card";
 import { formatCountdown, formatRestTime } from "@/lib/utils/time";
@@ -185,86 +185,105 @@ export function WorkoutSessionClient({ day, durationEstimate }: Props) {
 
     async function createOrResumeSession() {
       setStatus("Creo o riprendo la sessione...");
-      const response = await fetch("/api/workout-sessions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          workout_plan_id: day.workout_plan_id,
-          workout_day_id: day.id,
-        }),
-      });
-      const result = await safeJson(response);
-
-      if (cancelled) return;
-
-      if (!response.ok || !result?.success) {
-        setStatus(result?.error ?? "Errore creazione sessione.");
-        return;
-      }
-
-      const session = result.session;
-      setSessionId(session.id);
-      setSessionStatus(session.status === "paused" ? "paused" : "in_progress");
-      setGeneralNotes(session.general_notes ?? "");
-
-      const nextDrafts: Record<string, ExerciseDraft> = {};
-      for (const exercise of day.exercises) {
-        const existing = session.session_exercises?.find(
-          (item: any) => item.exercise_id === exercise.id,
-        );
-        const setCount = Math.max(1, Number(exercise.sets ?? 1));
-        const existingSets = [...(existing?.exercise_sets ?? [])].sort(
-          (a: any, b: any) => a.set_number - b.set_number,
-        );
-        const plannedReps = getPlannedRepsBySet(exercise.reps, setCount);
-
-        nextDrafts[exercise.id] = {
-          id: existing?.id,
-          exercise_id: exercise.id,
-          completed: existing?.completed ?? false,
-          personal_notes: existing?.personal_notes ?? "",
-          personal_notes_source: getPersonalNotesSource(
-            existing?.personal_notes,
-            existing?.personal_notes_inherited,
-          ),
-          personal_notes_inherited_at:
-            existing?.personal_notes_inherited_at ?? null,
-          sets: Array.from({ length: setCount }, (_item, index) => {
-            const current = existingSets.find(
-              (set: any) => set.set_number === index + 1,
-            );
-            const savedReps =
-              current?.reps === null || current?.reps === undefined
-                ? ""
-                : String(current.reps);
-            return {
-              id: current?.id,
-              set_number: index + 1,
-              reps: savedReps || plannedReps[index] || "",
-              weight: current?.weight ?? "",
-              weight_source: getWeightSource(
-                current?.weight_source,
-                current?.weight,
-              ),
-              rpe: current?.rpe?.toString() ?? "",
-              completed: current?.completed ?? false,
-            };
+      try {
+        const response = await fetch("/api/workout-sessions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            workout_plan_id: day.workout_plan_id,
+            workout_day_id: day.id,
           }),
-        };
-      }
+        });
+        const result = await safeJson(response);
 
-      setDrafts(nextDrafts);
-      firstSaveSkipped.current = false;
-      setStatus(
-        session.status === "paused"
-          ? "Sessione in pausa."
-          : result.resumed
-            ? "Sessione in corso ripresa."
-            : "Sessione iniziata.",
-      );
+        if (cancelled) return;
+
+        if (!response.ok || !result?.success) {
+          throw new Error(result?.error ?? "Errore creazione sessione.");
+        }
+
+        const session = result.session;
+        setSessionId(session.id);
+        setSessionStatus(session.status === "paused" ? "paused" : "in_progress");
+        setGeneralNotes(session.general_notes ?? "");
+
+        const nextDrafts: Record<string, ExerciseDraft> = {};
+        for (const exercise of day.exercises) {
+          const existing = session.session_exercises?.find(
+            (item: any) => item.exercise_id === exercise.id,
+          );
+          const setCount = Math.max(1, Number(exercise.sets ?? 1));
+          const existingSets = [...(existing?.exercise_sets ?? [])].sort(
+            (a: any, b: any) => a.set_number - b.set_number,
+          );
+          const plannedReps = getPlannedRepsBySet(exercise.reps, setCount);
+
+          nextDrafts[exercise.id] = {
+            id: existing?.id,
+            exercise_id: exercise.id,
+            completed: existing?.completed ?? false,
+            personal_notes: existing?.personal_notes ?? "",
+            personal_notes_source: getPersonalNotesSource(
+              existing?.personal_notes,
+              existing?.personal_notes_inherited,
+            ),
+            personal_notes_inherited_at:
+              existing?.personal_notes_inherited_at ?? null,
+            sets: Array.from({ length: setCount }, (_item, index) => {
+              const current = existingSets.find(
+                (set: any) => set.set_number === index + 1,
+              );
+              const savedReps =
+                current?.reps === null || current?.reps === undefined
+                  ? ""
+                  : String(current.reps);
+              return {
+                id: current?.id,
+                set_number: index + 1,
+                reps: savedReps || plannedReps[index] || "",
+                weight: current?.weight ?? "",
+                weight_source: getWeightSource(
+                  current?.weight_source,
+                  current?.weight,
+                ),
+                rpe: current?.rpe?.toString() ?? "",
+                completed: current?.completed ?? false,
+              };
+            }),
+          };
+        }
+
+        setDrafts(nextDrafts);
+        saveSessionSnapshot(`fallback_${day.id}`, {
+          session,
+          drafts: nextDrafts,
+          generalNotes: session.general_notes ?? "",
+        });
+        firstSaveSkipped.current = false;
+        setStatus(
+          session.status === "paused"
+            ? "Sessione in pausa."
+            : result.resumed
+              ? "Sessione in corso ripresa."
+              : "Sessione iniziata.",
+        );
+      } catch (error) {
+        if (cancelled) return;
+        const cached = getSessionSnapshot(`fallback_${day.id}`);
+        if (cached && cached.session) {
+          setSessionId(cached.session.id);
+          setSessionStatus(cached.session.status === "paused" ? "paused" : "in_progress");
+          setGeneralNotes(cached.generalNotes ?? "");
+          setDrafts(cached.drafts ?? {});
+          firstSaveSkipped.current = false;
+          setStatus("Sessione ripresa offline (locale).");
+        } else {
+          setStatus(error instanceof Error ? error.message : "Errore creazione sessione.");
+        }
+      }
     }
 
-    createOrResumeSession().catch((error) => setStatus(error.message));
+    createOrResumeSession();
 
     return () => {
       cancelled = true;
@@ -295,6 +314,12 @@ export function WorkoutSessionClient({ day, durationEstimate }: Props) {
         exercises: Object.values(drafts).map(toApiPayload),
       };
 
+      saveSessionSnapshot(`fallback_${day.id}`, {
+        session: { id: sessionId, status: sessionStatus },
+        drafts,
+        generalNotes,
+      });
+
       if (!navigator.onLine) {
         savePendingPatch(sessionId, payload);
         setStatus("Salvato in locale (offline)");
@@ -324,7 +349,7 @@ export function WorkoutSessionClient({ day, durationEstimate }: Props) {
     }, 700);
 
     return () => window.clearTimeout(timeout);
-  }, [drafts, generalNotes, sessionId]);
+  }, [drafts, generalNotes, sessionId, day.id, sessionStatus]);
 
   useEffect(() => {
     if (!activeTimer?.isRunning || !activeTimer.targetEndAt) return;

@@ -86,3 +86,22 @@ export function useOnlineStatus() {
 
   return isOnline;
 }
+
+export function saveSessionSnapshot(key: string, fullState: any) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(`gym_snapshot_${key}`, JSON.stringify(fullState));
+  } catch (err) {
+    console.error("Errore salvataggio snapshot:", err);
+  }
+}
+
+export function getSessionSnapshot(key: string): any | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const data = localStorage.getItem(`gym_snapshot_${key}`);
+    return data ? JSON.parse(data) : null;
+  } catch (err) {
+    return null;
+  }
+}

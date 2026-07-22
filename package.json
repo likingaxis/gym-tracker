@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@serwist/next": "^9.5.12",
     "@supabase/ssr": "latest",
     "@supabase/supabase-js": "latest",
     "clsx": "latest",
@@ -20,6 +21,7 @@
     "next": "latest",
     "react": "latest",
     "react-dom": "latest",
+    "serwist": "^9.5.12",
     "zod": "latest"
   },
   "devDependencies": {

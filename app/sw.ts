@@ -1,5 +1,7 @@
+/// <reference lib="webworker" />
 import { defaultCache } from "@serwist/next/worker";
-import { Serwist, type PrecacheEntry, type SerwistGlobalConfig } from "serwist";
+import type { PrecacheEntry, SerwistGlobalConfig } from "serwist";
+import { Serwist, NetworkOnly } from "serwist";
 
 declare global {
   interface WorkerGlobalScope extends SerwistGlobalConfig {
@@ -14,12 +16,18 @@ const serwist = new Serwist({
   skipWaiting: true,
   clientsClaim: true,
   navigationPreload: true,
-  runtimeCaching: defaultCache,
+  runtimeCaching: [
+    ...defaultCache,
+    {
+      matcher: /^\/api\/.*/,
+      handler: new NetworkOnly(), // APIs handled by React logic
+    },
+  ],
   fallbacks: {
     entries: [
       {
         url: "/~offline",
-        matcher({ request }: { request: Request }) {
+        matcher({ request }) {
           return request.destination === "document";
         },
       },

@@ -10,9 +10,6 @@ const withSerwist = withSerwistInit({
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  turbopack: {
-    root: process.cwd()
-  },
   allowedDevOrigins: [
     "localhost",
     "127.0.0.1",

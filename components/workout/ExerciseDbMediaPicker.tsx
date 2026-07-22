@@ -199,7 +199,7 @@ export function ExerciseDbMediaPicker({
             role="dialog"
             aria-modal="true"
             aria-label="Cambia GIF ExerciseDB"
-            className="max-h-[86dvh] w-full max-w-md overflow-y-auto rounded-t-2xl border border-white/10 bg-white/[0.035] p-4 shadow-2xl shadow-black/60"
+            className="max-h-[86dvh] w-full max-w-md overflow-y-auto rounded-3xl border border-white/15 bg-gym-bg text-gym-soft p-5 shadow-2xl backdrop-blur-2xl"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="flex items-start justify-between gap-3">

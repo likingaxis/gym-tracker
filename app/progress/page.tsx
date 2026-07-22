@@ -25,6 +25,7 @@ import {
   ActivityChartClient,
   DurationChartClient,
 } from "@/components/progress/ProgressChartsClient";
+import { BodyWeightChartClient } from "@/components/progress/BodyWeightChartClient";
 
 import { PhysicalProfileCard } from "@/components/progress/PhysicalProfileCard";
 import { MuscleDonutChart } from "@/components/progress/MuscleDonutChart";
@@ -58,14 +59,40 @@ async function getProfileData(profileId: string) {
   return data;
 }
 
+async function getBodyWeightLogs(profileId: string) {
+  try {
+    const supabase = createServerSupabaseClient();
+    const { data } = await supabase
+      .from("body_weight_logs")
+      .select("weight_kg, logged_at")
+      .eq("profile_id", profileId)
+      .order("logged_at", { ascending: true });
+    return (data ?? []).map((log: any) => ({
+      weight: log.weight_kg,
+      date: log.logged_at,
+    }));
+  } catch {
+    return [];
+  }
+}
+
 export default async function ProgressPage() {
   const profileId = await getSelectedProfileId();
   if (!profileId) redirect("/profiles");
 
-  const [sessions, profile] = await Promise.all([
+  const [sessions, profile, rawWeightLogs] = await Promise.all([
     getProgressSessions(profileId),
-    getProfileData(profileId)
+    getProfileData(profileId),
+    getBodyWeightLogs(profileId)
   ]);
+
+  let weightLogs = rawWeightLogs;
+  if (weightLogs.length === 0 && profile?.weight_kg) {
+    weightLogs = [{
+      weight: profile.weight_kg,
+      date: new Date().toISOString()
+    }];
+  }
   
   const overview = buildProgressOverview(sessions);
   const comparison = buildMonthComparison(sessions);
@@ -102,6 +129,11 @@ export default async function ProgressPage() {
 
       {/* DATI FISICI E BMI */}
       <PhysicalProfileCard profile={profile} />
+
+      {/* GRAFICO ANDAMENTO PESO CORPOREO */}
+      {weightLogs.length > 0 && (
+        <BodyWeightChartClient logs={weightLogs} />
+      )}
 
       {/* DASHBOARD PANORAMICA MESE CORRENTE */}
       <section className="px-4">

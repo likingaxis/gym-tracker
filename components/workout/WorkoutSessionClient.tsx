@@ -10,6 +10,7 @@ import {
   ChevronUp,
   ChevronLeft,
   ChevronRight,
+  BarChart2,
   ExternalLink,
   ImageIcon,
   Maximize2,
@@ -1270,6 +1271,7 @@ function TrackableExerciseCard({
 }) {
   const [open, setOpen] = useState(false);
   const [notesOpen, setNotesOpen] = useState(false);
+  const [showAllSetsHistory, setShowAllSetsHistory] = useState(false);
   const reduceMotion = useReducedMotion();
 
   if (!draft) {
@@ -1413,11 +1415,7 @@ function TrackableExerciseCard({
                 type="button"
                 onClick={() => onCompleteSet(nextSet.set_number)}
                 whileTap={reduceMotion ? undefined : { scale: 0.96 }}
-                animate={reduceMotion ? undefined : { 
-                  boxShadow: ["0 4px 20px rgba(198,95,55,0.3)", "0 4px 35px rgba(198,95,55,0.7)", "0 4px 20px rgba(198,95,55,0.3)"] 
-                }}
-                transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
-                className="mt-4 w-full rounded-[1.25rem] bg-gym-accent px-4 py-4 text-lg font-extrabold text-[#050708]"
+                className="mt-4 w-full rounded-[1.25rem] bg-gym-accent px-4 py-4 text-lg font-extrabold text-[#050708] shadow-lg shadow-gym-accent/30 hover:scale-[1.01] active:scale-[0.98] transition-all"
               >
                 Completa serie
               </motion.button>
@@ -1450,40 +1448,47 @@ function TrackableExerciseCard({
             <button
               type="button"
               onClick={onStartTimer}
-              className="flex min-h-12 items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.035] px-4 py-3 text-sm font-bold text-gym-soft"
+              className="flex min-h-12 items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.035] px-4 py-3 text-sm font-bold text-gym-soft transition hover:bg-white/[0.06] active:scale-[0.98]"
             >
               <TimerReset size={18} />{" "}
               {timerForThisExercise
                 ? `Recupero ${formatCountdown(timerForThisExercise.remainingSeconds)}`
                 : "Avvia recupero"}
             </button>
-            {exercise.video_url ? (
-              <a
-                href={exercise.video_url}
-                target="_blank"
-                rel="noreferrer"
-                className="flex min-h-12 items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.035] px-4 py-3 text-sm font-bold"
-              >
-                <PlayCircle size={18} /> Video
-              </a>
-            ) : null}
+            <button
+              type="button"
+              onClick={() => setShowAllSetsHistory(true)}
+              className="flex min-h-12 items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.035] px-4 py-3 text-sm font-bold text-gym-soft transition hover:bg-white/[0.06] active:scale-[0.98]"
+            >
+              <BarChart2 size={18} /> Carichi serie
+            </button>
           </div>
 
           <div className="mt-4 grid grid-cols-2 gap-2">
             <button
               type="button"
               onClick={() => setNotesOpen((value) => !value)}
-              className="rounded-xl border border-white/10 bg-white/[0.035] px-4 py-3 text-sm font-bold text-gym-soft"
+              className="rounded-xl border border-white/10 bg-white/[0.035] px-2.5 py-2.5 text-xs font-bold text-gym-soft transition hover:bg-white/[0.06] active:scale-[0.98]"
             >
               {draft.personal_notes ? "Nota" : "+ Nota"}
             </button>
             <button
               type="button"
               onClick={() => setOpen((value) => !value)}
-              className="rounded-xl border border-white/10 bg-white/[0.035] px-4 py-3 text-sm font-bold text-gym-soft"
+              className="rounded-xl border border-white/10 bg-white/[0.035] px-2.5 py-2.5 text-xs font-bold text-gym-soft transition hover:bg-white/[0.06] active:scale-[0.98]"
             >
-              {open ? "Nascondi tecnica" : "Tecnica"}
+              {open ? "Chiudi" : "Tecnica"}
             </button>
+            {exercise.video_url ? (
+              <a
+                href={exercise.video_url}
+                target="_blank"
+                rel="noreferrer"
+                className="col-span-2 mt-2 flex min-h-12 items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.035] px-4 py-3 text-sm font-bold transition hover:bg-white/[0.06] active:scale-[0.98]"
+              >
+                <PlayCircle size={18} /> Video
+              </a>
+            ) : null}
           </div>
 
           {draft.personal_notes && !notesOpen ? (
@@ -1569,6 +1574,59 @@ function TrackableExerciseCard({
           </div>
         </AnimatedAccordion>
         </div>
+
+        {typeof document !== "undefined" ? createPortal(
+          <AnimatePresence>
+            {showAllSetsHistory ? (
+              <motion.div
+                className="fixed inset-0 z-[70] flex items-end justify-center bg-black/55 px-4 pb-4 backdrop-blur-sm"
+                initial={reduceMotion ? false : { opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setShowAllSetsHistory(false)}
+              >
+                <motion.div
+                  role="dialog"
+                  aria-modal="true"
+                  aria-label="Riepilogo Carichi e Serie"
+                  className="w-full max-w-md overflow-y-auto rounded-3xl border border-white/10 bg-[#1c1c1c] p-6 shadow-2xl shadow-black/80"
+                  initial={reduceMotion ? false : { y: 40, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  exit={{ y: 40, opacity: 0 }}
+                  transition={{ duration: 0.24, ease: "easeOut" }}
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <h2 className="text-xs font-extrabold text-gym-accent uppercase tracking-wider">Riepilogo Carichi</h2>
+                      <p className="mt-0.5 text-lg font-black text-white">{exercise.name}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowAllSetsHistory(false)}
+                      className="rounded-full bg-white/10 p-2.5 text-slate-200 transition hover:bg-white/20 active:scale-95"
+                      aria-label="Chiudi"
+                    >
+                      <X size={18} />
+                    </button>
+                  </div>
+                  <div className="space-y-1.5 pt-2">
+                    {draft.sets.map((s) => (
+                      <div key={s.set_number} className="flex items-center justify-between py-3 border-b border-white/5 last:border-0">
+                        <span className="text-sm font-bold text-slate-300">Serie {s.set_number}</span>
+                        <span className="mono-type text-sm font-extrabold text-white">
+                          {s.weight ? `${s.weight} kg` : "Non impostato"} {s.reps ? `× ${s.reps} reps` : ""}
+                          {s.weight_source === "previous" ? <span className="ml-2 text-[10px] text-gym-muted font-normal">(Scorsa volta)</span> : null}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </motion.div>
+              </motion.div>
+            ) : null}
+          </AnimatePresence>,
+          document.body
+        ) : null}
       </Card>
     </motion.div>
   );
@@ -1829,23 +1887,32 @@ function MediaPreview({
         <AnimatePresence>
           {fullScreen ? (
             <motion.div
-              className="fixed inset-0 z-[100] flex flex-col bg-black/95 p-4 backdrop-blur-md"
+              className="fixed inset-0 z-[100] flex flex-col h-screen w-screen bg-black/95 p-4 backdrop-blur-md overflow-hidden select-none"
               initial={reduceMotion ? false : { opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setFullScreen(false)}
             >
-              <div className="mx-auto flex w-full max-w-md items-center justify-between gap-3 pt-[env(safe-area-inset-top)]">
+              <div className="sticky top-0 z-50 mx-auto flex w-full max-w-md items-center justify-between gap-3 pt-[env(safe-area-inset-top)] pb-2 bg-black/90 backdrop-blur-md shrink-0 border-b border-white/10">
                 <div className="min-w-0">
-                  <p className="technical-label">GIF tecnica</p>
-                  <h2 className="mt-1 truncate text-xl font-extrabold text-white">{name}</h2>
+                  <p className="technical-label text-gym-accent">GIF tecnica</p>
+                  <h2 className="mt-0.5 truncate text-xl font-extrabold text-white">{name}</h2>
                 </div>
-                <button type="button" onClick={() => setFullScreen(false)} className="touch-icon bg-white/10 shrink-0" aria-label="Chiudi GIF">
+                <button
+                  type="button"
+                  onClick={() => setFullScreen(false)}
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-white/15 bg-white/10 text-white hover:bg-white/20 active:scale-95"
+                  aria-label="Chiudi GIF"
+                >
                   <X size={22} />
                 </button>
               </div>
-              <div className="flex flex-1 items-center justify-center" onClick={(event) => event.stopPropagation()}>
-                <img src={cleanUrl} alt={name} className="max-h-[76dvh] w-full max-w-md rounded-[1.5rem] bg-gym-bg object-contain shadow-2xl" />
+              <div className="flex flex-1 items-center justify-center overflow-hidden p-2" onClick={(event) => event.stopPropagation()}>
+                <img
+                  src={cleanUrl}
+                  alt={name}
+                  className="max-h-[78vh] max-w-full rounded-[1.5rem] bg-gym-bg object-contain shadow-2xl border border-white/10"
+                />
               </div>
             </motion.div>
           ) : null}

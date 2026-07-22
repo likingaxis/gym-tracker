@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import Link from "next/link";
-import { CalendarDays, History as HistoryIcon } from "lucide-react";
+import { CalendarDays, History as HistoryIcon, Trash2 } from "lucide-react";
 import { redirect } from "next/navigation";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -97,8 +97,8 @@ export default async function HistoryPage({ searchParams }: { searchParams?: Pro
 
       <SlideUp delay={0.2}>
         <div className="grid grid-cols-2 gap-2 text-sm">
-          <Link href={buildHistoryHref(filter, selectedPlanId)} className="flex items-center justify-center gap-2 rounded-lg bg-gym-accent px-3 py-3 text-center font-extrabold text-slate-950 "><HistoryIcon size={15} /> Lista</Link>
-          <Link href={buildCalendarHref(selectedPlanId)} className="flex items-center justify-center gap-2 rounded-lg bg-white/10 px-3 py-3 text-center font-bold text-slate-200"><CalendarDays size={15} /> Calendario</Link>
+          <Link href={buildHistoryHref(filter, selectedPlanId)} className="flex items-center justify-center gap-2 rounded-xl bg-gym-accent px-3 py-3 text-center font-extrabold text-slate-950 shadow-md shadow-gym-accent/20"><HistoryIcon size={16} /> Lista</Link>
+          <Link href={buildCalendarHref(selectedPlanId)} className="flex items-center justify-center gap-2 rounded-xl bg-white/10 px-3 py-3 text-center font-bold text-slate-200 hover:bg-white/15"><CalendarDays size={16} /> Calendario</Link>
         </div>
       </SlideUp>
 
@@ -108,17 +108,27 @@ export default async function HistoryPage({ searchParams }: { searchParams?: Pro
             <p className="font-bold text-slate-200">Questa vista</p>
             <p className="text-gym-muted">{selectedPlan ? selectedPlan.name : "Tutte le schede"} · {formatWorkoutCount(weekSessions.length)} · {formatSetCount(weekSets)}</p>
           </div>
-          <details className="relative text-right">
-            <summary className="cursor-pointer rounded-lg bg-white/10 px-3 py-2 text-xs font-bold text-slate-200">Filtra</summary>
-            <div className="absolute right-0 z-20 mt-2 grid w-44 gap-2 rounded-lg border border-white/10 bg-white/[0.035] p-2 ">
-              <FilterLink href={buildHistoryHref("completed", selectedPlanId)} active={filter === "completed"} label="Completati" />
-              <FilterLink href={buildHistoryHref("in_progress", selectedPlanId)} active={filter === "in_progress"} label="In corso" />
-              <FilterLink href={buildHistoryHref("paused", selectedPlanId)} active={filter === "paused"} label="In pausa" />
-              <FilterLink href={buildHistoryHref("abandoned", selectedPlanId)} active={filter === "abandoned"} label="Interrotti" />
-              <FilterLink href={buildHistoryHref("all", selectedPlanId)} active={filter === "all"} label="Tutti" />
-              <FilterLink href="/history/trash" active={false} label="Cestino" />
-            </div>
-          </details>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/history/trash"
+              className="flex items-center gap-1.5 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs font-bold text-red-400 hover:bg-red-500/20"
+              title="Cestino allenamenti eliminati"
+              aria-label="Apri cestino"
+            >
+              <Trash2 size={15} />
+              <span>Cestino</span>
+            </Link>
+            <details className="relative text-right">
+              <summary className="cursor-pointer rounded-lg bg-white/10 px-3 py-2 text-xs font-bold text-slate-200 hover:bg-white/15">Filtra</summary>
+              <div className="absolute right-0 z-30 mt-2 grid w-48 gap-1.5 rounded-2xl border border-white/15 bg-[#141824] p-2.5 shadow-2xl shadow-black/80 backdrop-blur-xl">
+                <FilterLink href={buildHistoryHref("completed", selectedPlanId)} active={filter === "completed"} label="Completati" />
+                <FilterLink href={buildHistoryHref("in_progress", selectedPlanId)} active={filter === "in_progress"} label="In corso" />
+                <FilterLink href={buildHistoryHref("paused", selectedPlanId)} active={filter === "paused"} label="In pausa" />
+                <FilterLink href={buildHistoryHref("abandoned", selectedPlanId)} active={filter === "abandoned"} label="Interrotti" />
+                <FilterLink href={buildHistoryHref("all", selectedPlanId)} active={filter === "all"} label="Tutti" />
+              </div>
+            </details>
+          </div>
         </div>
       </SlideUp>
 

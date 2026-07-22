@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, History as HistoryIcon, Trash2 } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getSelectedProfileId } from "@/lib/profiles";
@@ -110,8 +110,8 @@ export default async function CalendarHistoryPage({ searchParams }: { searchPara
       </header>
 
       <div className="grid grid-cols-2 gap-2 text-sm">
-        <Link href={buildHistoryHref(selectedPlanId)} className="rounded-lg bg-white/10 px-3 py-3 text-center font-bold text-slate-200">Lista</Link>
-        <Link href={buildCalendarHref(month, selectedDay, selectedPlanId)} className="rounded-lg bg-gym-accent px-3 py-3 text-center font-extrabold text-slate-950 ">Calendario</Link>
+        <Link href={buildHistoryHref(selectedPlanId)} className="flex items-center justify-center gap-2 rounded-xl bg-white/10 px-3 py-3 text-center font-bold text-slate-200 hover:bg-white/15"><HistoryIcon size={16} /> Lista</Link>
+        <Link href={buildCalendarHref(month, selectedDay, selectedPlanId)} className="flex items-center justify-center gap-2 rounded-xl bg-gym-accent px-3 py-3 text-center font-extrabold text-slate-950 shadow-md shadow-gym-accent/20"><CalendarDays size={16} /> Calendario</Link>
       </div>
 
       <Card className="border-gym-accent/20">
@@ -124,9 +124,14 @@ export default async function CalendarHistoryPage({ searchParams }: { searchPara
             <h2 className="text-2xl font-extrabold capitalize">{formatMonthTitle(month)}</h2>
             <p className="mt-1 text-xs text-gym-muted">{selectedPlan ? selectedPlan.name : "Tutte le schede"}</p>
           </div>
-          <Link href={buildCalendarHref(nextMonth, undefined, selectedPlanId)} className="rounded-lg bg-white/10 p-3 text-slate-200" aria-label="Mese successivo">
-            <ChevronRight size={20} />
-          </Link>
+          <div className="flex items-center gap-1">
+            <Link href={buildCalendarHref(nextMonth, undefined, selectedPlanId)} className="rounded-lg bg-white/10 p-3 text-slate-200" aria-label="Mese successivo">
+              <ChevronRight size={20} />
+            </Link>
+            <Link href="/history/trash" className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-red-400 hover:bg-red-500/20" title="Cestino" aria-label="Apri cestino">
+              <Trash2 size={20} />
+            </Link>
+          </div>
         </div>
 
         <div className="mt-4 grid grid-cols-3 gap-2 text-center text-xs">

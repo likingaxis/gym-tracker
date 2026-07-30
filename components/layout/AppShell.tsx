@@ -8,6 +8,13 @@ import { Dumbbell, History, Home, TrendingUp } from "lucide-react";
 import { MotionPage } from "@/components/motion/MotionPage";
 import { ActiveWorkoutMiniPlayer } from "@/components/layout/ActiveWorkoutMiniPlayer";
 
+import { useSyncEngine } from "@/lib/sync/offlineSync";
+
+function SyncEngineRunner() {
+  useSyncEngine();
+  return null;
+}
+
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const isProfiles = pathname === "/profiles" || pathname.startsWith("/profiles/");
@@ -18,6 +25,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     <main
       className={`officina-page ${modeClass} mx-auto flex min-h-dvh max-w-md flex-col bg-gym-bg text-gym-soft ${isProfiles ? "pb-8" : "pb-52"}`}
     >
+      <SyncEngineRunner />
       <div className={`flex-1 px-4 ${isActiveWorkout ? "py-3" : "py-5"}`}>
         <MotionPage>{children}</MotionPage>
       </div>

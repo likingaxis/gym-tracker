@@ -28,7 +28,7 @@ import {
   Loader2,
   AlertCircle,
 } from "lucide-react";
-import { savePendingPatch, syncPendingPatchToServer, useOnlineStatus, saveSessionSnapshot, getSessionSnapshot } from "@/lib/sync/offlineSync";
+import { queueMutation, processSyncQueue, useOnlineStatus, saveSessionSnapshot, getSessionSnapshot } from "@/lib/sync/offlineSync";
 import { prefetchExerciseMedia } from "@/lib/utils/prefetchMedia";
 import { Card } from "@/components/ui/Card";
 import { formatCountdown, formatRestTime } from "@/lib/utils/time";
@@ -290,8 +290,8 @@ export function WorkoutSessionClient({ day, durationEstimate }: Props) {
 
   useEffect(() => {
     if (isOnline && sessionId) {
-      syncPendingPatchToServer(sessionId).then((synced) => {
-        if (synced) setStatus("Salvato automaticamente.");
+      processSyncQueue().then(() => {
+        setStatus("Salvato automaticamente.");
       });
     }
   }, [isOnline, sessionId]);
@@ -317,7 +317,7 @@ export function WorkoutSessionClient({ day, durationEstimate }: Props) {
       });
 
       if (!navigator.onLine) {
-        savePendingPatch(sessionId, payload);
+        await queueMutation("UPDATE_SESSION", { sessionId, data: payload });
         setStatus("Salvato in locale (offline)");
         setSaving(false);
         return;
@@ -328,13 +328,13 @@ export function WorkoutSessionClient({ day, durationEstimate }: Props) {
         const profileId = localStorage.getItem("active_profile_id");
         const data = await m.updateSession(profileId, sessionId, payload);
         if (!data.success) {
-          savePendingPatch(sessionId, payload);
+          await queueMutation("UPDATE_SESSION", { sessionId, data: payload });
           setStatus("Salvato in locale (offline)");
         } else {
           setStatus("Salvato automaticamente.");
         }
       } catch (error) {
-        savePendingPatch(sessionId, payload);
+        await queueMutation("UPDATE_SESSION", { sessionId, data: payload });
         setStatus("Salvato in locale (offline)");
       } finally {
         setSaving(false);

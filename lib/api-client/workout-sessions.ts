@@ -1,4 +1,5 @@
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
+import { putInDB, getFromDB } from "@/lib/db/indexeddb";
 
 export type CreateSessionBody = {
   workout_plan_id?: string;
@@ -283,42 +284,69 @@ export async function getSessions(profileId: string | null | undefined) {
     return { success: true, sessions: [] };
   }
 
-  const supabase = createBrowserSupabaseClient();
-  const { data, error } = await supabase
-    .from("workout_sessions")
-    .select(
-      "*, workout_plans(name, month, color), workout_days(name), session_exercises(*, exercise_sets(*))",
-    )
-    .eq("profile_id", profileId)
-    .is("deleted_at", null)
-    .order("started_at", { ascending: false })
-    .limit(50);
+  const cacheKey = "getSessions_" + profileId;
+  const isOnline = typeof window !== "undefined" && window.navigator.onLine;
 
-  if (error) {
-    return { success: false, error: error.message };
+  if (isOnline) {
+    try {
+      const supabase = createBrowserSupabaseClient();
+      const { data, error } = await supabase
+        .from("workout_sessions")
+        .select(
+          "*, workout_plans(name, month, color), workout_days(name), session_exercises(*, exercise_sets(*))",
+        )
+        .eq("profile_id", profileId)
+        .is("deleted_at", null)
+        .order("started_at", { ascending: false })
+        .limit(50);
+
+      if (!error) {
+        const result = { success: true, sessions: data ?? [] };
+        await putInDB("api_cache", { id: cacheKey, data: result });
+        return result;
+      }
+    } catch {
+      // Fall through to offline cache
+    }
   }
 
-  return { success: true, sessions: data ?? [] };
+  const cached = await getFromDB<{ id: string; data: any }>("api_cache", cacheKey);
+  if (cached) return cached.data;
+  return { success: false, error: "Errore caricamento sessioni." };
 }
 
 export async function getSession(profileId: string | null | undefined, id: string) {
-  const supabase = createBrowserSupabaseClient();
+  const cacheKey = "getSession_" + (profileId ?? "all") + "_" + id;
+  const isOnline = typeof window !== "undefined" && window.navigator.onLine;
 
-  let query = supabase
-    .from("workout_sessions")
-    .select("*, workout_plans(name, month, color), workout_days(name), session_exercises(*, exercises(*), exercise_sets(*))")
-    .eq("id", id);
+  if (isOnline) {
+    try {
+      const supabase = createBrowserSupabaseClient();
 
-  if (profileId) query = query.eq("profile_id", profileId);
+      let query = supabase
+        .from("workout_sessions")
+        .select("*, workout_plans(name, month, color), workout_days(name), session_exercises(*, exercises(*), exercise_sets(*))")
+        .eq("id", id);
 
-  const { data, error } = await query.single();
+      if (profileId) query = query.eq("profile_id", profileId);
 
-  if (error || !data) {
-    return { success: false, error: error?.message ?? "Sessione non trovata." };
+      const { data, error } = await query.single();
+
+      if (!error && data) {
+        const result = { success: true, session: data };
+        await putInDB("api_cache", { id: cacheKey, data: result });
+        return result;
+      }
+    } catch {
+      // Fall through to offline cache
+    }
   }
 
-  return { success: true, session: data };
+  const cached = await getFromDB<{ id: string; data: any }>("api_cache", cacheKey);
+  if (cached) return cached.data;
+  return { success: false, error: "Sessione non trovata." };
 }
+
 
 export async function updateSession(profileId: string | null | undefined, id: string, body: PatchSessionBody) {
   try {

@@ -16,6 +16,7 @@
     "clsx": "latest",
     "date-fns": "^4.4.0",
     "framer-motion": "latest",
+    "idb": "^8.0.3",
     "lucide-react": "latest",
     "mammoth": "latest",
     "next": "latest",

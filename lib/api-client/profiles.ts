@@ -1,23 +1,34 @@
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 import { hashPin, verifyPin } from "@/lib/pin";
+import { putInDB, getFromDB } from "@/lib/db/indexeddb";
 
 export async function getProfiles() {
-  try {
-    const supabase = createBrowserSupabaseClient();
-    const { data, error } = await supabase
-      .from("app_profiles")
-      .select("id, name, avatar_emoji, color, pin_enabled, created_at")
-      .order("created_at", { ascending: true });
+  const cacheKey = "getProfiles";
+  const isOnline = typeof window !== "undefined" && window.navigator.onLine;
 
-    if (error) {
-      return { success: false, error: error.message };
+  if (isOnline) {
+    try {
+      const supabase = createBrowserSupabaseClient();
+      const { data, error } = await supabase
+        .from("app_profiles")
+        .select("id, name, avatar_emoji, color, pin_enabled, created_at")
+        .order("created_at", { ascending: true });
+
+      if (!error) {
+        const result = { success: true, profiles: data ?? [] };
+        await putInDB("api_cache", { id: cacheKey, data: result });
+        return result;
+      }
+    } catch {
+      // Fall through to offline cache
     }
-
-    return { success: true, profiles: data ?? [] };
-  } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : "Errore caricamento profili." };
   }
+
+  const cached = await getFromDB<{ id: string; data: any }>("api_cache", cacheKey);
+  if (cached) return cached.data;
+  return { success: false, error: "Errore caricamento profili." };
 }
+
 
 export async function createProfile(body: { name?: string; avatar_emoji?: string; color?: string }) {
   try {

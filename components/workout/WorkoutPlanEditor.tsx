@@ -234,14 +234,23 @@ export function WorkoutPlanEditor({ initialPlan }: { initialPlan: EditablePlan }
     setSaving(true);
     setMessage(null);
     try {
-      const response = await fetch(`/api/workout-plans/${plan.id}/editor`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(normalizePlan(plan)),
-      });
-      const payload = await response.json();
-      if (!response.ok || !payload.success) throw new Error(payload.error ?? "Salvataggio non riuscito.");
-      setMessage("Scheda salvata!");
+      const m = await import("@/lib/api-client/workout-plans");
+      const profileId = localStorage.getItem("active_profile_id");
+      if (!profileId) {
+        setMessage("Seleziona un profilo prima.");
+        setSaving(false);
+        return;
+      }
+
+      const data = await m.saveWorkoutPlan(profileId, plan.id, normalizePlan(plan));
+
+      if (!data.success) {
+        setMessage(data.error ?? "Impossibile salvare la scheda.");
+        setSaving(false);
+        return;
+      }
+
+      setMessage(`Salvataggio completato. ${data.days_touched} giorni e ${data.exercises_touched} esercizi aggiornati.`);
       router.refresh();
       setTimeout(() => setMessage(null), 3000);
     } catch (error) {

@@ -43,19 +43,27 @@ export function PinSettings({ profile }: PinSettingsProps) {
     setIsSaving(true);
     setStatus("Salvataggio PIN...");
 
-    const response = await fetch(`/api/profiles/${profile.id}/pin`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        current_pin: currentPin,
-        new_pin: newPin,
-        confirm_pin: confirmPin,
-      }),
-    });
-    const data = await readJsonResponse(response);
+    if (newPin !== confirmPin) {
+      setStatus("I PIN non corrispondono.");
+      setIsSaving(false);
+      return;
+    }
+
+    const m = await import("@/lib/api-client/profiles");
+
+    if (pinEnabled) {
+      const verify = await m.setProfilePin(profile.id, "verify", currentPin);
+      if (!verify.success) {
+        setStatus(verify.error ?? "PIN attuale non corretto.");
+        setIsSaving(false);
+        return;
+      }
+    }
+
+    const data = await m.setProfilePin(profile.id, "set", newPin);
     setIsSaving(false);
 
-    if (!response.ok) {
+    if (!data.success) {
       setStatus(data?.error ?? "Impossibile salvare il PIN.");
       return;
     }
@@ -76,15 +84,18 @@ export function PinSettings({ profile }: PinSettingsProps) {
     setIsSaving(true);
     setStatus("Rimozione PIN...");
 
-    const response = await fetch(`/api/profiles/${profile.id}/pin`, {
-      method: "DELETE",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ current_pin: removePin }),
-    });
-    const data = await readJsonResponse(response);
+    const m = await import("@/lib/api-client/profiles");
+    const verify = await m.setProfilePin(profile.id, "verify", removePin);
+    if (!verify.success) {
+      setStatus(verify.error ?? "PIN non corretto.");
+      setIsSaving(false);
+      return;
+    }
+
+    const data = await m.setProfilePin(profile.id, "remove");
     setIsSaving(false);
 
-    if (!response.ok) {
+    if (!data.success) {
       setStatus(data?.error ?? "Impossibile rimuovere il PIN.");
       return;
     }
@@ -97,7 +108,8 @@ export function PinSettings({ profile }: PinSettingsProps) {
 
   async function lockProfile() {
     setStatus("Blocco profilo...");
-    await fetch("/api/profiles/lock", { method: "POST" });
+    const m = await import("@/lib/api-client/profiles");
+    await m.lockProfile();
     router.push("/profiles");
     router.refresh();
   }

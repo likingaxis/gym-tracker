@@ -44,10 +44,16 @@ export function ActiveWorkoutMiniPlayer() {
     let cancelled = false;
     async function loadOpenSession() {
       try {
-        const response = await fetch("/api/workout-sessions", { cache: "no-store" });
-        const result = await response.json().catch(() => null);
-        if (cancelled || !response.ok || !result?.success) return;
-        const openSession = (result.sessions ?? []).find(
+        const m = await import("@/lib/api-client/workout-sessions");
+        const profileId = localStorage.getItem("active_profile_id");
+        if (!profileId) {
+          if (!cancelled) setSession(null);
+          return;
+        }
+        
+        const data = await m.getSessions(profileId);
+        if (cancelled || !data.success) return;
+        const openSession = (data.sessions ?? []).find(
           (item: ActiveSession) => item.status === "in_progress" || item.status === "paused",
         );
         if (openSession) {
@@ -103,21 +109,19 @@ export function ActiveWorkoutMiniPlayer() {
     }
 
     try {
-      const endpoint =
-        action === "delete"
-          ? `/api/workout-sessions/${currentSessionId}`
-          : `/api/workout-sessions/${currentSessionId}/${action}`;
-          
-      // Se è un delete, non blocchiamo l'UI. Eseguiamo la fetch in background 
-      // con keepalive: true in modo che il browser non la cancelli se l'utente cambia pagina!
+      const m = await import("@/lib/api-client/workout-sessions");
+      const profileId = localStorage.getItem("active_profile_id");
+      
       if (action === "delete") {
-        fetch(endpoint, { method: "DELETE", keepalive: true }).catch(() => {});
-        return; // Usciamo subito, l'UI è già aggiornata ottimisticamente.
+        m.deleteSession(profileId, currentSessionId).catch(() => {});
+        return;
       }
 
-      const response = await fetch(endpoint, { method: "POST" });
-      const result = await response.json().catch(() => null);
-      if (!response.ok || !result?.success) throw new Error(result?.error ?? "Azione non riuscita.");
+      const data = action === "pause"
+        ? await m.pauseSession(profileId, currentSessionId)
+        : await m.resumeSession(profileId, currentSessionId);
+
+      if (!data.success) throw new Error(data.error ?? "Azione non riuscita.");
 
       router.refresh();
     } catch (error) {
@@ -176,7 +180,7 @@ export function ActiveWorkoutMiniPlayer() {
 
         {/* Middle Text Content */}
         <Link
-          href={`/workout/${session.workout_day_id}`}
+          href={`/workout/session?dayId=${session.workout_day_id}`}
           className="flex-1 min-w-0 py-1 focus-visible:outline-none"
         >
           <strong className="block text-[15px] font-extrabold text-white leading-tight truncate mb-0.5">

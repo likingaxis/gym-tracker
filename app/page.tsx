@@ -1,10 +1,9 @@
-export const dynamic = "force-dynamic";
+"use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { redirect } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { ChevronRight, Clock3, Eye, FileText, Play, Settings, TrendingUp } from "lucide-react";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { getSelectedProfileId } from "@/lib/profiles";
 import { ConcentricRings } from "@/components/progress/ConcentricRings";
 import {
   buildExerciseProgress,
@@ -20,64 +19,40 @@ import { getDayNameSnapshot, getPlanColorSnapshot, getPlanDotClass, getPlanNameS
 import { formatDayCount, formatExerciseCount, formatSetCount } from "@/lib/utils/copy";
 import { FadeIn, SlideUp, StaggeredList, StaggeredItem, PulseActive } from "@/components/ui/animations";
 import { MediaPrefetcher } from "@/components/utils/MediaPrefetcher";
+import { getSelectedProfile, getActivePlan, getCompletedSessions } from "@/lib/api-client/dashboard";
 
-async function getSelectedProfile(profileId: string) {
-  try {
-    const supabase = createServerSupabaseClient();
-    const { data } = await supabase
-      .from("app_profiles")
-      .select("id, name, avatar_emoji")
-      .eq("id", profileId)
-      .maybeSingle();
-    return data;
-  } catch {
-    return null;
+export default function DashboardPage() {
+  const router = useRouter();
+  const [loading, setLoading] = useState(true);
+  const [profile, setProfile] = useState<any>(null);
+  const [plan, setPlan] = useState<any>(null);
+  const [completedSessions, setCompletedSessions] = useState<SessionLike[]>([]);
+
+  useEffect(() => {
+    async function loadData() {
+      const profileId = localStorage.getItem("active_profile_id");
+      if (!profileId) {
+        router.push("/profiles");
+        return;
+      }
+
+      const [p, pl, sessions] = await Promise.all([
+        getSelectedProfile(profileId),
+        getActivePlan(profileId),
+        getCompletedSessions(profileId),
+      ]);
+
+      setProfile(p);
+      setPlan(pl);
+      setCompletedSessions(sessions as SessionLike[]);
+      setLoading(false);
+    }
+    loadData();
+  }, [router]);
+
+  if (loading) {
+    return <div className="p-6 text-center text-gym-muted">Caricamento dashboard...</div>;
   }
-}
-
-async function getActivePlan(profileId: string) {
-  try {
-    const supabase = createServerSupabaseClient();
-    const { data: plan } = await supabase
-      .from("workout_plans")
-      .select("*, workout_days(*, exercises(*))")
-      .eq("is_active", true)
-      .eq("profile_id", profileId)
-      .order("day_order", { referencedTable: "workout_days", ascending: true })
-      .order("exercise_order", { referencedTable: "workout_days.exercises", ascending: true })
-      .maybeSingle();
-    return plan;
-  } catch {
-    return null;
-  }
-}
-
-async function getCompletedSessions(profileId: string) {
-  try {
-    const supabase = createServerSupabaseClient();
-    const { data } = await supabase
-      .from("workout_sessions")
-      .select("id, status, started_at, completed_at, workout_day_id, total_paused_seconds, workout_plan_name_snapshot, workout_day_name_snapshot, workout_plan_color_snapshot, workout_days(name), workout_plans(name, month, color), session_exercises(completed, exercises(name, exercise_db_id, muscle_group), exercise_sets(completed, reps, weight, rpe, set_number))")
-      .eq("profile_id", profileId)
-      .eq("status", "completed")
-      .is("deleted_at", null)
-      .order("started_at", { ascending: false })
-      .limit(80);
-    return (data ?? []) as SessionLike[];
-  } catch {
-    return [];
-  }
-}
-
-export default async function DashboardPage() {
-  const profileId = await getSelectedProfileId();
-  if (!profileId) redirect("/profiles");
-
-  const [profile, plan, completedSessions] = await Promise.all([
-    getSelectedProfile(profileId),
-    getActivePlan(profileId),
-    getCompletedSessions(profileId),
-  ]);
 
   const days = [...(plan?.workout_days ?? [])].sort((a: any, b: any) => a.day_order - b.day_order);
   const overview = buildProgressOverview(completedSessions);
@@ -136,9 +111,9 @@ export default async function DashboardPage() {
             </div>
             <div className="mt-5 grid grid-cols-[1fr_auto] gap-2">
               <PulseActive className="w-full">
-                <Link href={`/workout/${recommendedDay.id}`} className="primary-link w-full"><Play size={18} fill="currentColor" /> Inizia</Link>
+                <Link href={`/workout/session?dayId=${recommendedDay.id}`} className="primary-link w-full"><Play size={18} fill="currentColor" /> Inizia</Link>
               </PulseActive>
-              <Link href={`/workout/${recommendedDay.id}/preview`} className="secondary-button px-4" aria-label="Vedi anteprima"><Eye size={18} /></Link>
+              <Link href={`/workout/preview?dayId=${recommendedDay.id}`} className="secondary-button px-4" aria-label="Vedi anteprima"><Eye size={18} /></Link>
             </div>
           </section>
         </SlideUp>
@@ -176,7 +151,7 @@ export default async function DashboardPage() {
         <StaggeredList className="app-list mt-3">
           <StaggeredItem>
             {lastSession ? (
-              <Link href={`/history/${lastSession.id}`} className="app-row transition active:scale-[0.99]">
+              <Link href={`/history/detail?sessionId=${lastSession.id}`} className="app-row transition active:scale-[0.99]">
                 <span className="semantic-icon semantic-blue"><Clock3 size={19} /></span>
                 <span className="min-w-0 flex-1">
                   <span className="technical-label">Ultima sessione</span>
@@ -290,3 +265,4 @@ function getItalianWeekNumber() {
   const diff = date.getTime() - weekOne.getTime();
   return Math.max(1, Math.ceil((diff / 86400000 + 1) / 7));
 }
+

@@ -1,33 +1,38 @@
-export const dynamic = "force-dynamic";
+"use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { redirect } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { WorkoutPlanEditor } from "@/components/workout/WorkoutPlanEditor";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { getSelectedProfileId } from "@/lib/profiles";
+import { getActivePlan } from "@/lib/api-client/workout";
 
-async function getActivePlan(profileId: string) {
-  const supabase = createServerSupabaseClient();
-  const { data } = await supabase
-    .from("workout_plans")
-    .select("*, workout_days(*, exercises(*))")
-    .eq("is_active", true)
-    .eq("profile_id", profileId)
-    .order("day_order", { referencedTable: "workout_days", ascending: true })
-    .order("exercise_order", { referencedTable: "workout_days.exercises", ascending: true })
-    .maybeSingle();
+export default function WorkoutEditPage() {
+  const router = useRouter();
+  const [loading, setLoading] = useState(true);
+  const [plan, setPlan] = useState<any>(null);
 
-  return data;
-}
+  useEffect(() => {
+    async function loadData() {
+      const profileId = localStorage.getItem("active_profile_id");
+      if (!profileId) {
+        router.push("/profiles");
+        return;
+      }
 
-export default async function WorkoutEditPage() {
-  const profileId = await getSelectedProfileId();
-  if (!profileId) redirect("/profiles");
+      const data = await getActivePlan(profileId);
+      setPlan(data);
+      setLoading(false);
+    }
 
-  const plan = await getActivePlan(profileId);
+    loadData();
+  }, [router]);
+
+  if (loading) {
+    return <div className="p-6 text-center text-gym-muted">Caricamento scheda...</div>;
+  }
 
   if (!plan) {
     return (

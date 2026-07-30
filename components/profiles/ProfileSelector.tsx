@@ -56,15 +56,10 @@ export function ProfileSelector({ initialProfiles }: { initialProfiles: Profile[
   async function selectProfile(profileId: string, selectedPin?: string) {
     setIsSelecting(true);
     setStatus("Accesso al profilo...");
-    const response = await fetch("/api/profiles/select", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ profile_id: profileId, pin: selectedPin }),
-    });
-    const data = await readJsonResponse(response);
+    const data = await import("@/lib/api-client/profiles").then((m) => m.selectProfile(profileId, selectedPin));
     setIsSelecting(false);
 
-    if (!response.ok) {
+    if (!data.success) {
       setStatus(data?.error ?? "Impossibile selezionare il profilo.");
       return;
     }
@@ -94,16 +89,13 @@ export function ProfileSelector({ initialProfiles }: { initialProfiles: Profile[
     setIsCreating(true);
     setStatus("Creazione profilo...");
 
-    const response = await fetch("/api/profiles", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ name: cleanName, avatar_emoji: avatar }),
-    });
-    const data = await readJsonResponse(response);
+    const data = await import("@/lib/api-client/profiles").then((m) =>
+      m.createProfile({ name: cleanName, avatar_emoji: avatar })
+    );
 
     setIsCreating(false);
 
-    if (!response.ok) {
+    if (!data.success || !data.profile) {
       setStatus(data?.error ?? "Impossibile creare il profilo.");
       return;
     }

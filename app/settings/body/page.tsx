@@ -1,24 +1,43 @@
-export const dynamic = "force-dynamic";
+"use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { redirect } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { getSelectedProfileId } from "@/lib/profiles";
 import { BodyForm } from "./BodyForm";
+import { getBodySettingsProfile } from "@/lib/api-client/settings";
 
-export default async function BodySettingsPage() {
-  const profileId = await getSelectedProfileId();
-  if (!profileId) redirect("/profiles");
+export default function BodySettingsPage() {
+  const router = useRouter();
+  const [loading, setLoading] = useState(true);
+  const [profile, setProfile] = useState<any>(null);
 
-  const supabase = createServerSupabaseClient();
-  const { data: profile } = await supabase
-    .from("app_profiles")
-    .select("id, gender, birth_date, height_cm, weight_kg")
-    .eq("id", profileId)
-    .single();
+  useEffect(() => {
+    async function loadData() {
+      const profileId = localStorage.getItem("active_profile_id");
+      if (!profileId) {
+        router.push("/profiles");
+        return;
+      }
 
-  if (!profile) redirect("/profiles");
+      const data = await getBodySettingsProfile(profileId);
+      if (!data) {
+        router.push("/profiles");
+        return;
+      }
+
+      setProfile(data);
+      setLoading(false);
+    }
+
+    loadData();
+  }, [router]);
+
+  if (loading) {
+    return <div className="p-6 text-center text-gym-muted">Caricamento dati fisici...</div>;
+  }
+
+  if (!profile) return null;
 
   return (
     <div className="space-y-6">

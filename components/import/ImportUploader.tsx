@@ -93,7 +93,8 @@ export function ImportUploader() {
     try {
       const formData = new FormData();
       formData.append("file", file);
-      const response = await fetch("/api/ai/convert-workout-plan", { method: "POST", body: formData });
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "";
+      const response = await fetch(`${baseUrl}/api/ai/convert-workout-plan`, { method: "POST", body: formData });
       setStatus("Controllo degli esercizi");
       const data = await readJsonResponse(response);
       if (!response.ok || !data?.success) {
@@ -127,7 +128,8 @@ export function ImportUploader() {
     setIsImporting(true);
     setErrors([]);
     try {
-      const response = await fetch("/api/import-workout-plan", {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "";
+      const response = await fetch(`${baseUrl}/api/import-workout-plan`, {
         method: "POST",
         headers: { "content-type": "application/json", "x-replace-current-plan": makeActivePlan ? "true" : "false" },
         body: cleanJson,

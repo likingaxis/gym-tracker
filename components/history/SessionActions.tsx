@@ -75,7 +75,7 @@ export function SessionActions({ sessionId, workoutDayId, status, compact = fals
         {(status === "in_progress" || status === "paused") && workoutDayId ? (
           <button
             type="button"
-            onClick={() => router.push(`/workout/${workoutDayId}`)}
+            onClick={() => router.push(`/workout/session?dayId=${workoutDayId}`)}
             className="rounded-2xl bg-gym-accent px-4 py-3 text-sm font-black text-slate-950 shadow-glow transition active:scale-[0.98]"
           >
             {status === "paused" ? "Riprendi" : "Torna al workout"}

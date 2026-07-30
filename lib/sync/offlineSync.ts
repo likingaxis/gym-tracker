@@ -1,67 +1,70 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { putInDB, getAllFromDB, deleteFromDB, SyncQueueItem } from "@/lib/db/indexeddb";
 
-export interface PendingPatch {
-  sessionId: string;
-  payload: any;
-  updatedAt: number;
-}
-
-function getQueueKey(sessionId: string) {
-  return `gym_offline_patch_${sessionId}`;
-}
-
-export function savePendingPatch(sessionId: string, payload: any) {
-  if (typeof window === "undefined") return;
+export async function queueMutation(action: string, payload: any) {
   try {
-    const item: PendingPatch = {
-      sessionId,
+    await putInDB("sync_queue", {
+      action,
       payload,
-      updatedAt: Date.now(),
-    };
-    localStorage.setItem(getQueueKey(sessionId), JSON.stringify(item));
-  } catch (err) {
-    console.error("Errore salvataggio patch offline:", err);
-  }
-}
-
-export function getPendingPatch(sessionId: string): PendingPatch | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const stored = localStorage.getItem(getQueueKey(sessionId));
-    if (!stored) return null;
-    return JSON.parse(stored);
-  } catch {
-    return null;
-  }
-}
-
-export function clearPendingPatch(sessionId: string) {
-  if (typeof window === "undefined") return;
-  try {
-    localStorage.removeItem(getQueueKey(sessionId));
-  } catch {}
-}
-
-export async function syncPendingPatchToServer(sessionId: string): Promise<boolean> {
-  const pending = getPendingPatch(sessionId);
-  if (!pending) return true;
-
-  try {
-    const response = await fetch(`/api/workout-sessions/${sessionId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(pending.payload),
+      createdAt: Date.now(),
+      retryCount: 0,
     });
+  } catch (err) {
+    console.error("[queueMutation] Errore salvataggio in sync_queue:", err);
+  }
+}
 
-    if (response.ok) {
-      clearPendingPatch(sessionId);
-      return true;
+export async function processSyncQueue() {
+  if (typeof window === "undefined" || !navigator.onLine) return;
+
+  try {
+    const queue = await getAllFromDB<SyncQueueItem>("sync_queue");
+    if (!queue || queue.length === 0) return;
+
+    // Ordina per createdAt ascendente
+    queue.sort((a, b) => a.createdAt - b.createdAt);
+
+    for (const item of queue) {
+      let success = false;
+
+      try {
+        if (item.action === "UPDATE_SESSION") {
+          const m = await import("@/lib/api-client/workout-sessions");
+          const profileId = localStorage.getItem("active_profile_id");
+          const res = await m.updateSession(
+            profileId || "",
+            item.payload.sessionId,
+            item.payload.data
+          );
+          if (res?.success) {
+            success = true;
+          }
+        } else if (item.action === "CREATE_SESSION") {
+          const m = await import("@/lib/api-client/workout-sessions");
+          const profileId = localStorage.getItem("active_profile_id");
+          const res = await m.createSession(
+            profileId || "",
+            item.payload.data || item.payload
+          );
+          if (res?.success) {
+            success = true;
+          }
+        } else {
+          // Azione sconosciuta o personalizzata: consideriamo processato per evitare blocchi
+          success = true;
+        }
+
+        if (success && item.id !== undefined) {
+          await deleteFromDB("sync_queue", item.id);
+        }
+      } catch (itemErr) {
+        console.error("[processSyncQueue] Errore durante l'elaborazione dell'item:", item, itemErr);
+      }
     }
-    return false;
-  } catch {
-    return false;
+  } catch (err) {
+    console.error("[processSyncQueue] Errore lettura sync_queue:", err);
   }
 }
 
@@ -85,6 +88,28 @@ export function useOnlineStatus() {
   }, []);
 
   return isOnline;
+}
+
+export function useSyncEngine() {
+  const isOnline = useOnlineStatus();
+
+  useEffect(() => {
+    if (isOnline) {
+      processSyncQueue();
+    }
+  }, [isOnline]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (isOnline) {
+        processSyncQueue();
+      }
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [isOnline]);
+
+  return { isOnline };
 }
 
 export function saveSessionSnapshot(key: string, fullState: any) {

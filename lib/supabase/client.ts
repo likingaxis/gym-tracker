@@ -10,3 +10,6 @@ export function createClient() {
 
   return createBrowserClient(url, anonKey);
 }
+
+export const createBrowserSupabaseClient = createClient;
+

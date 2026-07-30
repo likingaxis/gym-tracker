@@ -734,7 +734,7 @@ export function WorkoutSessionClient({ day, durationEstimate }: Props) {
       const result = await safeJson(response);
       if (!response.ok || !result?.success)
         throw new Error(result?.error ?? "Errore completamento.");
-      router.push(`/history/${sessionId}`);
+      router.push(`/history/detail?sessionId=${sessionId}`);
       router.refresh();
     } catch (error) {
       setStatus(

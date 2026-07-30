@@ -118,7 +118,7 @@ export default async function WorkoutIndexPage() {
 
             return (
               <article key={day.id} className={`group relative flex items-center justify-between transition-all duration-300 ${cardStyle}`}>
-                <Link href={`/workout/${day.id}/preview`} className="min-w-0 flex-1 pr-4 focus-visible:outline-none">
+                <Link href={`/workout/preview?dayId=${day.id}`} className="min-w-0 flex-1 pr-4 focus-visible:outline-none">
                   <div className="flex items-center gap-2">
                     <span className={`inline-flex items-center justify-center rounded-md px-1.5 py-0.5 text-[10px] font-black uppercase tracking-wider ${pillStyle}`}>
                       G{day.day_order}
@@ -145,14 +145,14 @@ export default async function WorkoutIndexPage() {
 
                 <div className="flex shrink-0 items-center gap-3">
                   <Link 
-                    href={`/workout/${day.id}/preview`} 
+                    href={`/workout/preview?dayId=${day.id}`} 
                     className="flex h-10 w-10 items-center justify-center rounded-full bg-white/5 text-white/60 transition hover:bg-white/10 hover:text-white"
                     aria-label={`Visualizza ${day.name}`}
                   >
                     <Eye size={18} />
                   </Link>
                   <Link 
-                    href={`/workout/${day.id}`} 
+                    href={`/workout/session?dayId=${day.id}`} 
                     className={`flex h-14 w-14 items-center justify-center rounded-full shadow-lg transition active:scale-90 ${isRecommended ? "bg-gradient-to-br from-[#c65f37] to-[#ea580c] text-white shadow-[#c65f37]/30" : "bg-white/10 text-white hover:bg-white/20"}`}
                     aria-label={`Inizia ${day.name}`}
                   >

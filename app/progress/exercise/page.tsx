@@ -116,7 +116,7 @@ export default async function ExerciseProgressPage({ searchParams }: { searchPar
                 <p className="text-xs text-gym-muted">media</p>
               </div>
             </div>
-            <Link href={`/history/${entry.sessionId}`} className="mt-3 inline-block rounded-2xl bg-white/10 px-3 py-2 text-xs font-bold text-slate-200">Apri sessione</Link>
+            <Link href={`/history/detail?sessionId=${entry.sessionId}`} className="mt-3 inline-block rounded-2xl bg-white/10 px-3 py-2 text-xs font-bold text-slate-200">Apri sessione</Link>
           </Card>
         ))}
       </section>

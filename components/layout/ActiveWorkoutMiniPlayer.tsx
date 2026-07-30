@@ -176,7 +176,7 @@ export function ActiveWorkoutMiniPlayer() {
 
         {/* Middle Text Content */}
         <Link
-          href={`/workout/${session.workout_day_id}`}
+          href={`/workout/session?dayId=${session.workout_day_id}`}
           className="flex-1 min-w-0 py-1 focus-visible:outline-none"
         >
           <strong className="block text-[15px] font-extrabold text-white leading-tight truncate mb-0.5">

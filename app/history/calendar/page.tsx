@@ -210,7 +210,7 @@ export default async function CalendarHistoryPage({ searchParams }: { searchPara
             {selectedSessions.map((session) => {
               const summary = getSessionSummary(session as any);
               return (
-                <Link key={session.id} href={`/history/${session.id}`} className="block rounded-lg border border-white/10 bg-black/20 p-4 transition active:scale-[0.99]">
+                <Link key={session.id} href={`/history/detail?sessionId=${session.id}`} className="block rounded-lg border border-white/10 bg-black/20 p-4 transition active:scale-[0.99]">
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className={`text-xs font-bold uppercase ${getStatusText(session.status)}`}>{getStatusLabel(session.status)}</p>

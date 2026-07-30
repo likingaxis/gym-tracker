@@ -168,7 +168,7 @@ export default async function HistoryPage({ searchParams }: { searchParams?: Pro
 
             return (
               <StaggeredItem key={session.id} className={`app-row block !py-4 ${getCardClass(session.status) || ""}`}>
-                <Link href={`/history/${session.id}`} className="block w-full transition active:scale-[0.99]">
+                <Link href={`/history/detail?sessionId=${session.id}`} className="block w-full transition active:scale-[0.99]">
                   <div className="flex w-full items-start gap-3">
                     <div className="min-w-0 flex-1">
                       <p className={`text-xs font-bold ${getStatusColor(session.status)}`}>{getStatusLabel(session.status)}</p>

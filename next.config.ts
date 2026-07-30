@@ -9,7 +9,7 @@ const withSerwist = withSerwistInit({
 });
 
 const nextConfig: NextConfig = {
-  output: "export",
+  ...(process.env.BUILD_MODE === "export" ? { output: "export" } : {}),
   reactStrictMode: true,
   allowedDevOrigins: [
     "localhost",

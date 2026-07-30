@@ -1,6 +1,4 @@
-import { NextResponse } from "next/server";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { getSelectedProfileId } from "@/lib/profiles";
+import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 
 type EditableExercise = {
   id?: string;
@@ -28,7 +26,7 @@ type EditableDay = {
   exercises?: EditableExercise[];
 };
 
-type EditablePlan = {
+export type EditablePlan = {
   name?: string;
   month?: string;
   start_date?: string | null;
@@ -36,33 +34,19 @@ type EditablePlan = {
   days?: EditableDay[];
 };
 
-export async function PUT(
-  request: Request,
-  context: { params: Promise<{ id: string }> },
-) {
+export async function saveWorkoutPlan(profileId: string, planId: string, body: EditablePlan) {
   try {
-    const { id } = await context.params;
-    const profileId = await getSelectedProfileId();
-
-    if (!profileId) {
-      return NextResponse.json({ success: false, error: "Seleziona un profilo." }, { status: 401 });
-    }
-
-    const body = (await request.json()) as EditablePlan;
-    const supabase = createServerSupabaseClient();
+    const supabase = createBrowserSupabaseClient();
 
     const { data: existingPlan, error: planReadError } = await supabase
       .from("workout_plans")
       .select("id, profile_id")
-      .eq("id", id)
+      .eq("id", planId)
       .eq("profile_id", profileId)
       .single();
 
     if (planReadError || !existingPlan) {
-      return NextResponse.json(
-        { success: false, error: planReadError?.message ?? "Scheda non trovata." },
-        { status: 404 },
-      );
+      return { success: false, error: planReadError?.message ?? "Scheda non trovata." };
     }
 
     const name = cleanText(body.name) || "Scheda";
@@ -77,11 +61,11 @@ export async function PUT(
         end_date: cleanDate(body.end_date),
         updated_at: new Date().toISOString(),
       })
-      .eq("id", id)
+      .eq("id", planId)
       .eq("profile_id", profileId);
 
     if (planUpdateError) {
-      return NextResponse.json({ success: false, error: planUpdateError.message }, { status: 500 });
+      return { success: false, error: planUpdateError.message };
     }
 
     let daysTouched = 0;
@@ -100,14 +84,14 @@ export async function PUT(
             description: cleanNullableText(day.description),
           })
           .eq("id", dayId)
-          .eq("workout_plan_id", id);
+          .eq("workout_plan_id", planId);
 
-        if (error) return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+        if (error) return { success: false, error: error.message };
       } else {
         const { data, error } = await supabase
           .from("workout_days")
           .insert({
-            workout_plan_id: id,
+            workout_plan_id: planId,
             name: cleanText(day.name) || `Giorno ${dayOrder}`,
             day_order: dayOrder,
             description: cleanNullableText(day.description),
@@ -116,7 +100,7 @@ export async function PUT(
           .single();
 
         if (error || !data) {
-          return NextResponse.json({ success: false, error: error?.message ?? "Errore creazione giorno." }, { status: 500 });
+          return { success: false, error: error?.message ?? "Errore creazione giorno." };
         }
         dayId = data.id;
       }
@@ -150,22 +134,19 @@ export async function PUT(
             .eq("id", exercise.id)
             .eq("workout_day_id", dayId);
 
-          if (error) return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+          if (error) return { success: false, error: error.message };
         } else {
           const { error } = await supabase.from("exercises").insert(row);
-          if (error) return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+          if (error) return { success: false, error: error.message };
         }
 
         exercisesTouched += 1;
       }
     }
 
-    return NextResponse.json({ success: true, days_touched: daysTouched, exercises_touched: exercisesTouched });
+    return { success: true, days_touched: daysTouched, exercises_touched: exercisesTouched };
   } catch (error) {
-    return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : "Errore server." },
-      { status: 500 },
-    );
+    return { success: false, error: error instanceof Error ? error.message : "Errore client." };
   }
 }
 

@@ -24,11 +24,12 @@ export function EmptyTrashAction({ hasSessions }: { hasSessions: boolean }) {
 
     setPending(true);
     try {
-      const res = await fetch("/api/workout-sessions/trash", { method: "DELETE" });
-      const data = await res.json().catch(() => null);
+      const m = await import("@/lib/api-client/workout-sessions");
+      const profileId = localStorage.getItem("active_profile_id");
+      const data = await m.emptyTrash(profileId);
 
-      if (!res.ok || !data?.success) {
-        throw new Error(data?.error || "Azione non riuscita.");
+      if (!data.success) {
+        throw new Error(data.error || "Azione non riuscita.");
       }
 
       router.refresh();

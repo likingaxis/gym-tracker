@@ -187,23 +187,18 @@ export function WorkoutSessionClient({ day, durationEstimate }: Props) {
     async function createOrResumeSession() {
       setStatus("Creo o riprendo la sessione...");
       try {
-        const response = await fetch("/api/workout-sessions", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            workout_plan_id: day.workout_plan_id,
-            workout_day_id: day.id,
-          }),
+        const m = await import("@/lib/api-client/workout-sessions");
+        const profileId = localStorage.getItem("active_profile_id");
+        const data = await m.createSession(profileId, {
+          workout_plan_id: day.workout_plan_id,
+          workout_day_id: day.id,
         });
-        const result = await safeJson(response);
 
-        if (cancelled) return;
-
-        if (!response.ok || !result?.success) {
-          throw new Error(result?.error ?? "Errore creazione sessione.");
+        if (!data.success || !data.session) {
+          throw new Error(data.error ?? "Errore avvio sessione");
         }
 
-        const session = result.session;
+        const session = data.session;
         setSessionId(session.id);
         setSessionStatus(session.status === "paused" ? "paused" : "in_progress");
         setGeneralNotes(session.general_notes ?? "");
@@ -264,7 +259,7 @@ export function WorkoutSessionClient({ day, durationEstimate }: Props) {
         setStatus(
           session.status === "paused"
             ? "Sessione in pausa."
-            : result.resumed
+            : data.resumed
               ? "Sessione in corso ripresa."
               : "Sessione iniziata.",
         );
@@ -329,13 +324,10 @@ export function WorkoutSessionClient({ day, durationEstimate }: Props) {
       }
 
       try {
-        const response = await fetch(`/api/workout-sessions/${sessionId}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-        const result = await safeJson(response);
-        if (!response.ok || !result?.success) {
+        const m = await import("@/lib/api-client/workout-sessions");
+        const profileId = localStorage.getItem("active_profile_id");
+        const data = await m.updateSession(profileId, sessionId, payload);
+        if (!data.success) {
           savePendingPatch(sessionId, payload);
           setStatus("Salvato in locale (offline)");
         } else {
@@ -651,9 +643,10 @@ export function WorkoutSessionClient({ day, durationEstimate }: Props) {
     if (!sessionId) return;
     setStatus("Metto in pausa...");
     try {
-      const response = await fetch(`/api/workout-sessions/${sessionId}/pause`, { method: "POST" });
-      const result = await safeJson(response);
-      if (!response.ok || !result?.success) throw new Error(result?.error ?? "Errore pausa.");
+      const m = await import("@/lib/api-client/workout-sessions");
+      const profileId = localStorage.getItem("active_profile_id");
+      const data = await m.pauseSession(profileId, sessionId);
+      if (!data.success) throw new Error(data.error ?? "Errore pausa.");
       pauseTimer();
       setSessionStatus("paused");
       setStatus("Allenamento in pausa.");
@@ -667,9 +660,10 @@ export function WorkoutSessionClient({ day, durationEstimate }: Props) {
     if (!sessionId) return;
     setStatus("Riprendo allenamento...");
     try {
-      const response = await fetch(`/api/workout-sessions/${sessionId}/resume`, { method: "POST" });
-      const result = await safeJson(response);
-      if (!response.ok || !result?.success) throw new Error(result?.error ?? "Errore ripresa.");
+      const m = await import("@/lib/api-client/workout-sessions");
+      const profileId = localStorage.getItem("active_profile_id");
+      const data = await m.resumeSession(profileId, sessionId);
+      if (!data.success) throw new Error(data.error ?? "Errore ripresa.");
       setSessionStatus("in_progress");
       setStatus("Allenamento ripreso.");
       router.refresh();
@@ -690,9 +684,10 @@ export function WorkoutSessionClient({ day, durationEstimate }: Props) {
     setCompleting(true);
     setStatus("Sposto nel cestino...");
     try {
-      const response = await fetch(`/api/workout-sessions/${sessionId}`, { method: "DELETE" });
-      const result = await safeJson(response);
-      if (!response.ok || !result?.success) throw new Error(result?.error ?? "Errore eliminazione.");
+      const m = await import("@/lib/api-client/workout-sessions");
+      const profileId = localStorage.getItem("active_profile_id");
+      const data = await m.deleteSession(profileId, sessionId);
+      if (!data.success) throw new Error(data.error ?? "Impossibile eliminare.");
       router.push("/history");
       router.refresh();
     } catch (error) {
@@ -718,22 +713,18 @@ export function WorkoutSessionClient({ day, durationEstimate }: Props) {
     setStatus("Completo allenamento...");
 
     try {
-      await fetch(`/api/workout-sessions/${sessionId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          general_notes: generalNotes,
-          exercises: Object.values(drafts).map(toApiPayload),
-        }),
-      });
+      const m = await import("@/lib/api-client/workout-sessions");
+      const profileId = localStorage.getItem("active_profile_id");
+      
+      const payload = {
+        general_notes: generalNotes,
+        exercises: Object.values(drafts).map(toApiPayload),
+      };
 
-      const response = await fetch(
-        `/api/workout-sessions/${sessionId}/complete`,
-        { method: "POST" },
-      );
-      const result = await safeJson(response);
-      if (!response.ok || !result?.success)
-        throw new Error(result?.error ?? "Errore completamento.");
+      await m.updateSession(profileId, sessionId, payload);
+
+      const completeData = await m.completeSession(profileId, sessionId);
+      if (!completeData.success) throw new Error(completeData.error ?? "Errore completamento.");
       router.push(`/history/detail?sessionId=${sessionId}`);
       router.refresh();
     } catch (error) {

@@ -26,17 +26,21 @@ export function TrashSessionActions({ sessionId }: Props) {
     if (!confirmed) return;
 
     setPending(action);
-    const endpoint = action === "restore" ? `/api/workout-sessions/${sessionId}/restore` : `/api/workout-sessions/${sessionId}/permanent`;
-    const response = await fetch(endpoint, { method: action === "restore" ? "POST" : "DELETE" });
-    const data = await response.json().catch(() => null);
-    setPending(null);
+    try {
+      const m = await import("@/lib/api-client/workout-sessions");
+      const profileId = localStorage.getItem("active_profile_id");
+      const data = action === "restore" 
+        ? await m.restoreSession(profileId ?? "", sessionId)
+        : await m.deletePermanentSession(profileId ?? "", sessionId);
 
-    if (!response.ok || !data?.success) {
-      setError(data?.error ?? "Operazione non riuscita.");
-      return;
+      if (!data.success) throw new Error(data.error ?? "Azione fallita");
+      
+      router.refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Operazione non riuscita.");
+    } finally {
+      setPending(null);
     }
-
-    router.refresh();
   }
 
   return (

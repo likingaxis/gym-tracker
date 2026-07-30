@@ -49,17 +49,16 @@ export async function syncPendingPatchToServer(sessionId: string): Promise<boole
   if (!pending) return true;
 
   try {
-    const response = await fetch(`/api/workout-sessions/${sessionId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(pending.payload),
-    });
+    const m = await import("@/lib/api-client/workout-sessions");
+    const profileId = localStorage.getItem("active_profile_id");
+    const data = await m.updateSession(profileId || "", sessionId, pending.payload);
 
-    if (response.ok) {
-      clearPendingPatch(sessionId);
-      return true;
+    if (!data.success) {
+      console.error("[OfflineSync] API Error:", data.error);
+      return false;
     }
-    return false;
+    clearPendingPatch(sessionId);
+    return true;
   } catch {
     return false;
   }

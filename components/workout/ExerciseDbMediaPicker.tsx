@@ -79,7 +79,8 @@ export function ExerciseDbMediaPicker({
       setLoading(true);
       setStatus(null);
       try {
-        const response = await fetch(`/api/exercisedb/search?q=${encodeURIComponent(normalized)}&limit=18`, {
+        const baseUrl = process.env.NEXT_PUBLIC_API_URL || "";
+        const response = await fetch(`${baseUrl}/api/exercisedb/search?q=${encodeURIComponent(normalized)}&limit=18`, {
           signal: controller.signal,
         });
         const data = await readJson(response);
@@ -119,7 +120,8 @@ export function ExerciseDbMediaPicker({
         return;
       }
 
-      const response = await fetch(`/api/exercises/${exerciseId}/media`, {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "";
+      const response = await fetch(`${baseUrl}/api/exercises/${exerciseId}/media`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -158,7 +160,8 @@ export function ExerciseDbMediaPicker({
         return;
       }
 
-      const response = await fetch(`/api/exercises/${exerciseId}/media`, {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "";
+      const response = await fetch(`${baseUrl}/api/exercises/${exerciseId}/media`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ remove: true }),

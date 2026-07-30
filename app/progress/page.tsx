@@ -1,10 +1,9 @@
-export const dynamic = "force-dynamic";
+"use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { AlertTriangle, ChevronRight, Dumbbell, Target, Trophy, TrendingUp, TrendingDown, Flame, Activity, Clock3, Zap } from "lucide-react";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { getSelectedProfileId } from "@/lib/profiles";
+import { useRouter } from "next/navigation";
+import { AlertTriangle, Dumbbell, Target, Trophy, TrendingUp, TrendingDown, Flame } from "lucide-react";
 import {
   buildExerciseProgress,
   buildMonthComparison,
@@ -13,8 +12,6 @@ import {
   formatCompactNumber,
   getAverageWorkoutDuration,
   getExerciseRecords,
-  getExerciseTrend,
-  getMuscleFrequency,
   getRecentImprovements,
   getStalledExercises,
   getTrainingStreak,
@@ -31,69 +28,50 @@ import { PhysicalProfileCard } from "@/components/progress/PhysicalProfileCard";
 import { MuscleDonutChart } from "@/components/progress/MuscleDonutChart";
 import { RPEIntensityChart } from "@/components/progress/RPEIntensityChart";
 import { ExpandableSparklinesList } from "@/components/progress/ExpandableSparklinesList";
+import { getProgressSessions, getProfileData, getBodyWeightLogs } from "@/lib/api-client/progress";
 
-async function getProgressSessions(profileId: string) {
-  try {
-    const supabase = createServerSupabaseClient();
-    const { data } = await supabase
-      .from("workout_sessions")
-      .select("id, status, started_at, completed_at, workout_day_id, total_paused_seconds, workout_days(name), workout_plans(name, month), session_exercises(completed, exercises(name, exercise_db_id, muscle_group), exercise_sets(completed, reps, weight, rpe, set_number))")
-      .eq("profile_id", profileId)
-      .eq("status", "completed")
-      .is("deleted_at", null)
-      .order("started_at", { ascending: false })
-      .limit(160);
-    return (data ?? []) as SessionLike[];
-  } catch {
-    return [];
+export default function ProgressPage() {
+  const router = useRouter();
+  const [loading, setLoading] = useState(true);
+  const [sessions, setSessions] = useState<SessionLike[]>([]);
+  const [profile, setProfile] = useState<any>(null);
+  const [weightLogs, setWeightLogs] = useState<any[]>([]);
+
+  useEffect(() => {
+    async function loadData() {
+      const profileId = localStorage.getItem("active_profile_id");
+      if (!profileId) {
+        router.push("/profiles");
+        return;
+      }
+
+      const [sessData, profData, rawWeightLogs] = await Promise.all([
+        getProgressSessions(profileId),
+        getProfileData(profileId),
+        getBodyWeightLogs(profileId),
+      ]);
+
+      setSessions(sessData as SessionLike[]);
+      setProfile(profData);
+
+      let logs = rawWeightLogs;
+      if (logs.length === 0 && profData?.weight_kg) {
+        logs = [{
+          weight: profData.weight_kg,
+          date: new Date().toISOString(),
+        }];
+      }
+      setWeightLogs(logs);
+      setLoading(false);
+    }
+
+    loadData();
+  }, [router]);
+
+  if (loading) {
+    return <div className="p-6 text-center text-gym-muted">Caricamento progressi...</div>;
   }
-}
 
-async function getProfileData(profileId: string) {
-  const supabase = createServerSupabaseClient();
-  const { data } = await supabase
-    .from("app_profiles")
-    .select("id, gender, birth_date, height_cm, weight_kg")
-    .eq("id", profileId)
-    .single();
-  return data;
-}
-
-async function getBodyWeightLogs(profileId: string) {
-  try {
-    const supabase = createServerSupabaseClient();
-    const { data } = await supabase
-      .from("body_weight_logs")
-      .select("weight_kg, logged_at")
-      .eq("profile_id", profileId)
-      .order("logged_at", { ascending: true });
-    return (data ?? []).map((log: any) => ({
-      weight: log.weight_kg,
-      date: log.logged_at,
-    }));
-  } catch {
-    return [];
-  }
-}
-
-export default async function ProgressPage() {
-  const profileId = await getSelectedProfileId();
-  if (!profileId) redirect("/profiles");
-
-  const [sessions, profile, rawWeightLogs] = await Promise.all([
-    getProgressSessions(profileId),
-    getProfileData(profileId),
-    getBodyWeightLogs(profileId)
-  ]);
-
-  let weightLogs = rawWeightLogs;
-  if (weightLogs.length === 0 && profile?.weight_kg) {
-    weightLogs = [{
-      weight: profile.weight_kg,
-      date: new Date().toISOString()
-    }];
-  }
-  
   const overview = buildProgressOverview(sessions);
   const comparison = buildMonthComparison(sessions);
   const averageDuration = getAverageWorkoutDuration(sessions);
@@ -108,14 +86,14 @@ export default async function ProgressPage() {
 
   const avgDurationMins = Math.round((averageDuration.averageSeconds ?? 0) / 60);
 
-  function formatDuration(minutes: number): { value: number | string, suffix: string } {
+  function formatDuration(minutes: number): { value: number | string; suffix: string } {
     if (minutes < 60) return { value: minutes, suffix: " m" };
     const h = Math.floor(minutes / 60);
     const m = minutes % 60;
     if (m === 0) return { value: h, suffix: " h" };
     return { value: `${h}h ${m}`, suffix: "m" };
   }
-  
+
   const avgDurationFormatted = formatDuration(avgDurationMins);
 
   return (

@@ -1,31 +1,45 @@
-export const dynamic = "force-dynamic";
+"use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import { Archive, ChevronRight, DatabaseBackup, FileText, Shield, UserRound, Trash2 } from "lucide-react";
-import { redirect } from "next/navigation";
 import { PinSettings } from "@/components/profiles/PinSettings";
 import { DataManagement } from "@/components/settings/DataManagement";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { getSelectedProfileId } from "@/lib/profiles";
+import { getSettingsProfile } from "@/lib/api-client/settings";
 
-async function getSelectedProfile() {
-  const profileId = await getSelectedProfileId();
-  if (!profileId) return null;
+export default function SettingsPage() {
+  const router = useRouter();
+  const [loading, setLoading] = useState(true);
+  const [profile, setProfile] = useState<any>(null);
 
-  const supabase = createServerSupabaseClient();
-  const { data } = await supabase
-    .from("app_profiles")
-    .select("id, name, avatar_emoji, pin_enabled")
-    .eq("id", profileId)
-    .maybeSingle();
+  useEffect(() => {
+    async function loadData() {
+      const profileId = localStorage.getItem("active_profile_id");
+      if (!profileId) {
+        router.push("/profiles");
+        return;
+      }
 
-  return data;
-}
+      const data = await getSettingsProfile(profileId);
+      if (!data) {
+        router.push("/profiles");
+        return;
+      }
 
-export default async function SettingsPage() {
-  const profile = await getSelectedProfile();
-  if (!profile) redirect("/profiles");
+      setProfile(data);
+      setLoading(false);
+    }
+
+    loadData();
+  }, [router]);
+
+  if (loading) {
+    return <div className="p-6 text-center text-gym-muted">Caricamento impostazioni...</div>;
+  }
+
+  if (!profile) return null;
 
   return (
     <div className="space-y-6">

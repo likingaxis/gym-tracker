@@ -1,39 +1,41 @@
-export const dynamic = "force-dynamic";
+"use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { redirect } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { ArrowLeft, Trash2 } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { getSelectedProfileId } from "@/lib/profiles";
 import { getDayNameSnapshot, getPlanColorSnapshot, getPlanDotClass, getPlanNameSnapshot } from "@/lib/workoutPlanHistory";
 import { formatCompactNumber, getSessionSummary } from "@/lib/progress";
 import { TrashSessionActions } from "@/components/history/TrashSessionActions";
-
 import { EmptyTrashAction } from "@/components/history/EmptyTrashAction";
+import { getDeletedSessions } from "@/lib/api-client/history";
 
-async function getDeletedSessions(profileId: string) {
-  try {
-    const supabase = createServerSupabaseClient();
-    const { data } = await supabase
-      .from("workout_sessions")
-      .select("*, workout_plans(name, month, color), workout_days(name), session_exercises(completed, exercise_sets(completed, reps, weight, rpe))")
-      .eq("profile_id", profileId)
-      .not("deleted_at", "is", null)
-      .order("deleted_at", { ascending: false })
-      .limit(80);
-    return data ?? [];
-  } catch {
-    return [];
+export default function TrashPage() {
+  const router = useRouter();
+  const [loading, setLoading] = useState(true);
+  const [sessions, setSessions] = useState<any[]>([]);
+
+  useEffect(() => {
+    async function loadData() {
+      const profileId = localStorage.getItem("active_profile_id");
+      if (!profileId) {
+        router.push("/profiles");
+        return;
+      }
+
+      const data = await getDeletedSessions(profileId);
+      setSessions(data as any[]);
+      setLoading(false);
+    }
+
+    loadData();
+  }, [router]);
+
+  if (loading) {
+    return <div className="p-6 text-center text-gym-muted">Caricamento cestino...</div>;
   }
-}
-
-export default async function TrashPage() {
-  const profileId = await getSelectedProfileId();
-  if (!profileId) redirect("/profiles");
-
-  const sessions = await getDeletedSessions(profileId);
 
   return (
     <div className="space-y-5">

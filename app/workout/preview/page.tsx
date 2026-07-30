@@ -1,28 +1,46 @@
-export const dynamic = "force-dynamic";
+"use client";
 
+import { useEffect, useState, Suspense } from "react";
 import Link from "next/link";
-import { redirect } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, Clock3, Dumbbell, Play } from "lucide-react";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { getSelectedProfileId } from "@/lib/profiles";
 import { formatRestTime } from "@/lib/utils/time";
 import { estimateFallbackDurationFromPlan, formatDurationShort } from "@/lib/progress";
+import { getWorkoutDayPreview } from "@/lib/api-client/workout";
 
-export default async function WorkoutDayPreviewPage({ params }: { params: Promise<{ dayId: string }> }) {
-  const { dayId } = await params;
-  const profileId = await getSelectedProfileId();
-  if (!profileId) redirect("/profiles");
+function WorkoutDayPreviewContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const dayId = searchParams.get("dayId");
 
-  const supabase = createServerSupabaseClient();
-  const { data: day, error } = await supabase
-    .from("workout_days")
-    .select("*, workout_plans!inner(profile_id, name), exercises(*)")
-    .eq("id", dayId)
-    .eq("workout_plans.profile_id", profileId)
-    .order("exercise_order", { referencedTable: "exercises", ascending: true })
-    .single();
+  const [loading, setLoading] = useState(true);
+  const [day, setDay] = useState<any>(null);
 
-  if (error || !day) return <p className="text-gym-danger">Giorno non trovato.</p>;
+  useEffect(() => {
+    async function loadData() {
+      const profileId = localStorage.getItem("active_profile_id");
+      if (!profileId) {
+        router.push("/profiles");
+        return;
+      }
+      if (!dayId) {
+        router.push("/workout");
+        return;
+      }
+
+      const data = await getWorkoutDayPreview(profileId, dayId);
+      setDay(data);
+      setLoading(false);
+    }
+
+    loadData();
+  }, [dayId, router]);
+
+  if (loading) {
+    return <div className="p-6 text-center text-gym-muted">Caricamento anteprima...</div>;
+  }
+
+  if (!day) return <p className="p-6 text-gym-danger">Giorno non trovato.</p>;
 
   const exercises = [...(day.exercises ?? [])].sort((a: any, b: any) => a.exercise_order - b.exercise_order);
   const duration = estimateFallbackDurationFromPlan(exercises);
@@ -69,5 +87,13 @@ export default async function WorkoutDayPreviewPage({ params }: { params: Promis
         </div>
       </section>
     </div>
+  );
+}
+
+export default function WorkoutDayPreviewPage() {
+  return (
+    <Suspense fallback={<div className="p-6 text-center text-gym-muted">Caricamento...</div>}>
+      <WorkoutDayPreviewContent />
+    </Suspense>
   );
 }

@@ -57,7 +57,8 @@ export function DataManagement({ profileName }: DataManagementProps) {
     setPendingAction(action);
 
     try {
-      const response = await fetch("/api/profile-data/reset", {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "";
+      const response = await fetch(`${baseUrl}/api/profile-data/reset`, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ action })

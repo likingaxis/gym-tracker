@@ -1,53 +1,44 @@
-export const dynamic = "force-dynamic";
+"use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { Archive, BadgeCheck, CheckCircle2, ChevronRight, Dumbbell, Eye, Pencil, Play } from "lucide-react";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { getSelectedProfileId } from "@/lib/profiles";
+import { useRouter } from "next/navigation";
+import { Archive, BadgeCheck, CheckCircle2, Dumbbell, Eye, Pencil, Play } from "lucide-react";
 import { type SessionLike } from "@/lib/progress";
 import { formatDayCount, formatExerciseCount } from "@/lib/utils/copy";
 import { formatPlanDateRange, getPlanDotClass } from "@/lib/workoutPlanHistory";
+import { getActivePlan, getCompletedSessionsForWorkout } from "@/lib/api-client/workout";
 
-async function getActivePlan(profileId: string) {
-  try {
-    const supabase = createServerSupabaseClient();
-    const { data } = await supabase
-      .from("workout_plans")
-      .select("*, workout_days(*, exercises(*))")
-      .eq("is_active", true)
-      .eq("profile_id", profileId)
-      .order("day_order", { referencedTable: "workout_days", ascending: true })
-      .order("exercise_order", { referencedTable: "workout_days.exercises", ascending: true })
-      .maybeSingle();
-    return data;
-  } catch {
-    return null;
+export default function WorkoutIndexPage() {
+  const router = useRouter();
+  const [loading, setLoading] = useState(true);
+  const [plan, setPlan] = useState<any>(null);
+  const [sessions, setSessions] = useState<SessionLike[]>([]);
+
+  useEffect(() => {
+    async function loadData() {
+      const profileId = localStorage.getItem("active_profile_id");
+      if (!profileId) {
+        router.push("/profiles");
+        return;
+      }
+
+      const [planData, sessionsData] = await Promise.all([
+        getActivePlan(profileId),
+        getCompletedSessionsForWorkout(profileId),
+      ]);
+
+      setPlan(planData);
+      setSessions(sessionsData as SessionLike[]);
+      setLoading(false);
+    }
+
+    loadData();
+  }, [router]);
+
+  if (loading) {
+    return <div className="p-6 text-center text-gym-muted">Caricamento scheda...</div>;
   }
-}
-
-async function getCompletedSessions(profileId: string) {
-  try {
-    const supabase = createServerSupabaseClient();
-    const { data } = await supabase
-      .from("workout_sessions")
-      .select("id, started_at, workout_day_id, workout_days(name)")
-      .eq("profile_id", profileId)
-      .eq("status", "completed")
-      .is("deleted_at", null)
-      .order("started_at", { ascending: false })
-      .limit(60);
-    return (data ?? []) as SessionLike[];
-  } catch {
-    return [];
-  }
-}
-
-export default async function WorkoutIndexPage() {
-  const profileId = await getSelectedProfileId();
-  if (!profileId) redirect("/profiles");
-
-  const [plan, sessions] = await Promise.all([getActivePlan(profileId), getCompletedSessions(profileId)]);
 
   if (!plan) {
     return (
@@ -106,12 +97,11 @@ export default async function WorkoutIndexPage() {
           {days.map((day: any) => {
             const last = lastByDay.get(day.id);
             const isRecommended = recommended?.id === day.id;
-            
-            // Revert back to app-row for the base satiny background, add glow for recommended
+
             const cardStyle = isRecommended 
               ? "app-row day-row-recommended !p-4 !border-[#c65f37]/40 !shadow-[0_0_20px_rgba(198,95,55,0.15)]"
               : "app-row !p-4";
-              
+
             const pillStyle = isRecommended
               ? "bg-[#c65f37]/20 text-[#c65f37] border border-[#c65f37]/30"
               : "bg-white/5 text-gym-muted border border-white/5";
@@ -129,11 +119,11 @@ export default async function WorkoutIndexPage() {
                       </span>
                     ) : null}
                   </div>
-                  
+
                   <h2 className={`mt-2 text-xl font-black leading-tight ${isRecommended ? "text-white" : "text-white/90"}`}>
                     {getShortDayName(day.name)}
                   </h2>
-                  
+
                   <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-bold text-gym-muted uppercase tracking-wider">
                     <span>{formatExerciseCount(day.exercises?.length ?? 0)}</span>
                     <span className="inline-flex items-center gap-1.5">

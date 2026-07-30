@@ -1,11 +1,10 @@
-export const dynamic = "force-dynamic";
+"use client";
 
+import { useEffect, useState, Suspense } from "react";
 import Link from "next/link";
-import { redirect } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, Trophy } from "lucide-react";
 import { Card } from "@/components/ui/Card";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { getSelectedProfileId } from "@/lib/profiles";
 import {
   buildExerciseProgress,
   formatAverage,
@@ -14,31 +13,38 @@ import {
   getExerciseTrend,
   type SessionLike,
 } from "@/lib/progress";
+import { getProgressSessions } from "@/lib/api-client/progress";
 
-async function getProgressSessions(profileId: string) {
-  try {
-    const supabase = createServerSupabaseClient();
-    const { data } = await supabase
-      .from("workout_sessions")
-      .select("id, status, started_at, completed_at, workout_day_id, workout_days(name), workout_plans(name, month), session_exercises(completed, exercises(name, exercise_db_id, muscle_group), exercise_sets(completed, reps, weight, rpe, set_number))")
-      .eq("profile_id", profileId)
-      .eq("status", "completed")
-      .is("deleted_at", null)
-      .order("started_at", { ascending: false })
-      .limit(180);
-    return (data ?? []) as SessionLike[];
-  } catch {
-    return [];
+function ExerciseProgressContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const rawKey = searchParams.get("key");
+  const key = rawKey ? decodeURIComponent(rawKey) : "";
+
+  const [loading, setLoading] = useState(true);
+  const [sessions, setSessions] = useState<SessionLike[]>([]);
+
+  useEffect(() => {
+    async function loadData() {
+      const profileId = localStorage.getItem("active_profile_id");
+      if (!profileId) {
+        router.push("/profiles");
+        return;
+      }
+
+      const data = await getProgressSessions(profileId);
+      setSessions(data as SessionLike[]);
+      setLoading(false);
+    }
+
+    loadData();
+  }, [router]);
+
+  if (loading) {
+    return <div className="p-6 text-center text-gym-muted">Caricamento esercizio...</div>;
   }
-}
 
-export default async function ExerciseProgressPage({ searchParams }: { searchParams?: Promise<{ key?: string }> }) {
-  const profileId = await getSelectedProfileId();
-  if (!profileId) redirect("/profiles");
-
-  const params = searchParams ? await searchParams : {};
-  const key = params.key ? decodeURIComponent(params.key) : "";
-  const sessions = await getProgressSessions(profileId);
   const exercises = buildExerciseProgress(sessions);
   const exercise = exercises.find((item) => item.key === key) ?? null;
 
@@ -121,6 +127,14 @@ export default async function ExerciseProgressPage({ searchParams }: { searchPar
         ))}
       </section>
     </div>
+  );
+}
+
+export default function ExerciseProgressPage() {
+  return (
+    <Suspense fallback={<div className="p-6 text-center text-gym-muted">Caricamento...</div>}>
+      <ExerciseProgressContent />
+    </Suspense>
   );
 }
 

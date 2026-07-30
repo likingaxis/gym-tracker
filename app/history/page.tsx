@@ -1,24 +1,19 @@
-export const dynamic = "force-dynamic";
+"use client";
 
+import { useEffect, useState, Suspense } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { CalendarDays, History as HistoryIcon, Trash2 } from "lucide-react";
-import { redirect } from "next/navigation";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { getSelectedProfileId } from "@/lib/profiles";
 import { getDayNameSnapshot, getPlanColorSnapshot, getPlanDotClass, getPlanNameSnapshot } from "@/lib/workoutPlanHistory";
 import { SessionActions } from "@/components/history/SessionActions";
 import { formatCompactNumber, getSessionSummary as getSmartSessionSummary } from "@/lib/progress";
 import { formatSetCount, formatWorkoutCount } from "@/lib/utils/copy";
 import { FadeIn, SlideUp, StaggeredList, StaggeredItem } from "@/components/ui/animations";
+import { getHistoryPlans, getHistorySessions } from "@/lib/api-client/history";
 
 type Filter = "completed" | "in_progress" | "paused" | "abandoned" | "all";
-
-type HistorySearchParams = {
-  status?: string;
-  plan?: string;
-};
 
 type HistoryPlan = {
   id: string;
@@ -29,55 +24,47 @@ type HistoryPlan = {
   color?: string | null;
 };
 
-async function getPlans(profileId: string) {
-  try {
-    const supabase = createServerSupabaseClient();
-    const { data } = await supabase
-      .from("workout_plans")
-      .select("id, name, month, is_active, status, color, created_at")
-      .eq("profile_id", profileId)
-      .order("is_active", { ascending: false })
-      .order("created_at", { ascending: false });
+function HistoryContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
 
-    return (data ?? []) as HistoryPlan[];
-  } catch {
-    return [];
-  }
-}
+  const rawFilter = searchParams.get("status");
+  const rawPlan = searchParams.get("plan");
 
-async function getSessions(profileId: string, filter: Filter, planId: string | null) {
-  try {
-    const supabase = createServerSupabaseClient();
-    let query = supabase
-      .from("workout_sessions")
-      .select("*, workout_plans(name, month, color), workout_days(name), session_exercises(completed, exercise_sets(completed, reps, weight, rpe))")
-      .eq("profile_id", profileId)
-      .is("deleted_at", null)
-      .order("started_at", { ascending: false })
-      .limit(80);
-
-    if (filter !== "all") query = query.eq("status", filter);
-    if (planId) query = query.eq("workout_plan_id", planId);
-
-    const { data } = await query;
-    return data ?? [];
-  } catch {
-    return [];
-  }
-}
-
-export default async function HistoryPage({ searchParams }: { searchParams?: Promise<HistorySearchParams> }) {
-  const profileId = await getSelectedProfileId();
-  if (!profileId) redirect("/profiles");
-
-  const params = searchParams ? await searchParams : {};
-  const rawFilter = params.status;
   const filter: Filter = rawFilter === "all" || rawFilter === "in_progress" || rawFilter === "paused" || rawFilter === "abandoned" ? rawFilter : "completed";
 
-  const plans = await getPlans(profileId);
-  const selectedPlanId = plans.some((plan) => plan.id === params.plan) ? params.plan ?? null : null;
-  const sessions = await getSessions(profileId, filter, selectedPlanId);
+  const [loading, setLoading] = useState(true);
+  const [plans, setPlans] = useState<HistoryPlan[]>([]);
+  const [sessions, setSessions] = useState<any[]>([]);
+
+  const selectedPlanId = plans.some((plan) => plan.id === rawPlan) ? rawPlan ?? null : null;
   const selectedPlan = plans.find((plan) => plan.id === selectedPlanId) ?? null;
+
+  useEffect(() => {
+    async function loadData() {
+      const profileId = localStorage.getItem("active_profile_id");
+      if (!profileId) {
+        router.push("/profiles");
+        return;
+      }
+
+      setLoading(true);
+      const [plansData, sessionsData] = await Promise.all([
+        getHistoryPlans(profileId),
+        getHistorySessions(profileId, filter, selectedPlanId),
+      ]);
+
+      setPlans(plansData as HistoryPlan[]);
+      setSessions(sessionsData as any[]);
+      setLoading(false);
+    }
+
+    loadData();
+  }, [filter, selectedPlanId, router]);
+
+  if (loading) {
+    return <div className="p-6 text-center text-gym-muted">Caricamento storico...</div>;
+  }
 
   const weekSessions = sessions.filter((session: any) => {
     const started = new Date(session.started_at).getTime();
@@ -199,6 +186,14 @@ export default async function HistoryPage({ searchParams }: { searchParams?: Pro
         </StaggeredList>
       )}
     </div>
+  );
+}
+
+export default function HistoryPage() {
+  return (
+    <Suspense fallback={<div className="p-6 text-center text-gym-muted">Caricamento...</div>}>
+      <HistoryContent />
+    </Suspense>
   );
 }
 

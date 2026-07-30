@@ -1,12 +1,30 @@
-export const dynamic = "force-dynamic";
+"use client";
 
-import { redirect } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { ImportUploader } from "@/components/import/ImportUploader";
-import { getSelectedProfileId } from "@/lib/profiles";
+import { Loader2 } from "lucide-react";
 
-export default async function ImportPage() {
-  const profileId = await getSelectedProfileId();
-  if (!profileId) redirect("/profiles");
+export default function ImportPage() {
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
+
+  useEffect(() => {
+    const profileId = typeof window !== "undefined" ? localStorage.getItem("active_profile_id") : null;
+    if (!profileId) {
+      router.push("/profiles");
+    } else {
+      setLoading(false);
+    }
+  }, [router]);
+
+  if (loading) {
+    return (
+      <div className="flex h-[50vh] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-gym-accent" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-7">

@@ -1,19 +1,13 @@
-export const dynamic = "force-dynamic";
+"use client";
 
+import { useEffect, useState, Suspense } from "react";
 import Link from "next/link";
-import { redirect } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { CalendarDays, ChevronLeft, ChevronRight, History as HistoryIcon, Trash2 } from "lucide-react";
 import { Card } from "@/components/ui/Card";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { getSelectedProfileId } from "@/lib/profiles";
 import { getDayNameSnapshot, getPlanColorSnapshot, getPlanDotClass, getPlanNameSnapshot } from "@/lib/workoutPlanHistory";
 import { formatAverage, formatCompactNumber, getSessionSummary } from "@/lib/progress";
-
-type CalendarSearchParams = {
-  month?: string;
-  day?: string;
-  plan?: string;
-};
+import { getHistoryPlans, getMonthSessions } from "@/lib/api-client/history";
 
 type HistoryPlan = {
   id: string;
@@ -42,56 +36,48 @@ type CalendarSession = {
   }> | null;
 };
 
-async function getPlans(profileId: string) {
-  try {
-    const supabase = createServerSupabaseClient();
-    const { data } = await supabase
-      .from("workout_plans")
-      .select("id, name, month, is_active, status, color, created_at")
-      .eq("profile_id", profileId)
-      .order("is_active", { ascending: false })
-      .order("created_at", { ascending: false });
+function CalendarHistoryContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
 
-    return (data ?? []) as HistoryPlan[];
-  } catch {
-    return [];
-  }
-}
+  const rawMonth = searchParams.get("month") ?? undefined;
+  const rawDay = searchParams.get("day") ?? undefined;
+  const rawPlan = searchParams.get("plan") ?? undefined;
 
-async function getMonthSessions(profileId: string, month: string, planId: string | null) {
-  try {
-    const supabase = createServerSupabaseClient();
-    const { start, end } = getMonthBounds(month);
-    let query = supabase
-      .from("workout_sessions")
-      .select("id, status, started_at, completed_at, workout_plan_id, workout_day_id, workout_plan_name_snapshot, workout_day_name_snapshot, workout_plan_color_snapshot, workout_days(name), workout_plans(name, month, color), session_exercises(completed, exercise_sets(completed, reps, weight, rpe))")
-      .eq("profile_id", profileId)
-      .is("deleted_at", null)
-      .gte("started_at", start.toISOString())
-      .lt("started_at", end.toISOString())
-      .order("started_at", { ascending: true });
+  const [loading, setLoading] = useState(true);
+  const [plans, setPlans] = useState<HistoryPlan[]>([]);
+  const [sessions, setSessions] = useState<CalendarSession[]>([]);
 
-    if (planId) query = query.eq("workout_plan_id", planId);
-
-    const { data } = await query;
-
-    return (data ?? []) as CalendarSession[];
-  } catch {
-    return [];
-  }
-}
-
-export default async function CalendarHistoryPage({ searchParams }: { searchParams?: Promise<CalendarSearchParams> }) {
-  const profileId = await getSelectedProfileId();
-  if (!profileId) redirect("/profiles");
-
-  const params = searchParams ? await searchParams : {};
-  const month = normalizeMonth(params.month);
-  const plans = await getPlans(profileId);
-  const selectedPlanId = plans.some((plan) => plan.id === params.plan) ? params.plan ?? null : null;
+  const month = normalizeMonth(rawMonth);
+  const selectedPlanId = plans.some((plan) => plan.id === rawPlan) ? rawPlan ?? null : null;
   const selectedPlan = plans.find((plan) => plan.id === selectedPlanId) ?? null;
-  const sessions = await getMonthSessions(profileId, month, selectedPlanId);
-  const selectedDay = normalizeDay(params.day, month) ?? getMostRecentSessionDay(sessions) ?? todayKeyIfMonth(month) ?? `${month}-01`;
+  const selectedDay = normalizeDay(rawDay, month) ?? getMostRecentSessionDay(sessions) ?? todayKeyIfMonth(month) ?? `${month}-01`;
+
+  useEffect(() => {
+    async function loadData() {
+      const profileId = localStorage.getItem("active_profile_id");
+      if (!profileId) {
+        router.push("/profiles");
+        return;
+      }
+
+      setLoading(true);
+      const [plansData, sessionsData] = await Promise.all([
+        getHistoryPlans(profileId),
+        getMonthSessions(profileId, month, selectedPlanId),
+      ]);
+
+      setPlans(plansData as HistoryPlan[]);
+      setSessions(sessionsData as CalendarSession[]);
+      setLoading(false);
+    }
+
+    loadData();
+  }, [month, selectedPlanId, router]);
+
+  if (loading) {
+    return <div className="p-6 text-center text-gym-muted">Caricamento calendario...</div>;
+  }
 
   const monthGrid = buildMonthGrid(month);
   const sessionsByDay = groupSessionsByDay(sessions);
@@ -231,6 +217,14 @@ export default async function CalendarHistoryPage({ searchParams }: { searchPara
         )}
       </Card>
     </div>
+  );
+}
+
+export default function CalendarHistoryPage() {
+  return (
+    <Suspense fallback={<div className="p-6 text-center text-gym-muted">Caricamento...</div>}>
+      <CalendarHistoryContent />
+    </Suspense>
   );
 }
 

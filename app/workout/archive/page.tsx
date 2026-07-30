@@ -1,67 +1,40 @@
-export const dynamic = "force-dynamic";
+"use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { redirect } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Archive, CheckCircle2, FileText } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { getSelectedProfileId } from "@/lib/profiles";
 import { formatDayCount, formatExerciseCount, formatWorkoutCount } from "@/lib/utils/copy";
 import { formatPlanDateRange, getPlanBorderClass, getPlanDotClass } from "@/lib/workoutPlanHistory";
+import { getArchivePlans } from "@/lib/api-client/workout";
 
-type PlanRow = {
-  id: string;
-  name: string;
-  month?: string | null;
-  start_date?: string | null;
-  end_date?: string | null;
-  is_active?: boolean | null;
-  status?: string | null;
-  color?: string | null;
-  created_at?: string | null;
-  archived_at?: string | null;
-  workout_days?: Array<{ id: string; exercises?: Array<{ id: string }> | null }> | null;
-};
+export default function WorkoutArchivePage() {
+  const router = useRouter();
+  const [loading, setLoading] = useState(true);
+  const [plans, setPlans] = useState<any[]>([]);
 
-type SessionCountRow = {
-  id: string;
-  status?: string | null;
-  workout_plan_id?: string | null;
-  deleted_at?: string | null;
-};
+  useEffect(() => {
+    async function loadData() {
+      const profileId = localStorage.getItem("active_profile_id");
+      if (!profileId) {
+        router.push("/profiles");
+        return;
+      }
 
-async function getPlans(profileId: string) {
-  try {
-    const supabase = createServerSupabaseClient();
-    const [{ data: plans }, { data: sessions }] = await Promise.all([
-      supabase
-        .from("workout_plans")
-        .select("id, name, month, start_date, end_date, is_active, status, color, created_at, archived_at, workout_days(id, exercises(id))")
-        .eq("profile_id", profileId)
-        .order("is_active", { ascending: false })
-        .order("created_at", { ascending: false }),
-      supabase
-        .from("workout_sessions")
-        .select("id, status, workout_plan_id, deleted_at")
-        .eq("profile_id", profileId),
-    ]);
+      const data = await getArchivePlans(profileId);
+      setPlans(data as any[]);
+      setLoading(false);
+    }
 
-    const counts = buildSessionCounts((sessions ?? []) as SessionCountRow[]);
-    return ((plans ?? []) as PlanRow[]).map((plan) => ({
-      ...plan,
-      sessionStats: counts.get(plan.id) ?? { total: 0, completed: 0, active: 0, deleted: 0 },
-    }));
-  } catch {
-    return [];
+    loadData();
+  }, [router]);
+
+  if (loading) {
+    return <div className="p-6 text-center text-gym-muted">Caricamento archivio...</div>;
   }
-}
 
-export default async function WorkoutArchivePage() {
-  const profileId = await getSelectedProfileId();
-  if (!profileId) redirect("/profiles");
-
-  const plans = await getPlans(profileId);
   const activePlans = plans.filter((plan: any) => Boolean(plan.is_active) || plan.status === "active");
   const archivedPlans = plans.filter((plan: any) => !(Boolean(plan.is_active) || plan.status === "active"));
 
@@ -162,18 +135,4 @@ function ArchiveStat({ label, value }: { label: string; value: number }) {
       <p className="mt-1 text-lg font-extrabold text-slate-100">{value}</p>
     </div>
   );
-}
-
-function buildSessionCounts(sessions: SessionCountRow[]) {
-  const counts = new Map<string, { total: number; completed: number; active: number; deleted: number }>();
-  for (const session of sessions) {
-    if (!session.workout_plan_id) continue;
-    const current = counts.get(session.workout_plan_id) ?? { total: 0, completed: 0, active: 0, deleted: 0 };
-    current.total += 1;
-    if (session.deleted_at) current.deleted += 1;
-    else if (session.status === "completed") current.completed += 1;
-    else current.active += 1;
-    counts.set(session.workout_plan_id, current);
-  }
-  return counts;
 }

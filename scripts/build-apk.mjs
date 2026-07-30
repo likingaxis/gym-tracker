@@ -20,8 +20,9 @@ async function main() {
       moved = true;
     }
 
-    console.log("Running next build --webpack...");
-    execSync("npx next build --webpack", { stdio: "inherit" });
+    console.log("Running next build --webpack in export mode...");
+    process.env.BUILD_MODE = "export";
+    execSync("npx next build --webpack", { stdio: "inherit", env: process.env });
 
   } catch (error) {
     console.error("Build failed:", error);

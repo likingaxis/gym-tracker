@@ -1,23 +1,27 @@
-export const dynamic = "force-dynamic";
+"use client";
 
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { useEffect, useState } from "react";
 import { ProfileSelector } from "@/components/profiles/ProfileSelector";
+import { getProfiles } from "@/lib/api-client/profiles";
 
-async function getProfiles() {
-  try {
-    const supabase = createServerSupabaseClient();
-    const { data } = await supabase
-      .from("app_profiles")
-      .select("id, name, avatar_emoji, color, pin_enabled, created_at")
-      .order("created_at", { ascending: true });
-    return data ?? [];
-  } catch {
-    return [];
+export default function ProfilesPage() {
+  const [profiles, setProfiles] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadProfiles() {
+      const res = await getProfiles();
+      if (res.success) {
+        setProfiles(res.profiles || []);
+      }
+      setLoading(false);
+    }
+    loadProfiles();
+  }, []);
+
+  if (loading) {
+    return <div className="p-6 text-center text-gym-muted">Caricamento profili...</div>;
   }
-}
-
-export default async function ProfilesPage() {
-  const profiles = await getProfiles();
 
   return (
     <div className="space-y-6 py-6">
@@ -31,3 +35,4 @@ export default async function ProfilesPage() {
     </div>
   );
 }
+

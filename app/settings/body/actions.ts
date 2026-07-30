@@ -1,9 +1,7 @@
-"use server";
-
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 
 export async function updateBodyData(profileId: string, data: { gender: string | null; birth_date: string | null; height_cm: number | null; weight_kg: number | null }) {
-  const supabase = createServerSupabaseClient();
+  const supabase = createBrowserSupabaseClient();
   const { error } = await supabase
     .from("app_profiles")
     .update({

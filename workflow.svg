@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400">
+  <defs>
+    <marker id="arrow-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#89b4fa" />
+    </marker>
+    <marker id="arrow-yellow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#f9e2af" />
+    </marker>
+    <marker id="arrow-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#a6e3a1" />
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="400" fill="#1e1e2e" rx="15"/>
+  
+  <!-- Title -->
+  <text x="400" y="35" fill="#cdd6f4" font-family="sans-serif" font-size="18" font-weight="bold" text-anchor="middle">Offline-First Workflow</text>
+  
+  <!-- Nodes -->
+  <!-- Mobile App -->
+  <rect x="50" y="150" width="150" height="100" fill="#313244" rx="10" stroke="#cba6f7" stroke-width="3"/>
+  <text x="125" y="200" fill="#cdd6f4" font-family="sans-serif" font-size="18" font-weight="bold" text-anchor="middle">Mobile PWA</text>
+  <text x="125" y="225" fill="#a6adc8" font-family="sans-serif" font-size="14" text-anchor="middle">(Next.js)</text>
+  
+  <!-- IndexedDB -->
+  <rect x="325" y="70" width="150" height="80" fill="#313244" rx="10" stroke="#89b4fa" stroke-width="3"/>
+  <text x="400" y="110" fill="#cdd6f4" font-family="sans-serif" font-size="16" font-weight="bold" text-anchor="middle">Cache Locale</text>
+  <text x="400" y="130" fill="#a6adc8" font-family="sans-serif" font-size="12" text-anchor="middle">(IndexedDB)</text>
+  
+  <!-- Service Worker -->
+  <rect x="325" y="250" width="150" height="80" fill="#313244" rx="10" stroke="#f9e2af" stroke-width="3"/>
+  <text x="400" y="290" fill="#cdd6f4" font-family="sans-serif" font-size="16" font-weight="bold" text-anchor="middle">Service Worker</text>
+  <text x="400" y="310" fill="#a6adc8" font-family="sans-serif" font-size="12" text-anchor="middle">(Background Sync)</text>
+  
+  <!-- Cloud DB -->
+  <rect x="600" y="150" width="150" height="100" fill="#313244" rx="10" stroke="#a6e3a1" stroke-width="3"/>
+  <text x="675" y="200" fill="#cdd6f4" font-family="sans-serif" font-size="18" font-weight="bold" text-anchor="middle">Supabase</text>
+  <text x="675" y="225" fill="#a6adc8" font-family="sans-serif" font-size="14" text-anchor="middle">(PostgreSQL)</text>
+  
+  <!-- Arrows -->
+  <!-- App to Cache -->
+  <path d="M 125 150 L 125 110 L 315 110" fill="none" stroke="#89b4fa" stroke-width="3" marker-end="url(#arrow-blue)"/>
+  <text x="225" y="100" fill="#89b4fa" font-family="sans-serif" font-size="12" text-anchor="middle">Legge/Scrive (Offline)</text>
+  
+  <!-- App to SW -->
+  <path d="M 125 250 L 125 290 L 315 290" fill="none" stroke="#f9e2af" stroke-width="3" marker-end="url(#arrow-yellow)"/>
+  <text x="225" y="280" fill="#f9e2af" font-family="sans-serif" font-size="12" text-anchor="middle">Accoda Modifiche</text>
+  
+  <!-- SW to Cloud -->
+  <path d="M 475 290 L 675 290 L 675 260" fill="none" stroke="#a6e3a1" stroke-width="3" marker-end="url(#arrow-green)"/>
+  <text x="575" y="310" fill="#a6e3a1" font-family="sans-serif" font-size="12" text-anchor="middle">Sync quando Online</text>
+  
+  <!-- Cloud to Cache -->
+  <path d="M 675 150 L 675 110 L 485 110" fill="none" stroke="#89b4fa" stroke-width="3" marker-end="url(#arrow-blue)"/>
+  <text x="575" y="100" fill="#89b4fa" font-family="sans-serif" font-size="12" text-anchor="middle">Aggiorna Dati</text>
+
+</svg>

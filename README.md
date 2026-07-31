@@ -1,91 +1,148 @@
-# Gym Tracker App v0.26.6
+# 🏋️ Gym Tracker App 
 
-PWA mobile-first per schede palestra personali, allenamenti guidati, storico, analytics, import AI, editor e gestione multi-scheda.
+Una PWA mobile-first dal design premium (glassmorphism, animazioni fluide) per la gestione di schede da palestra, allenamenti guidati, storico, analytics e importazione assistita da AI. Progettata con un'architettura offline-first per non perdere mai un colpo in palestra, anche senza connessione.
 
-## Focus v0.26.6
+![Version](https://img.shields.io/badge/version-v0.26.6-blue)
+![Next.js](https://img.shields.io/badge/Next.js-App_Router-black?logo=next.js)
+![Supabase](https://img.shields.io/badge/Supabase-Database_%26_Auth-3ECF8E?logo=supabase)
+![PWA](https://img.shields.io/badge/PWA-Offline_Ready-5A0FC8)
 
-Questa versione applica un pass completo di **chiarezza UX, affordance e basso carico cognitivo** alla direzione “Officina di precisione”.
+---
 
-Principali interventi:
+## 🏗️ Architettura Tecnica
 
-- Home ridotta alle decisioni essenziali, con giorno consigliato chiaramente identificato;
-- Scheda consultabile senza avviare una sessione;
-- azione “Inizia” separata dall’apertura del dettaglio giorno;
-- Import organizzato in tre step reali: File, Revisione, Attiva;
-- Progressi trasformati in rapporto tecnico con insight e colori semantici;
-- allenamento con un solo esercizio operativo in primo piano;
-- righe esercizio espandibili tramite tap e chevron, senza pulsanti “Apri” ridondanti;
-- GIF apribile a schermo intero;
-- media ExerciseDB spostati tra le azioni secondarie;
-- mini-player distinto dal canvas, con Pausa/Riprendi e Apri sempre visibili;
-- editor scheda organizzato per Programma, Giorno ed Esercizio;
-- selettore giorno a menu e azione Aggiungi contestuale;
-- pannello esercizio in bottom sheet;
-- tipografia operativa più grande e leggibile;
-- microcopy ridotta e più orientata allo stato corrente;
-- focus, touch target e signifier più espliciti;
-- profili senza bottom navigation.
+L'app si basa su uno stack moderno, orientato alle performance e all'affidabilità offline.
 
-La versione non modifica il database e non aggiunge dipendenze.
+```mermaid
+graph TD
+    subgraph Frontend [Client - PWA]
+        UI[Next.js App Router<br/>React + Tailwind + Framer Motion]
+        Store[Local State / Offline Sync<br/>Zustand / Context API]
+        SW[Service Worker<br/>Serwist PWA]
+        IDB[(IndexedDB / Cache<br/>Offline Storage)]
+    end
 
-## Migrazioni
+    subgraph Backend [Supabase]
+        Auth[Supabase Auth]
+        DB[(PostgreSQL)]
+        Storage[Supabase Storage]
+    end
+    
+    subgraph External [Servizi Esterni]
+        AI[Gemini AI<br/>Importazione Schede]
+        ExerciseDB[ExerciseDB API<br/>Media & GIF]
+    end
 
-Non ci sono nuove migration. Restano necessarie:
-
-```sql
-supabase/migrations/009_workout_plan_history.sql
-supabase/migrations/010_session_trash_pause.sql
+    UI <--> Store
+    Store <--> SW
+    SW <--> IDB
+    SW <==>|Online Sync| DB
+    UI <--> Auth
+    UI --> AI
+    UI --> ExerciseDB
 ```
 
-## Aggiornamento
+## 🔄 Workflow Allenamento (Offline-First)
 
-Copia questa versione sopra la cartella attuale senza cancellare:
+L'esperienza di allenamento è concepita per funzionare in zone con scarsa copertura (es. sale pesi interrate). I dati vengono salvati localmente e sincronizzati non appena la connessione torna disponibile.
 
+<p align="center">
+  <img src="workflow.svg" alt="Offline-First Workflow" width="100%">
+</p>
+
+## 📊 Modello Dati
+
+Il database è strutturato per gestire in modo gerarchico programmi complessi e tracciare le sessioni individuali per calcolare statistiche avanzate.
+
+```mermaid
+erDiagram
+    PROFILO ||--o{ PROGRAMMA : possiede
+    PROGRAMMA ||--|{ GIORNO_ALLENAMENTO : contiene
+    GIORNO_ALLENAMENTO ||--|{ ESERCIZIO_SCHEDA : include
+    PROGRAMMA ||--o{ SESSIONE_ALLENAMENTO : registra
+    SESSIONE_ALLENAMENTO ||--|{ LOG_ESERCIZIO : traccia
+    LOG_ESERCIZIO ||--|{ SERIE_COMPLETATA : dettagli
+
+    PROGRAMMA {
+        uuid id
+        string nome
+        boolean attivo
+    }
+    GIORNO_ALLENAMENTO {
+        string nome_giorno
+        int ordine
+    }
+    ESERCIZIO_SCHEDA {
+        string nome_esercizio
+        int sets
+        int reps
+        string note
+    }
+    SESSIONE_ALLENAMENTO {
+        timestamp inizio
+        timestamp fine
+        string stato
+    }
+```
+
+---
+
+## 🚀 Funzionalità Principali
+
+- **Design Premium & UX Focalizzata**: Interfaccia studiata per il minimo carico cognitivo. Uso estensivo di *glassmorphism*, feedback tattile visivo (Framer Motion) e bottom sheet (mobile-first).
+- **Gestione Allenamento**: Player allenamento con controlli rapidi (Pausa/Riprendi), focus su un solo esercizio alla volta, e raggruppamento intelligente.
+- **Importazione AI**: Integrazione con Gemini AI per importare schede testuali o immagini direttamente nel database, con step di revisione.
+- **PWA & Offline**: Registrazione tramite Service Worker (Serwist) per funzionamento garantito in palestra senza rete.
+- **Analytics & Reportistica**: Progressi tracciati con colori semantici e trasformati in insight (Andamento pesi, volume totale, ecc.).
+
+---
+
+## 🛠️ Sviluppo & Setup
+
+### Requisiti
+- Node.js (v18+)
+- Supabase CLI (opzionale, per gestione db locale)
+- Chiavi API per Gemini (se si usa l'importazione AI)
+
+### Variabili d'Ambiente (`.env.local`)
+
+L'app richiede le chiavi per Supabase e per l'integrazione AI. **Le chiavi AI devono restare esclusivamente server-side.**
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+
+# AI Provider Configuration
+AI_PROVIDER=gemini
+GEMINI_API_KEY=your-gemini-api-key
+GEMINI_MODEL=gemini-2.5-flash
+```
+
+### Migrazioni Database
+
+Se si effettuano aggiornamenti, assicurarsi che le migrazioni di Supabase siano state applicate correttamente. Le migrazioni sono presenti nella cartella `supabase/migrations/`.
+Migrazioni chiave recenti necessarie:
+- `009_workout_plan_history.sql`
+- `010_session_trash_pause.sql`
+
+### Aggiornamento di una Versione (Deploy Locale/Manuale)
+Se copi manualmente i file per aggiornare l'app, **mantieni intatte** le seguenti cartelle/file:
 ```text
-node_modules
+node_modules/
 .env.local
 package-lock.json
-.git
+.git/
 ```
-
-Poi:
-
-```powershell
+Dopo aver sovrascritto, esegui:
+```bash
 npm run dev
 npm run build
 ```
 
-Se tutto funziona:
+---
 
-```powershell
-git add .
-git commit -m "v0.26.6 fix widget player dialogs"
-git push
-```
-
-## Variabili ambiente AI
-
-```env
-AI_PROVIDER=gemini
-GEMINI_API_KEY=...
-GEMINI_MODEL=gemini-2.5-flash
-```
-
-Le chiavi AI devono restare esclusivamente server-side e non devono iniziare con `NEXT_PUBLIC_`.
-
-
-## v0.26.5
-- Ripristinato il widget flottante di avanzamento durante l’allenamento.
-- Mini-player semplificato con icone pausa/riprendi e cestino.
-- Sostituiti gli alert JavaScript con dialoghi centrali coerenti.
-- Migliorata la gerarchia visiva di Profili, Statistiche e Impostazioni.
-
-
-## v0.26.6
-- Ripristinato il widget progresso con posizione e comportamento della versione originale.
-- Rimossa l’etichetta flottante che interferiva con le card durante lo scroll.
-- Corretto il pannello Andamento e rimosso un blocco di proprietà duplicato.
-- Mini-player ricostruito con contrasto elevato, testo leggibile e sole icone per pausa/riprendi e cestino.
-- Dialoghi renderizzati tramite portal direttamente nel body, sempre centrati nel viewport.
-- Blocco dello scroll, chiusura con Escape e focus automatico sull’azione principale.
-- Corretto un selettore CSS duplicato nella sezione profili.
+## 💡 Principi per i Contributor / Agent (AGENTS.md)
+Per chiunque (umano o AI) metta mano al codice:
+1. **Premium Look & Feel**: Non usare colori base. Sfrutta i token semantici (`gym-accent`, `gym-bg`, `gym-surface`). Tutto deve avere un'animazione attiva (Framer Motion).
+2. **Offline-First**: Qualsiasi mutazione durante un workout deve supportare il salvataggio offline tramite i sync manager integrati.
+3. **Bottom Sheets / Portals**: I modali devono usare `createPortal` sul `document.body` per evitare problemi di stacking context con Framer Motion.

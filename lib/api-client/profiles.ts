@@ -1,6 +1,7 @@
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 import { hashPin, verifyPin } from "@/lib/pin";
 import { putInDB, getFromDB } from "@/lib/db/indexeddb";
+import { SELECTED_PROFILE_COOKIE } from "@/lib/profiles";
 
 export async function getProfiles() {
   const cacheKey = "getProfiles";
@@ -95,6 +96,9 @@ export async function selectProfile(profileId: string, pin?: string) {
 
   if (typeof window !== "undefined") {
     localStorage.setItem("active_profile_id", profileId);
+    if (typeof document !== "undefined") {
+      document.cookie = `${SELECTED_PROFILE_COOKIE}=${encodeURIComponent(profileId)}; path=/; max-age=31536000; SameSite=Lax`;
+    }
   }
   return { success: true };
 }
@@ -102,6 +106,9 @@ export async function selectProfile(profileId: string, pin?: string) {
 export async function lockProfile() {
   if (typeof window !== "undefined") {
     localStorage.removeItem("active_profile_id");
+    if (typeof document !== "undefined") {
+      document.cookie = `${SELECTED_PROFILE_COOKIE}=; path=/; max-age=0; SameSite=Lax`;
+    }
   }
   return { success: true };
 }

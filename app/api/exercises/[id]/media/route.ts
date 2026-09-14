@@ -11,7 +11,7 @@ type Body = {
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    const profileId = await getSelectedProfileId();
+    const profileId = await getSelectedProfileId(request);
 
     if (!profileId) {
       return NextResponse.json({ success: false, error: "Seleziona un profilo." }, { status: 401 });

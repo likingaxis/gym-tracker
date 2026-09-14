@@ -1,11 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { AlertTriangle, Bot, Check, CheckCircle2, ChevronDown, Eye, FileJson, RefreshCw, UploadCloud } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { parseWorkoutPlanJson } from "@/lib/import/parseJson";
 import { formatDayCount, formatExerciseCount } from "@/lib/utils/copy";
 import { useAppDialog } from "@/components/ui/AppDialogProvider";
+import { SELECTED_PROFILE_COOKIE } from "@/lib/profiles";
+import { invalidateWorkoutCache } from "@/lib/api-client/workout";
 
 type ImportMessage = { path: string; message: string };
 type ImportMode = "ai" | "json";
@@ -119,9 +122,20 @@ export function ImportUploader() {
 
   async function importPlan() {
     if (!cleanJson) return;
+
+    const profileId = typeof window !== "undefined" ? localStorage.getItem("active_profile_id") : null;
+    if (!profileId) {
+      setErrors([{ path: "profile", message: "Nessun profilo selezionato. Seleziona un profilo prima di importare." }]);
+      return;
+    }
+
     if (makeActivePlan) {
       const accepted = await confirmDialog({ title: "Attivare la nuova scheda?", message: "La scheda attuale verrà archiviata e resterà consultabile nello storico.", confirmLabel: "Importa e attiva" });
       if (!accepted) return;
+    }
+
+    if (typeof document !== "undefined") {
+      document.cookie = `${SELECTED_PROFILE_COOKIE}=${encodeURIComponent(profileId)}; path=/; max-age=31536000; SameSite=Lax`;
     }
 
     setStatus("Importazione in corso");
@@ -131,7 +145,11 @@ export function ImportUploader() {
       const baseUrl = process.env.NEXT_PUBLIC_API_URL || "";
       const response = await fetch(`${baseUrl}/api/import-workout-plan`, {
         method: "POST",
-        headers: { "content-type": "application/json", "x-replace-current-plan": makeActivePlan ? "true" : "false" },
+        headers: {
+          "content-type": "application/json",
+          "x-replace-current-plan": makeActivePlan ? "true" : "false",
+          "x-profile-id": profileId,
+        },
         body: cleanJson,
       });
       const data = await readJsonResponse(response);
@@ -140,6 +158,7 @@ export function ImportUploader() {
         setStatus(undefined);
         return;
       }
+      await invalidateWorkoutCache(profileId);
       setWarnings(data?.warnings ?? warnings);
       setStatus(`Scheda importata · ${formatDayCount(data.days_created)} · ${formatExerciseCount(data.exercises_created)}`);
     } catch (error) {
@@ -269,9 +288,27 @@ export function ImportUploader() {
       ) : null}
 
       {status && !isGenerating && !errors.length ? (
-        <div className={imported ? "status-banner status-success" : "status-banner status-info"}>
-          {imported ? <Check size={17} /> : <RefreshCw size={17} />}
-          <span>{status}</span>
+        <div className="space-y-3">
+          <div className={imported ? "status-banner status-success" : "status-banner status-info"}>
+            {imported ? <Check size={17} /> : <RefreshCw size={17} />}
+            <span>{status}</span>
+          </div>
+          {imported ? (
+            <div className="grid grid-cols-2 gap-3 pt-1">
+              <Link
+                href="/workout"
+                className="flex items-center justify-center gap-2 rounded-xl bg-gym-accent px-4 py-3 text-center text-sm font-extrabold text-slate-950 shadow-lg active:scale-95 transition-transform"
+              >
+                Apri scheda attiva
+              </Link>
+              <Link
+                href="/workout/archive"
+                className="flex items-center justify-center gap-2 rounded-xl bg-white/10 px-4 py-3 text-center text-sm font-extrabold text-slate-100 hover:bg-white/15 active:scale-95 transition-transform"
+              >
+                Vedi archivio
+              </Link>
+            </div>
+          ) : null}
         </div>
       ) : null}
     </div>

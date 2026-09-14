@@ -1,6 +1,6 @@
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 import { estimateFallbackDurationFromPlan, estimateWorkoutDurationFromSessions, type SessionLike } from "@/lib/progress";
-import { putInDB, getFromDB } from "@/lib/db/indexeddb";
+import { putInDB, getFromDB, deleteFromDB } from "@/lib/db/indexeddb";
 
 export async function getWorkoutDayClient(profileId: string, dayId: string) {
   const cacheKey = "getWorkoutDayClient_" + profileId + "_" + dayId;
@@ -191,4 +191,14 @@ export async function getWorkoutDayPreview(profileId: string, dayId: string) {
 
   const cached = await getFromDB<{ id: string; data: any }>("api_cache", cacheKey);
   return cached?.data ?? null;
+}
+
+export async function invalidateWorkoutCache(profileId: string) {
+  try {
+    await deleteFromDB("api_cache", "getArchivePlans_" + profileId);
+    await deleteFromDB("api_cache", "getActivePlan_" + profileId);
+    await deleteFromDB("api_cache", "getCompletedSessionsForWorkout_" + profileId);
+  } catch {
+    // Ignore cache deletion errors
+  }
 }

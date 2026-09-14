@@ -48,7 +48,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const profileId = await getSelectedProfileId();
+    const profileId = await getSelectedProfileId(request);
 
     if (!profileId) {
       return errorResponse(

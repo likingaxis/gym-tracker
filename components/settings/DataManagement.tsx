@@ -57,10 +57,14 @@ export function DataManagement({ profileName }: DataManagementProps) {
     setPendingAction(action);
 
     try {
+      const profileId = typeof window !== "undefined" ? localStorage.getItem("active_profile_id") : null;
       const baseUrl = process.env.NEXT_PUBLIC_API_URL || "";
       const response = await fetch(`${baseUrl}/api/profile-data/reset`, {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: {
+          "content-type": "application/json",
+          ...(profileId ? { "x-profile-id": profileId } : {}),
+        },
         body: JSON.stringify({ action })
       });
 
@@ -80,17 +84,21 @@ export function DataManagement({ profileName }: DataManagementProps) {
       setStatus(`Fatto. Elementi interessati: ${data?.affected ?? 0}.`);
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Errore di rete.");
+      setError(err instanceof Error ? err.message : "Errore durante l'operazione.");
     } finally {
       setPendingAction(null);
     }
   }
 
+  const activeProfileId = typeof window !== "undefined" ? localStorage.getItem("active_profile_id") : null;
+  const csvHref = activeProfileId ? `/api/export/history-csv?profile_id=${activeProfileId}` : "/api/export/history-csv";
+  const jsonHref = activeProfileId ? `/api/export/backup-json?profile_id=${activeProfileId}` : "/api/export/backup-json";
+
   return (
     <div className="space-y-4">
       <div className="divide-y divide-gym-line rounded-lg border border-white/10 bg-black/10">
-        <DataLink href="/api/export/history-csv" icon={<FileDown size={17} />} title="Esporta CSV" description="Storico allenamenti in formato tabellare." />
-        <DataLink href="/api/export/backup-json" icon={<Download size={17} />} title="Scarica backup JSON" description={`Copia completa del profilo ${profileName}.`} />
+        <DataLink href={csvHref} icon={<FileDown size={17} />} title="Esporta CSV" description="Storico allenamenti in formato tabellare." />
+        <DataLink href={jsonHref} icon={<Download size={17} />} title="Scarica backup JSON" description={`Copia completa del profilo ${profileName}.`} />
         <DataLink href="/history/trash" icon={<Trash2 size={17} />} title="Cestino" description="Sessioni eliminate, ripristino e svuotamento." />
       </div>
 

@@ -2,8 +2,9 @@ import { NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getSelectedProfileId } from "@/lib/profiles";
 
-export async function GET() {
-  const profileId = await getSelectedProfileId();
+export async function GET(request: Request) {
+  const url = new URL(request.url);
+  const profileId = url.searchParams.get("profile_id") || await getSelectedProfileId(request);
 
   if (!profileId) {
     return NextResponse.json({ success: false, error: "Seleziona un profilo." }, { status: 400 });

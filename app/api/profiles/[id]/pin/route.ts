@@ -16,7 +16,7 @@ type SetPinBody = {
 export async function POST(request: Request, { params }: Params) {
   try {
     const { id } = await params;
-    const selectedProfileId = await getSelectedProfileId();
+    const selectedProfileId = await getSelectedProfileId(request);
 
     if (selectedProfileId !== id) {
       return NextResponse.json({ success: false, error: "Seleziona il profilo prima di modificare il PIN." }, { status: 403 });

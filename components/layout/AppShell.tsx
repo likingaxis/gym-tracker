@@ -1,17 +1,30 @@
 "use client";
 
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import { motion, useReducedMotion } from "framer-motion";
 import { Dumbbell, History, Home, TrendingUp } from "lucide-react";
 import { MotionPage } from "@/components/motion/MotionPage";
 import { ActiveWorkoutMiniPlayer } from "@/components/layout/ActiveWorkoutMiniPlayer";
+import { SELECTED_PROFILE_COOKIE } from "@/lib/profiles";
 
 import { useSyncEngine } from "@/lib/sync/offlineSync";
 
 function SyncEngineRunner() {
   useSyncEngine();
+  return null;
+}
+
+function ProfileCookieSync() {
+  const pathname = usePathname();
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const profileId = localStorage.getItem("active_profile_id");
+    if (profileId) {
+      document.cookie = `${SELECTED_PROFILE_COOKIE}=${encodeURIComponent(profileId)}; path=/; max-age=31536000; SameSite=Lax`;
+    }
+  }, [pathname]);
   return null;
 }
 
@@ -26,6 +39,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       className={`officina-page ${modeClass} mx-auto flex min-h-dvh max-w-md flex-col bg-gym-bg text-gym-soft ${isProfiles ? "pb-8" : "pb-52"}`}
     >
       <SyncEngineRunner />
+      <ProfileCookieSync />
       <div className={`flex-1 px-4 ${isActiveWorkout ? "py-3" : "py-5"}`}>
         <MotionPage>{children}</MotionPage>
       </div>

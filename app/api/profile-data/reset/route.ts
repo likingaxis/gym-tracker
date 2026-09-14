@@ -10,7 +10,7 @@ type Body = {
 
 export async function POST(request: Request) {
   try {
-    const profileId = await getSelectedProfileId();
+    const profileId = await getSelectedProfileId(request);
     if (!profileId) {
       return NextResponse.json({ success: false, error: "Seleziona un profilo." }, { status: 400 });
     }

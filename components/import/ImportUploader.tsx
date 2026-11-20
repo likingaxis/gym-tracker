@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { parseWorkoutPlanJson } from "@/lib/import/parseJson";
 import { formatDayCount, formatExerciseCount } from "@/lib/utils/copy";
 import { useAppDialog } from "@/components/ui/AppDialogProvider";
-import { SELECTED_PROFILE_COOKIE } from "@/lib/profiles";
+import { SELECTED_PROFILE_COOKIE } from "@/lib/api-client/profiles";
 import { invalidateWorkoutCache } from "@/lib/api-client/workout";
 
 type ImportMessage = { path: string; message: string };

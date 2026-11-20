@@ -7,7 +7,7 @@ import { motion, useReducedMotion } from "framer-motion";
 import { Dumbbell, History, Home, TrendingUp } from "lucide-react";
 import { MotionPage } from "@/components/motion/MotionPage";
 import { ActiveWorkoutMiniPlayer } from "@/components/layout/ActiveWorkoutMiniPlayer";
-import { SELECTED_PROFILE_COOKIE } from "@/lib/profiles";
+import { SELECTED_PROFILE_COOKIE } from "@/lib/api-client/profiles";
 
 import { useSyncEngine } from "@/lib/sync/offlineSync";
 

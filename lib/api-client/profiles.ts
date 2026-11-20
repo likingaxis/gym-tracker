@@ -1,7 +1,8 @@
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 import { hashPin, verifyPin } from "@/lib/pin";
 import { putInDB, getFromDB } from "@/lib/db/indexeddb";
-import { SELECTED_PROFILE_COOKIE } from "@/lib/profiles";
+
+export const SELECTED_PROFILE_COOKIE = "gym_selected_profile_id";
 
 export async function getProfiles() {
   const cacheKey = "getProfiles";

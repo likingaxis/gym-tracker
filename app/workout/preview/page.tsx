@@ -7,6 +7,7 @@ import { ArrowLeft, Clock3, Dumbbell, Play } from "lucide-react";
 import { formatRestTime } from "@/lib/utils/time";
 import { estimateFallbackDurationFromPlan, formatDurationShort } from "@/lib/progress";
 import { getWorkoutDayPreview } from "@/lib/api-client/workout";
+import { resolveExerciseGroups } from "@/lib/workoutGroups";
 
 function WorkoutDayPreviewContent() {
   const router = useRouter();
@@ -43,6 +44,7 @@ function WorkoutDayPreviewContent() {
   if (!day) return <p className="p-6 text-gym-danger">Giorno non trovato.</p>;
 
   const exercises = [...(day.exercises ?? [])].sort((a: any, b: any) => a.exercise_order - b.exercise_order);
+  const exerciseGroups = resolveExerciseGroups(exercises);
   const duration = estimateFallbackDurationFromPlan(exercises);
 
   return (
@@ -67,23 +69,38 @@ function WorkoutDayPreviewContent() {
       <section className="section-block border-t-0 pt-3">
         <p className="technical-label">Programma</p>
         <div className="app-list mt-3">
-          {exercises.map((exercise: any, index: number) => (
-            <article key={exercise.id} className="app-row">
-              <span className="mono-type w-7 shrink-0 text-sm font-bold text-gym-muted">{String(index + 1).padStart(2, "0")}</span>
-              {exercise.media_url ? (
-                <img src={exercise.media_url} alt="" className="h-14 w-14 shrink-0 rounded-lg border border-white/10 bg-gym-bg object-contain" />
-              ) : (
-                <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/[0.035] text-gym-muted"><Dumbbell size={20} /></span>
-              )}
-              <div className="min-w-0 flex-1">
-                <h2 className="text-lg font-extrabold leading-tight text-gym-soft">{exercise.name}</h2>
-                <p className="mt-1 text-sm text-gym-muted">
-                  {exercise.sets ?? "-"} × {exercise.reps ?? "-"} · {formatRestTime(exercise.rest_seconds)}
-                </p>
-                {exercise.muscle_group ? <p className="mt-1 text-sm font-bold text-gym-info">{exercise.muscle_group}</p> : null}
-              </div>
-            </article>
-          ))}
+          {exercises.map((exercise: any, index: number) => {
+            const groupMeta = exerciseGroups.get(exercise.id);
+            return (
+              <article
+                key={exercise.id}
+                className={`app-row ${groupMeta ? "border-l-4 border-l-[#c65f37] pl-3" : ""}`}
+              >
+                <span className="mono-type w-7 shrink-0 text-sm font-bold text-gym-muted">
+                  {groupMeta ? groupMeta.codeLabel : String(index + 1).padStart(2, "0")}
+                </span>
+                {exercise.media_url ? (
+                  <img src={exercise.media_url} alt="" className="h-14 w-14 shrink-0 rounded-lg border border-white/10 bg-gym-bg object-contain" />
+                ) : (
+                  <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/[0.035] text-gym-muted"><Dumbbell size={20} /></span>
+                )}
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h2 className="text-lg font-extrabold leading-tight text-gym-soft">{exercise.name}</h2>
+                    {groupMeta ? (
+                      <span className="inline-flex items-center rounded-md border border-[#c65f37]/40 bg-[#c65f37]/15 px-1.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-[#c65f37]">
+                        {groupMeta.badgeLabel}
+                      </span>
+                    ) : null}
+                  </div>
+                  <p className="mt-1 text-sm text-gym-muted">
+                    {exercise.sets ?? "-"} × {exercise.reps ?? "-"} · {formatRestTime(exercise.rest_seconds)}
+                  </p>
+                  {exercise.muscle_group ? <p className="mt-1 text-sm font-bold text-gym-info">{exercise.muscle_group}</p> : null}
+                </div>
+              </article>
+            );
+          })}
         </div>
       </section>
     </div>

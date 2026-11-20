@@ -8,6 +8,7 @@ import { type SessionLike } from "@/lib/progress";
 import { formatDayCount, formatExerciseCount } from "@/lib/utils/copy";
 import { formatPlanDateRange, getPlanDotClass } from "@/lib/workoutPlanHistory";
 import { getActivePlan, getCompletedSessionsForWorkout } from "@/lib/api-client/workout";
+import { getGroupSummaryTitles } from "@/lib/workoutGroups";
 
 export default function WorkoutIndexPage() {
   const router = useRouter();
@@ -97,6 +98,7 @@ export default function WorkoutIndexPage() {
           {days.map((day: any) => {
             const last = lastByDay.get(day.id);
             const isRecommended = recommended?.id === day.id;
+            const groupTitles = getGroupSummaryTitles(day.exercises ?? []);
 
             const cardStyle = isRecommended 
               ? "app-row day-row-recommended !p-4 !border-[#c65f37]/40 !shadow-[0_0_20px_rgba(198,95,55,0.15)]"
@@ -109,7 +111,7 @@ export default function WorkoutIndexPage() {
             return (
               <article key={day.id} className={`group relative flex items-center justify-between transition-all duration-300 ${cardStyle}`}>
                 <Link href={`/workout/preview?dayId=${day.id}`} className="min-w-0 flex-1 pr-4 focus-visible:outline-none">
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <span className={`inline-flex items-center justify-center rounded-md px-1.5 py-0.5 text-[10px] font-black uppercase tracking-wider ${pillStyle}`}>
                       G{day.day_order}
                     </span>
@@ -118,6 +120,14 @@ export default function WorkoutIndexPage() {
                         <BadgeCheck size={12} strokeWidth={3} /> Consigliato
                       </span>
                     ) : null}
+                    {groupTitles.map((title) => (
+                      <span
+                        key={title}
+                        className="inline-flex items-center rounded-md border border-white/10 bg-white/[0.06] px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-200"
+                      >
+                        {title}
+                      </span>
+                    ))}
                   </div>
 
                   <h2 className={`mt-2 text-xl font-black leading-tight ${isRecommended ? "text-white" : "text-white/90"}`}>

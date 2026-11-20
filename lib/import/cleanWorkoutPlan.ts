@@ -1,3 +1,5 @@
+import { normalizeGroupId, normalizeGroupType } from "@/lib/workoutGroups";
+
 type ImportError = { path: string; message: string };
 type ImportWarning = { path: string; message: string };
 
@@ -111,14 +113,20 @@ export function normalizeWorkoutPlanJson(input: unknown): {
         muscle_group: cleanText(rawExercise.muscle_group) ?? "",
         sets: cleanNumber(rawExercise.sets),
         reps: cleanText(rawExercise.reps) ?? "",
-        rest_seconds: cleanNumber(rawExercise.rest_seconds) ?? 90,
+        rest_seconds:
+          rawExercise.rest_seconds === 0
+            ? 0
+            : (cleanNumber(rawExercise.rest_seconds) ?? 90),
         target_rpe: cleanText(rawExercise.target_rpe) ?? "",
         suggested_weight: cleanText(rawExercise.suggested_weight) ?? "",
         technique_notes: cleanText(rawExercise.technique_notes) ?? "",
         tips: cleanText(rawExercise.tips) ?? "",
         video_url: cleanUrl(rawExercise.video_url),
         media_url: cleanUrl(rawExercise.media_url),
-        trainer_notes: cleanText(rawExercise.trainer_notes) ?? ""
+        trainer_notes: cleanText(rawExercise.trainer_notes) ?? "",
+        group_type: normalizeGroupType(cleanText(rawExercise.group_type)) ?? undefined,
+        group_id: normalizeGroupId(cleanText(rawExercise.group_id)) ?? undefined,
+        group_order: cleanNumber(rawExercise.group_order),
       };
 
       addWarning(warnings, `${exercisePath}.name`, rawExercise.name, exercise.name, "Nome esercizio");

@@ -192,6 +192,16 @@ export async function POST(request: Request) {
           });
         }
 
+        if (exercise.group_type || exercise.group_id) {
+          exerciseDbRaw = {
+            group: {
+              group_type: exercise.group_type ?? null,
+              group_id: exercise.group_id ?? null,
+              group_order: exercise.group_order ?? null,
+            },
+          };
+        }
+
         exerciseRows.push({
           workout_day_id: dayRow.id,
           exercise_order: exercise.order,
@@ -214,12 +224,26 @@ export async function POST(request: Request) {
           video_url: exercise.video_url ?? null,
           media_url: mediaUrl,
           trainer_notes: exercise.trainer_notes ?? null,
+          group_type: exercise.group_type ?? null,
+          group_id: exercise.group_id ?? null,
+          group_order: exercise.group_order ?? null,
         });
       }
 
-      const { error: exercisesError } = await supabase
+      let { error: exercisesError } = await supabase
         .from("exercises")
         .insert(exerciseRows);
+
+      if (
+        exercisesError &&
+        /group_type|group_id|group_order/i.test(exercisesError.message)
+      ) {
+        const fallbackRows = exerciseRows.map(
+          ({ group_type: _gt, group_id: _gi, group_order: _go, ...rest }) => rest,
+        );
+        const retry = await supabase.from("exercises").insert(fallbackRows);
+        exercisesError = retry.error;
+      }
 
       if (exercisesError) {
         return errorResponse(

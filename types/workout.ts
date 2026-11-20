@@ -34,6 +34,9 @@ export type ExerciseImport = {
   video_url?: string;
   media_url?: string;
   trainer_notes?: string;
+  group_type?: "superset" | "jumpset" | "triset" | "circuit" | null;
+  group_id?: string | null;
+  group_order?: number | null;
 };
 
 export type Exercise = ExerciseImport & { id: string; workout_day_id: string };

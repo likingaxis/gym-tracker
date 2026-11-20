@@ -1,4 +1,6 @@
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
+import { normalizeGroupId, normalizeGroupType } from "@/lib/workoutGroups";
+import { invalidateWorkoutCache } from "@/lib/api-client/workout";
 
 type EditableExercise = {
   id?: string;
@@ -16,6 +18,10 @@ type EditableExercise = {
   exercise_db_query?: string | null;
   exercise_db_id?: string | null;
   media_url?: string | null;
+  group_type?: string | null;
+  group_id?: string | null;
+  group_order?: number | null;
+  exercise_db_raw?: unknown;
 };
 
 type EditableDay = {
@@ -107,9 +113,59 @@ export async function saveWorkoutPlan(profileId: string, planId: string, body: E
 
       daysTouched += 1;
 
+      if (day.id) {
+        const { data: existingExercises, error: existingExercisesError } = await supabase
+          .from("exercises")
+          .select("id")
+          .eq("workout_day_id", dayId);
+
+        if (existingExercisesError) {
+          return { success: false, error: existingExercisesError.message };
+        }
+
+        const retainedIds = new Set(
+          (day.exercises ?? [])
+            .map((item) => item.id)
+            .filter((id): id is string => Boolean(id)),
+        );
+        const removedIds = (existingExercises ?? [])
+          .map((item: { id: string }) => item.id)
+          .filter((id: string) => !retainedIds.has(id));
+
+        if (removedIds.length > 0) {
+          const { error: deleteError } = await supabase
+            .from("exercises")
+            .delete()
+            .in("id", removedIds)
+            .eq("workout_day_id", dayId);
+
+          if (deleteError) return { success: false, error: deleteError.message };
+        }
+      }
+
       for (const [exerciseIndex, exercise] of (day.exercises ?? []).entries()) {
         const exerciseOrder = exerciseIndex + 1;
-        const row = {
+        const groupType = normalizeGroupType(exercise.group_type);
+        const groupId = groupType ? normalizeGroupId(exercise.group_id) ?? "A" : null;
+        const groupOrder = groupType
+          ? cleanNumber(exercise.group_order) ?? exerciseOrder
+          : null;
+
+        const existingRaw = isRecord(exercise.exercise_db_raw)
+          ? { ...exercise.exercise_db_raw }
+          : {};
+        if (groupType && groupId) {
+          existingRaw.group = {
+            group_type: groupType,
+            group_id: groupId,
+            group_order: groupOrder,
+          };
+        } else {
+          delete existingRaw.group;
+        }
+        const nextRaw = Object.keys(existingRaw).length > 0 ? existingRaw : null;
+
+        const baseRow = {
           workout_day_id: dayId,
           exercise_order: exerciseOrder,
           name: cleanText(exercise.name) || `Esercizio ${exerciseOrder}`,
@@ -125,18 +181,41 @@ export async function saveWorkoutPlan(profileId: string, planId: string, body: E
           exercise_db_query: cleanNullableText(exercise.exercise_db_query),
           exercise_db_id: cleanNullableText(exercise.exercise_db_id),
           media_url: cleanNullableText(exercise.media_url),
+          exercise_db_raw: nextRaw,
+        };
+
+        const rowWithGroup = {
+          ...baseRow,
+          group_type: groupType,
+          group_id: groupId,
+          group_order: groupOrder,
         };
 
         if (exercise.id) {
-          const { error } = await supabase
+          let { error } = await supabase
             .from("exercises")
-            .update(row)
+            .update(rowWithGroup)
             .eq("id", exercise.id)
             .eq("workout_day_id", dayId);
 
+          if (error && /group_type|group_id|group_order/i.test(error.message)) {
+            const retry = await supabase
+              .from("exercises")
+              .update(baseRow)
+              .eq("id", exercise.id)
+              .eq("workout_day_id", dayId);
+            error = retry.error;
+          }
+
           if (error) return { success: false, error: error.message };
         } else {
-          const { error } = await supabase.from("exercises").insert(row);
+          let { error } = await supabase.from("exercises").insert(rowWithGroup);
+
+          if (error && /group_type|group_id|group_order/i.test(error.message)) {
+            const retry = await supabase.from("exercises").insert(baseRow);
+            error = retry.error;
+          }
+
           if (error) return { success: false, error: error.message };
         }
 
@@ -144,10 +223,15 @@ export async function saveWorkoutPlan(profileId: string, planId: string, body: E
       }
     }
 
+    await invalidateWorkoutCache(profileId);
     return { success: true, days_touched: daysTouched, exercises_touched: exercisesTouched };
   } catch (error) {
     return { success: false, error: error instanceof Error ? error.message : "Errore client." };
   }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function cleanText(value: unknown) {

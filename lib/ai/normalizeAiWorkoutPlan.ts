@@ -1,6 +1,7 @@
 import { normalizeWorkoutPlanJson } from "@/lib/import/cleanWorkoutPlan";
 import { workoutPlanImportSchema } from "@/lib/validation/workoutPlanSchema";
 import { findExerciseDbMatch, type ExerciseDbCandidate } from "@/lib/ai/matchExerciseDb";
+import { normalizeGroupId, normalizeGroupType } from "@/lib/workoutGroups";
 
 type AiWarning = { path: string; message: string };
 type AiError = { path: string; message: string };
@@ -37,6 +38,12 @@ function positiveNumber(value: unknown, fallback: number) {
   return Number.isFinite(numeric) && numeric > 0 ? numeric : fallback;
 }
 
+function nonNegativeNumber(value: unknown, fallback: number) {
+  if (value === null || value === undefined || value === "") return fallback;
+  const numeric = Number(value);
+  return Number.isFinite(numeric) && numeric >= 0 ? numeric : fallback;
+}
+
 function ensureRequiredShape(input: unknown) {
   if (!isRecord(input)) return input;
 
@@ -49,41 +56,69 @@ function ensureRequiredShape(input: unknown) {
     days: Array.isArray(input.days) ? input.days : [],
   };
 
-  plan.days = plan.days.map((day: any, dayIndex: number) => ({
-    name: day?.name || `Giorno ${dayIndex + 1}`,
-    order: positiveNumber(day?.order, dayIndex + 1),
-    description: day?.description ?? "",
-    exercises: Array.isArray(day?.exercises) ? day.exercises.map((exercise: any, exerciseIndex: number) => ({
-      order: positiveNumber(exercise?.order, exerciseIndex + 1),
-      name: exercise?.name || `Esercizio ${exerciseIndex + 1}`,
-      exercise_db_query: exercise?.exercise_db_query ?? "",
-      exercise_db_id: exercise?.exercise_db_id ?? "",
-      exercise_db_name: "",
-      exercise_db_confidence: "",
-      muscle_group: exercise?.muscle_group ?? "",
-      sets: positiveNumber(exercise?.sets, 1),
-      reps: String(exercise?.reps ?? ""),
-      rest_seconds: positiveNumber(exercise?.rest_seconds, 90),
-      target_rpe: exercise?.target_rpe ?? "",
-      suggested_weight: exercise?.suggested_weight ?? "",
-      technique_notes: exercise?.technique_notes ?? "",
-      tips: exercise?.tips ?? "",
-      video_url: exercise?.video_url ?? "",
-      media_url: "",
-      trainer_notes: exercise?.trainer_notes ?? "",
-      alternative_queries: exercise?.alternative_queries,
-      equipment_hint: exercise?.equipment_hint,
-      target_muscle_hint: exercise?.target_muscle_hint,
-      body_part_hint: exercise?.body_part_hint,
-      movement_pattern: exercise?.movement_pattern,
-      movement_patterns: exercise?.movement_patterns,
-      position_hint: exercise?.position_hint,
-      grip_hint: exercise?.grip_hint,
-      bench_angle_hint: exercise?.bench_angle_hint,
-      side_hint: exercise?.side_hint,
-      variant_hints: exercise?.variant_hints,
-    })) : [],
-  }));
+  plan.days = plan.days.map((day: any, dayIndex: number) => {
+    const groupOrderCounters = new Map<string, number>();
+    const exercises = Array.isArray(day?.exercises)
+      ? day.exercises.map((exercise: any, exerciseIndex: number) => {
+          const groupType = normalizeGroupType(exercise?.group_type);
+          const groupId = groupType
+            ? normalizeGroupId(exercise?.group_id) ?? "A"
+            : normalizeGroupId(exercise?.group_id);
+          let groupOrder: number | undefined;
+          if (groupType && groupId) {
+            const nextCounter = (groupOrderCounters.get(groupId) ?? 0) + 1;
+            groupOrderCounters.set(groupId, nextCounter);
+            groupOrder =
+              exercise?.group_order !== null &&
+              exercise?.group_order !== undefined &&
+              exercise?.group_order !== ""
+                ? positiveNumber(exercise.group_order, nextCounter)
+                : nextCounter;
+          }
+
+          return {
+            order: positiveNumber(exercise?.order, exerciseIndex + 1),
+            name: exercise?.name || `Esercizio ${exerciseIndex + 1}`,
+            exercise_db_query: exercise?.exercise_db_query ?? "",
+            exercise_db_id: exercise?.exercise_db_id ?? "",
+            exercise_db_name: "",
+            exercise_db_confidence: "",
+            muscle_group: exercise?.muscle_group ?? "",
+            sets: positiveNumber(exercise?.sets, 1),
+            reps: String(exercise?.reps ?? ""),
+            rest_seconds: nonNegativeNumber(exercise?.rest_seconds, 90),
+            target_rpe: exercise?.target_rpe ?? "",
+            suggested_weight: exercise?.suggested_weight ?? "",
+            technique_notes: exercise?.technique_notes ?? "",
+            tips: exercise?.tips ?? "",
+            video_url: exercise?.video_url ?? "",
+            media_url: "",
+            trainer_notes: exercise?.trainer_notes ?? "",
+            group_type: groupType ?? undefined,
+            group_id: groupId ?? undefined,
+            group_order: groupOrder,
+            alternative_queries: exercise?.alternative_queries,
+            equipment_hint: exercise?.equipment_hint,
+            target_muscle_hint: exercise?.target_muscle_hint,
+            body_part_hint: exercise?.body_part_hint,
+            movement_pattern: exercise?.movement_pattern,
+            movement_patterns: exercise?.movement_patterns,
+            position_hint: exercise?.position_hint,
+            grip_hint: exercise?.grip_hint,
+            bench_angle_hint: exercise?.bench_angle_hint,
+            side_hint: exercise?.side_hint,
+            variant_hints: exercise?.variant_hints,
+          };
+        })
+      : [];
+
+    return {
+      name: day?.name || `Giorno ${dayIndex + 1}`,
+      order: positiveNumber(day?.order, dayIndex + 1),
+      description: day?.description ?? "",
+      exercises,
+    };
+  });
 
   return plan;
 }

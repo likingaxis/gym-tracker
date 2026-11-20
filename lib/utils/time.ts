@@ -1,5 +1,6 @@
 export function formatRestTime(seconds: number | null | undefined) {
-  if (!seconds || seconds <= 0) return "Recupero non indicato";
+  if (seconds === null || seconds === undefined || seconds < 0) return "Recupero non indicato";
+  if (seconds === 0) return "0 sec";
 
   const minutes = Math.floor(seconds / 60);
   const remainingSeconds = seconds % 60;

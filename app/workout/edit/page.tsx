@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { WorkoutPlanEditor } from "@/components/workout/WorkoutPlanEditor";
 import { getActivePlan } from "@/lib/api-client/workout";
+import { getRawGroupFields } from "@/lib/workoutGroups";
 
 export default function WorkoutEditPage() {
   const router = useRouter();
@@ -64,23 +65,30 @@ export default function WorkoutEditPage() {
         description: day.description ?? "",
         exercises: [...(day.exercises ?? [])]
           .sort((a: any, b: any) => Number(a.exercise_order ?? 0) - Number(b.exercise_order ?? 0))
-          .map((exercise: any) => ({
-            id: exercise.id,
-            exercise_order: Number(exercise.exercise_order ?? 0),
-            name: exercise.name ?? "Esercizio",
-            muscle_group: exercise.muscle_group ?? "",
-            sets: exercise.sets ?? null,
-            reps: exercise.reps ?? "",
-            rest_seconds: exercise.rest_seconds ?? null,
-            suggested_weight: exercise.suggested_weight ?? "",
-            target_rpe: exercise.target_rpe ?? "",
-            technique_notes: exercise.technique_notes ?? "",
-            tips: exercise.tips ?? "",
-            trainer_notes: exercise.trainer_notes ?? "",
-            exercise_db_query: exercise.exercise_db_query ?? "",
-            exercise_db_id: exercise.exercise_db_id ?? "",
-            media_url: exercise.media_url ?? "",
-          })),
+          .map((exercise: any) => {
+            const group = getRawGroupFields(exercise);
+            return {
+              id: exercise.id,
+              exercise_order: Number(exercise.exercise_order ?? 0),
+              name: exercise.name ?? "Esercizio",
+              muscle_group: exercise.muscle_group ?? "",
+              sets: exercise.sets ?? null,
+              reps: exercise.reps ?? "",
+              rest_seconds: exercise.rest_seconds ?? null,
+              suggested_weight: exercise.suggested_weight ?? "",
+              target_rpe: exercise.target_rpe ?? "",
+              technique_notes: exercise.technique_notes ?? "",
+              tips: exercise.tips ?? "",
+              trainer_notes: exercise.trainer_notes ?? "",
+              exercise_db_query: exercise.exercise_db_query ?? "",
+              exercise_db_id: exercise.exercise_db_id ?? "",
+              media_url: exercise.media_url ?? "",
+              group_type: group.group_type,
+              group_id: group.group_id,
+              group_order: group.group_order,
+              exercise_db_raw: exercise.exercise_db_raw ?? null,
+            };
+          }),
       })),
   };
 

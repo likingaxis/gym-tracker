@@ -36,6 +36,11 @@ import { formatClockTimeFromNow, formatDurationShort } from "@/lib/progress";
 import { AnimatedAccordion } from "@/components/motion/AnimatedAccordion";
 import { ExerciseDbMediaPicker } from "@/components/workout/ExerciseDbMediaPicker";
 import { useAppDialog } from "@/components/ui/AppDialogProvider";
+import {
+  getSetCompletionPlan,
+  resolveExerciseGroups,
+  type ExerciseGroupMeta,
+} from "@/lib/workoutGroups";
 
 type Exercise = {
   id: string;
@@ -46,6 +51,7 @@ type Exercise = {
   exercise_db_confidence?: string | null;
   exercise_db_match_status?: string | null;
   exercise_db_match_score?: number | null;
+  exercise_db_raw?: unknown;
   muscle_group?: string | null;
   target_rpe?: string | null;
   sets?: number | null;
@@ -57,6 +63,9 @@ type Exercise = {
   video_url?: string | null;
   media_url?: string | null;
   trainer_notes?: string | null;
+  group_type?: "superset" | "jumpset" | "triset" | "circuit" | null;
+  group_id?: string | null;
+  group_order?: number | null;
 };
 
 type Day = {
@@ -95,6 +104,7 @@ type ActiveTimer = {
   isRunning: boolean;
   finished: boolean;
   targetEndAt: number | null;
+  nextLabel?: string | null;
 };
 
 type DurationEstimate = {
@@ -415,6 +425,11 @@ export function WorkoutSessionClient({ day, durationEstimate }: Props) {
     return Math.max(60, Math.round(total * remainingRatio));
   }, [completedSets, durationEstimate?.estimatedSeconds, totalSets]);
 
+  const exerciseGroups = useMemo(
+    () => resolveExerciseGroups(exercises),
+    [exercises],
+  );
+
   const currentExerciseId = useMemo(() => {
     return exercises.find((exercise) => !drafts[exercise.id]?.completed)?.id ?? null;
   }, [drafts, exercises]);
@@ -487,16 +502,26 @@ export function WorkoutSessionClient({ day, durationEstimate }: Props) {
   }
 
   function completeSetAndStartRest(exercise: Exercise, setNumber: number) {
+    const plan = getSetCompletionPlan({
+      exercises,
+      drafts,
+      groups: exerciseGroups,
+      currentExercise: exercise,
+      completedSetNumber: setNumber,
+    });
+
     updateSet(exercise.id, setNumber, { completed: true });
-    const draft = drafts[exercise.id];
-    if (!draft) return;
-    if (setNumber < draft.sets.length) {
-      startTimer(exercise);
-    } else {
-      // It's the last set, auto-advance to next exercise after a short delay
-      setTimeout(() => {
-        goToNextIncompleteExercise(exercise.id);
-      }, 700);
+
+    if (plan.shouldStartTimer && plan.restSeconds > 0) {
+      startTimer(exercise, plan.restSeconds, plan.nextStepLabel);
+    }
+
+    if (plan.nextExerciseIndex !== null && plan.nextExerciseIndex !== focusedIndex) {
+      const targetIndex = plan.nextExerciseIndex;
+      window.setTimeout(() => {
+        setNavDirection(targetIndex > focusedIndex ? 1 : -1);
+        setFocusedIndex(targetIndex);
+      }, 550);
     }
   }
 
@@ -551,8 +576,21 @@ export function WorkoutSessionClient({ day, durationEstimate }: Props) {
     });
   }
 
-  function startTimer(exercise: Exercise) {
-    const total = Math.max(1, Number(exercise.rest_seconds ?? 60));
+  function startTimer(
+    exercise: Exercise,
+    customRestSeconds?: number,
+    nextLabel?: string | null,
+  ) {
+    const fallbackGroupRest = exerciseGroups.get(exercise.id)?.roundRestSeconds;
+    const rawTotal =
+      customRestSeconds !== undefined
+        ? customRestSeconds
+        : exercise.rest_seconds && exercise.rest_seconds > 0
+          ? exercise.rest_seconds
+          : fallbackGroupRest && fallbackGroupRest > 0
+            ? fallbackGroupRest
+            : 60;
+    const total = Math.max(1, Number(rawTotal));
     setActiveTimer({
       exerciseId: exercise.id,
       exerciseName: exercise.name,
@@ -561,6 +599,7 @@ export function WorkoutSessionClient({ day, durationEstimate }: Props) {
       isRunning: true,
       finished: false,
       targetEndAt: Date.now() + total * 1000,
+      nextLabel: nextLabel ?? null,
     });
   }
 
@@ -819,6 +858,7 @@ export function WorkoutSessionClient({ day, durationEstimate }: Props) {
             onClose={() => setProgressOpen(false)}
             dayName={day.name ?? "Allenamento"}
             exercises={exercises}
+            exerciseGroups={exerciseGroups}
             drafts={drafts}
             completedSets={completedSets}
             totalSets={totalSets}
@@ -906,6 +946,12 @@ export function WorkoutSessionClient({ day, durationEstimate }: Props) {
           <AnimatePresence mode="wait" custom={navDirection}>
             {focusedIndex < exercises.length ? (() => {
               const ex = exercises[focusedIndex];
+              const focusedGroupMeta = exerciseGroups.get(ex.id);
+              const focusedGroupMembers = focusedGroupMeta
+                ? focusedGroupMeta.memberIds
+                    .map((id) => exercises.find((item) => item.id === id))
+                    .filter((item): item is Exercise => Boolean(item))
+                : [];
               return (
                 <motion.div
                   key={ex.id}
@@ -937,6 +983,10 @@ export function WorkoutSessionClient({ day, durationEstimate }: Props) {
                   <TrackableExerciseCard
                   index={focusedIndex}
                   exercise={ex}
+                  groupMeta={focusedGroupMeta}
+                  groupMembers={focusedGroupMembers}
+                  exerciseGroups={exerciseGroups}
+                  drafts={drafts}
                   draft={drafts[ex.id]}
                   activeTimer={activeTimer}
                   onChange={(patch) => updateDraft(ex.id, patch)}
@@ -948,6 +998,13 @@ export function WorkoutSessionClient({ day, durationEstimate }: Props) {
                   onResumeTimer={resumeTimer}
                   onResetTimer={resetTimer}
                   onAdjustTimer={adjustTimer}
+                  onJumpToExercise={(targetId) => {
+                    const idx = exercises.findIndex((item) => item.id === targetId);
+                    if (idx !== -1 && idx !== focusedIndex) {
+                      setNavDirection(idx > focusedIndex ? 1 : -1);
+                      setFocusedIndex(idx);
+                    }
+                  }}
                   onGoNext={() => {
                     const nextIdx = Math.min(exercises.length - 1, focusedIndex + 1);
                     setNavDirection(1);
@@ -1092,6 +1149,7 @@ function WorkoutProgressSheet({
   onClose,
   dayName,
   exercises,
+  exerciseGroups,
   drafts,
   completedSets,
   totalSets,
@@ -1107,6 +1165,7 @@ function WorkoutProgressSheet({
   onClose: () => void;
   dayName: string;
   exercises: Exercise[];
+  exerciseGroups: Map<string, ExerciseGroupMeta>;
   drafts: Record<string, ExerciseDraft>;
   completedSets: number;
   totalSets: number;
@@ -1171,6 +1230,7 @@ function WorkoutProgressSheet({
                 const total = Math.max(1, Number(exercise.sets ?? draft?.sets.length ?? 1));
                 const completed = draft?.sets.filter((set) => set.completed).length ?? 0;
                 const status = completed >= total ? "completed" : completed > 0 ? "active" : "todo";
+                const groupMeta = exerciseGroups.get(exercise.id);
                 return (
                   <button
                     key={exercise.id}
@@ -1189,9 +1249,19 @@ function WorkoutProgressSheet({
                     >
                       {status === "completed" ? "✓" : status === "active" ? "●" : "○"}
                     </span>
+                    {groupMeta ? (
+                      <span className="shrink-0 rounded-md border border-[#c65f37]/40 bg-[#c65f37]/15 px-1.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-[#c65f37]">
+                        {groupMeta.codeLabel}
+                      </span>
+                    ) : null}
                     <span className="min-w-0 flex-1 truncate text-left text-sm font-bold text-slate-100">
                       {exercise.name}
                     </span>
+                    {groupMeta ? (
+                      <span className="hidden sm:inline shrink-0 text-[10px] font-bold uppercase tracking-wider text-gym-muted">
+                        {groupMeta.groupType}
+                      </span>
+                    ) : null}
                     <span className="text-sm font-extrabold text-gym-muted shrink-0">
                       {completed}/{total}
                     </span>
@@ -1227,6 +1297,10 @@ function TrackableExerciseCard({
   className,
   index,
   exercise,
+  groupMeta,
+  groupMembers = [],
+  exerciseGroups,
+  drafts = {},
   draft,
   activeTimer,
   onChange,
@@ -1238,6 +1312,7 @@ function TrackableExerciseCard({
   onResumeTimer,
   onResetTimer,
   onAdjustTimer,
+  onJumpToExercise,
   onGoNext,
   onMediaSaved,
   setCardRef,
@@ -1245,6 +1320,10 @@ function TrackableExerciseCard({
   className?: string;
   index: number;
   exercise: Exercise;
+  groupMeta?: ExerciseGroupMeta;
+  groupMembers?: Exercise[];
+  exerciseGroups?: Map<string, ExerciseGroupMeta>;
+  drafts?: Record<string, ExerciseDraft>;
   draft?: ExerciseDraft;
   activeTimer: ActiveTimer | null;
   onChange: (patch: Partial<ExerciseDraft>) => void;
@@ -1256,6 +1335,7 @@ function TrackableExerciseCard({
   onResumeTimer: () => void;
   onResetTimer: () => void;
   onAdjustTimer: (deltaSeconds: number) => void;
+  onJumpToExercise?: (exerciseId: string) => void;
   onGoNext: () => void;
   onMediaSaved: (patch: Partial<Exercise>) => void;
   setCardRef: (element: HTMLDivElement | null) => void;
@@ -1279,6 +1359,36 @@ function TrackableExerciseCard({
   const nextSet = draft.sets.find((set) => !set.completed) ?? null;
   const nextSetNumber = nextSet?.set_number ?? null;
 
+  const hasGroup = Boolean(groupMeta && groupMembers.length >= 2);
+  const totalRounds = hasGroup
+    ? Math.max(...groupMembers.map((m) => Math.max(1, drafts[m.id]?.sets.length ?? Number(m.sets ?? 1))))
+    : draft.sets.length;
+  const currentRound = nextSet ? nextSet.set_number : totalRounds;
+
+  let completeButtonLabel = "Completa serie";
+  if (nextSet && groupMeta && hasGroup) {
+    const currentMemberIdx = groupMembers.findIndex((m) => m.id === exercise.id);
+    const nextMemberInRound = groupMembers
+      .slice(currentMemberIdx + 1)
+      .find((m) => {
+        const mDraft = drafts[m.id];
+        const mSets = Math.max(1, mDraft?.sets.length ?? Number(m.sets ?? 1));
+        return (
+          nextSet.set_number <= mSets &&
+          !mDraft?.sets.find((s) => s.set_number === nextSet.set_number)?.completed
+        );
+      });
+    if (nextMemberInRound) {
+      const nextCode = exerciseGroups?.get(nextMemberInRound.id)?.codeLabel ?? "";
+      if (nextCode) {
+        completeButtonLabel =
+          groupMeta.groupType === "jumpset"
+            ? `Completa serie · Recupero → ${nextCode}`
+            : `Completa serie · Vai a ${nextCode}`;
+      }
+    }
+  }
+
   return (
     <motion.div
       ref={setCardRef}
@@ -1296,10 +1406,18 @@ function TrackableExerciseCard({
         {/* Header (Fisso) */}
         <div className="flex items-start justify-between gap-3 shrink-0">
           <div className="min-w-0 flex-1">
-            <p className="technical-label">{exercise.muscle_group ?? "Esercizio"}</p>
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="technical-label">{exercise.muscle_group ?? "Esercizio"}</p>
+              {groupMeta ? (
+                <span className="inline-flex items-center rounded-md border border-[#c65f37]/40 bg-[#c65f37]/15 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-[#c65f37]">
+                  {groupMeta.badgeLabel}
+                </span>
+              ) : null}
+            </div>
             <h3 className="mt-1 line-clamp-2 text-2xl font-extrabold leading-tight">{exercise.name}</h3>
             <p className="mt-2 text-sm font-bold text-slate-300">
               {exercise.sets ?? "-"} × {exercise.reps ?? "-"} · {formatRestTime(exercise.rest_seconds)}
+              {groupMeta ? ` · ${groupMeta.badgeLabel.toLowerCase()}` : ""}
               {exercise.target_rpe ? ` · RPE ${exercise.target_rpe}` : ""}
             </p>
           </div>
@@ -1310,6 +1428,76 @@ function TrackableExerciseCard({
             />
           </div>
         </div>
+
+        {/* Group Stepper Bar (Superserie / Jumpset / Triset / Circuito) */}
+        {groupMeta && hasGroup ? (
+          <div className="mt-3 shrink-0 rounded-2xl border border-white/10 bg-white/[0.025] p-3">
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+              <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#c65f37]">
+                {groupMeta.groupTitle} · giro {currentRound} di {totalRounds}
+              </span>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-gym-muted">
+                {groupMeta.groupType === "jumpset"
+                  ? `${formatRestTime(exercise.rest_seconds)} ogni serie`
+                  : `${formatRestTime(groupMeta.roundRestSeconds)} fine giro`}
+              </span>
+            </div>
+            <div className="flex items-stretch gap-2 overflow-x-auto [&::-webkit-scrollbar]:hidden">
+              {groupMembers.map((member) => {
+                const memberMeta = exerciseGroups?.get(member.id);
+                const isCurrentMember = member.id === exercise.id;
+                const memberDraft = drafts[member.id];
+                const currentRoundDone = Boolean(
+                  memberDraft?.sets.find((s) => s.set_number === currentRound)?.completed,
+                );
+                return (
+                  <button
+                    key={member.id}
+                    type="button"
+                    onClick={() => onJumpToExercise?.(member.id)}
+                    className={`min-w-[108px] flex-1 rounded-xl border px-2.5 py-2 text-left transition active:scale-95 ${
+                      isCurrentMember
+                        ? "border-[#c65f37]/50 bg-[#c65f37]/20 text-white shadow-[0_0_12px_rgba(198,95,55,0.2)]"
+                        : currentRoundDone
+                          ? "border-gym-success/40 bg-gym-success/10 text-slate-200"
+                          : "border-white/10 bg-white/[0.03] text-slate-300 hover:bg-white/[0.06]"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-1">
+                      <span
+                        className={`text-xs font-black ${
+                          isCurrentMember
+                            ? "text-[#c65f37]"
+                            : currentRoundDone
+                              ? "text-gym-success"
+                              : "text-slate-200"
+                        }`}
+                      >
+                        {memberMeta?.codeLabel ?? ""}
+                      </span>
+                      {currentRoundDone ? (
+                        <CheckCircle2 size={12} className="shrink-0 text-gym-success" />
+                      ) : null}
+                    </div>
+                    <p className="mt-0.5 truncate text-[11px] font-semibold text-slate-300">
+                      {member.name}
+                    </p>
+                  </button>
+                );
+              })}
+              <div className="flex min-w-[78px] shrink-0 flex-col justify-center rounded-xl border border-white/10 bg-black/30 px-2.5 py-2 text-left">
+                <span className="text-xs font-black text-white">
+                  {groupMeta.groupType === "jumpset"
+                    ? formatRestTime(exercise.rest_seconds)
+                    : formatRestTime(groupMeta.roundRestSeconds)}
+                </span>
+                <span className="mt-0.5 text-[10px] font-bold text-gym-muted">
+                  {groupMeta.groupType === "jumpset" ? "Ogni serie" : "Recupero"}
+                </span>
+              </div>
+            </div>
+          </div>
+        ) : null}
 
         {/* Scrollable Content (Serie e Note) */}
         <div 
@@ -1408,7 +1596,7 @@ function TrackableExerciseCard({
                 whileTap={reduceMotion ? undefined : { scale: 0.96 }}
                 className="mt-4 w-full rounded-[1.25rem] bg-gym-accent px-4 py-4 text-lg font-extrabold text-[#050708] shadow-lg shadow-gym-accent/30 hover:scale-[1.01] active:scale-[0.98] transition-all"
               >
-                Completa serie
+                {completeButtonLabel}
               </motion.button>
             </motion.div>
           ) : (
@@ -1791,6 +1979,11 @@ function ActiveTimerBanner({
             >
               {formatCountdown(timer.remainingSeconds)}
             </p>
+            {timer.nextLabel ? (
+              <p className="mt-1 truncate text-[11px] font-semibold text-gym-muted">
+                {timer.nextLabel}
+              </p>
+            ) : null}
           </div>
         </div>
 
@@ -2009,7 +2202,12 @@ function getPlannedRepsBySet(
       .split("-")
       .map((part) => part.trim())
       .filter(Boolean);
-    if (parts.length === setCount) return parts;
+    if (parts.length > 0) {
+      return Array.from(
+        { length: setCount },
+        (_item, index) => parts[index] ?? parts[parts.length - 1] ?? value,
+      );
+    }
   }
 
   return Array.from({ length: setCount }, () => value);

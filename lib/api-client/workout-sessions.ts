@@ -766,7 +766,9 @@ function getPlannedRepForSet(
       .split("-")
       .map((part) => part.trim())
       .filter(Boolean);
-    if (parts.length === setCount) return parts[setNumber - 1] ?? value;
+    if (parts.length > 0) {
+      return parts[setNumber - 1] ?? parts[parts.length - 1] ?? value;
+    }
   }
 
   return value;

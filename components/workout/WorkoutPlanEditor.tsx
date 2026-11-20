@@ -24,6 +24,12 @@ import {
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { ExerciseDbMediaPicker } from "@/components/workout/ExerciseDbMediaPicker";
+import {
+  normalizeGroupId,
+  normalizeGroupType,
+  resolveExerciseGroups,
+  type ExerciseGroupType,
+} from "@/lib/workoutGroups";
 
 type EditableExercise = {
   id?: string;
@@ -42,6 +48,10 @@ type EditableExercise = {
   exercise_db_name?: string | null;
   exercise_db_id?: string | null;
   media_url?: string | null;
+  group_type?: string | null;
+  group_id?: string | null;
+  group_order?: number | null;
+  exercise_db_raw?: unknown;
 };
 
 type EditableDay = {
@@ -94,8 +104,20 @@ export function WorkoutPlanEditor({ initialPlan }: { initialPlan: EditablePlan }
     [plan.days]
   );
   const selectedDay = plan.days[selectedDayIndex] ?? plan.days[0];
+  const selectedDayGroups = useMemo(() => {
+    if (!selectedDay) return new Map();
+    return resolveExerciseGroups(
+      selectedDay.exercises.map((ex, idx) => ({
+        ...ex,
+        id: ex.id ?? `draft-${selectedDayIndex}-${idx}`,
+      })),
+    );
+  }, [selectedDay, selectedDayIndex]);
   const editingExercise = selectedExercise
     ? plan.days[selectedExercise.dayIndex]?.exercises[selectedExercise.exerciseIndex]
+    : null;
+  const nextEditingExercise = selectedExercise
+    ? plan.days[selectedExercise.dayIndex]?.exercises[selectedExercise.exerciseIndex + 1] ?? null
     : null;
 
   function updatePlanField<K extends keyof EditablePlan>(field: K, value: EditablePlan[K]) {
@@ -127,16 +149,58 @@ export function WorkoutPlanEditor({ initialPlan }: { initialPlan: EditablePlan }
   function updateExercise(dayIndex: number, exerciseIndex: number, patch: Partial<EditableExercise>) {
     setPlan((current) => ({
       ...current,
-      days: current.days.map((day, currentDayIndex) =>
-        currentDayIndex !== dayIndex
-          ? day
-          : {
-              ...day,
-              exercises: day.exercises.map((exercise, currentExerciseIndex) =>
-                currentExerciseIndex === exerciseIndex ? { ...exercise, ...patch } : exercise
-              ),
-            }
-      ),
+      days: current.days.map((day, currentDayIndex) => {
+        if (currentDayIndex !== dayIndex) return day;
+        const nextExercises = day.exercises.map((exercise, currentExerciseIndex) =>
+          currentExerciseIndex === exerciseIndex ? { ...exercise, ...patch } : exercise
+        );
+        const touchesGroup =
+          Object.prototype.hasOwnProperty.call(patch, "group_type") ||
+          Object.prototype.hasOwnProperty.call(patch, "group_id");
+        return {
+          ...day,
+          exercises: touchesGroup ? normalizeExercises(nextExercises) : nextExercises,
+        };
+      }),
+    }));
+  }
+
+  function linkWithNextExercise(dayIndex: number, exerciseIndex: number) {
+    setPlan((current) => ({
+      ...current,
+      days: current.days.map((day, currentDayIndex) => {
+        if (currentDayIndex !== dayIndex) return day;
+        const currentEx = day.exercises[exerciseIndex];
+        const nextEx = day.exercises[exerciseIndex + 1];
+        if (!currentEx || !nextEx) return day;
+
+        const groupType = normalizeGroupType(currentEx.group_type) ?? "superset";
+        const groupId = normalizeGroupId(currentEx.group_id) ?? "A";
+        const shouldZeroRest =
+          groupType === "superset" || groupType === "triset" || groupType === "circuit";
+
+        const updated = day.exercises.map((ex, idx) => {
+          if (idx === exerciseIndex) {
+            return {
+              ...ex,
+              group_type: groupType,
+              group_id: groupId,
+              rest_seconds:
+                shouldZeroRest && (ex.rest_seconds ?? 90) > 30 ? 0 : ex.rest_seconds,
+            };
+          }
+          if (idx === exerciseIndex + 1) {
+            return {
+              ...ex,
+              group_type: groupType,
+              group_id: groupId,
+            };
+          }
+          return ex;
+        });
+
+        return { ...day, exercises: normalizeExercises(updated) };
+      }),
     }));
   }
 
@@ -415,59 +479,73 @@ export function WorkoutPlanEditor({ initialPlan }: { initialPlan: EditablePlan }
 
               {selectedDay.exercises.length > 0 ? (
                 <div className="space-y-2.5">
-                  {selectedDay.exercises.map((exercise, exerciseIndex) => (
-                    <motion.div
-                      key={exercise.id ?? `ex-${exerciseIndex}`}
-                      whileHover={{ scale: 1.01 }}
-                      className="group flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-3.5 transition-all hover:border-gym-accent/40 hover:bg-white/[0.07] shadow-sm"
-                    >
-                      {/* Clicca sulla card per aprire l'editor full-screen */}
-                      <button
-                        type="button"
-                        onClick={() => setSelectedExercise({ dayIndex: selectedDayIndex, exerciseIndex })}
-                        className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                  {selectedDay.exercises.map((exercise, exerciseIndex) => {
+                    const groupMeta = selectedDayGroups.get(
+                      exercise.id ?? `draft-${selectedDayIndex}-${exerciseIndex}`,
+                    );
+                    return (
+                      <motion.div
+                        key={exercise.id ?? `ex-${exerciseIndex}`}
+                        whileHover={{ scale: 1.01 }}
+                        className={`group flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-3.5 transition-all hover:border-gym-accent/40 hover:bg-white/[0.07] shadow-sm ${
+                          groupMeta ? "border-l-4 border-l-[#c65f37]" : ""
+                        }`}
                       >
-                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-gym-accent/30 bg-gym-accent/15 text-xs font-black text-gym-accent">
-                          {String(exercise.exercise_order).padStart(2, "0")}
-                        </span>
-                        <div className="min-w-0 flex-1">
-                          <strong className="block truncate text-base font-extrabold text-white group-hover:text-gym-accent transition-colors">
-                            {exercise.name}
-                          </strong>
-                          <span className="block text-xs font-semibold text-gym-muted mt-0.5">
-                            {exercise.sets || 0} serie × {exercise.reps || "-"} · {exercise.rest_seconds || 0}s rec
-                            {exercise.muscle_group ? ` · ${exercise.muscle_group}` : ""}
-                          </span>
-                        </div>
-                      </button>
-
-                      {/* Bottoni Ordinamento ed Edit */}
-                      <div className="flex items-center gap-1 shrink-0">
-                        <IconButton
-                          label="Sposta su"
-                          onClick={() => moveExercise(selectedDayIndex, exerciseIndex, -1)}
-                          disabled={exerciseIndex === 0}
-                        >
-                          <ArrowUp size={15} />
-                        </IconButton>
-                        <IconButton
-                          label="Sposta giù"
-                          onClick={() => moveExercise(selectedDayIndex, exerciseIndex, 1)}
-                          disabled={exerciseIndex === selectedDay.exercises.length - 1}
-                        >
-                          <ArrowDown size={15} />
-                        </IconButton>
+                        {/* Clicca sulla card per aprire l'editor full-screen */}
                         <button
                           type="button"
                           onClick={() => setSelectedExercise({ dayIndex: selectedDayIndex, exerciseIndex })}
-                          className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/10 text-slate-200 hover:bg-white/20 active:scale-95 transition"
-                          aria-label={`Modifica ${exercise.name}`}
+                          className="flex min-w-0 flex-1 items-center gap-3 text-left"
                         >
-                          <Edit3 size={16} />
+                          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-gym-accent/30 bg-gym-accent/15 text-xs font-black text-gym-accent">
+                            {groupMeta ? groupMeta.codeLabel : String(exercise.exercise_order).padStart(2, "0")}
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <strong className="truncate text-base font-extrabold text-white group-hover:text-gym-accent transition-colors">
+                                {exercise.name}
+                              </strong>
+                              {groupMeta ? (
+                                <span className="shrink-0 rounded-md border border-[#c65f37]/40 bg-[#c65f37]/15 px-1.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-[#c65f37]">
+                                  {groupMeta.badgeLabel}
+                                </span>
+                              ) : null}
+                            </div>
+                            <span className="block text-xs font-semibold text-gym-muted mt-0.5">
+                              {exercise.sets || 0} serie × {exercise.reps || "-"} · {exercise.rest_seconds ?? 0}s rec
+                              {exercise.muscle_group ? ` · ${exercise.muscle_group}` : ""}
+                            </span>
+                          </div>
                         </button>
-                      </div>
-                    </motion.div>
-                  ))}
+
+                        {/* Bottoni Ordinamento ed Edit */}
+                        <div className="flex items-center gap-1 shrink-0">
+                          <IconButton
+                            label="Sposta su"
+                            onClick={() => moveExercise(selectedDayIndex, exerciseIndex, -1)}
+                            disabled={exerciseIndex === 0}
+                          >
+                            <ArrowUp size={15} />
+                          </IconButton>
+                          <IconButton
+                            label="Sposta giù"
+                            onClick={() => moveExercise(selectedDayIndex, exerciseIndex, 1)}
+                            disabled={exerciseIndex === selectedDay.exercises.length - 1}
+                          >
+                            <ArrowDown size={15} />
+                          </IconButton>
+                          <button
+                            type="button"
+                            onClick={() => setSelectedExercise({ dayIndex: selectedDayIndex, exerciseIndex })}
+                            className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/10 text-slate-200 hover:bg-white/20 active:scale-95 transition"
+                            aria-label={`Modifica ${exercise.name}`}
+                          >
+                            <Edit3 size={16} />
+                          </button>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
                 </div>
               ) : (
                 <button
@@ -616,6 +694,124 @@ export function WorkoutPlanEditor({ initialPlan }: { initialPlan: EditablePlan }
                         />
                       </Field>
                     </div>
+                  </Card>
+
+                  <Card className="space-y-4 p-4">
+                    <div>
+                      <p className="technical-label text-gym-accent">Superserie / Jumpset / Gruppo</p>
+                      <p className="mt-1 text-xs text-gym-muted">
+                        Collega più esercizi con la stessa lettera (es. A1 + A2) per alternare le serie nel player.
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                      {(
+                        [
+                          { value: null, label: "Singolo" },
+                          { value: "superset", label: "Superserie (SS)" },
+                          { value: "jumpset", label: "Jumpset (JS)" },
+                          { value: "triset", label: "Triset" },
+                          { value: "circuit", label: "Circuito" },
+                        ] as Array<{ value: ExerciseGroupType | null; label: string }>
+                      ).map((option) => {
+                        const activeType = normalizeGroupType(editingExercise.group_type);
+                        const isSelected = activeType === option.value;
+                        return (
+                          <button
+                            key={option.label}
+                            type="button"
+                            onClick={() =>
+                              updateExercise(selectedExercise.dayIndex, selectedExercise.exerciseIndex, {
+                                group_type: option.value,
+                                group_id: option.value
+                                  ? normalizeGroupId(editingExercise.group_id) ?? "A"
+                                  : null,
+                                group_order: option.value ? editingExercise.group_order ?? 1 : null,
+                              })
+                            }
+                            className={`rounded-xl border px-3 py-2 text-xs font-extrabold transition active:scale-95 ${
+                              isSelected
+                                ? "border-[#c65f37] bg-[#c65f37]/20 text-white"
+                                : "border-white/10 bg-white/[0.03] text-slate-300 hover:bg-white/[0.06]"
+                            }`}
+                          >
+                            {option.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {normalizeGroupType(editingExercise.group_type) ? (
+                      <div className="space-y-3 border-t border-white/10 pt-3">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="field-label">Lettera gruppo</span>
+                          <div className="flex gap-1.5">
+                            {["A", "B", "C", "D", "E"].map((letter) => {
+                              const currentId = normalizeGroupId(editingExercise.group_id) ?? "A";
+                              const active = currentId === letter;
+                              return (
+                                <button
+                                  key={letter}
+                                  type="button"
+                                  onClick={() =>
+                                    updateExercise(
+                                      selectedExercise.dayIndex,
+                                      selectedExercise.exerciseIndex,
+                                      { group_id: letter },
+                                    )
+                                  }
+                                  className={`flex h-9 w-9 items-center justify-center rounded-xl border text-xs font-black transition active:scale-95 ${
+                                    active
+                                      ? "border-[#c65f37] bg-[#c65f37] text-slate-950"
+                                      : "border-white/10 bg-white/[0.04] text-slate-300 hover:bg-white/[0.08]"
+                                  }`}
+                                >
+                                  {letter}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        <div className="flex flex-wrap gap-2">
+                          {nextEditingExercise &&
+                          !(
+                            normalizeGroupId(nextEditingExercise.group_id) ===
+                              (normalizeGroupId(editingExercise.group_id) ?? "A") &&
+                            normalizeGroupType(nextEditingExercise.group_type) ===
+                              normalizeGroupType(editingExercise.group_type)
+                          ) ? (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                linkWithNextExercise(
+                                  selectedExercise.dayIndex,
+                                  selectedExercise.exerciseIndex,
+                                )
+                              }
+                              className="flex-1 rounded-xl border border-[#c65f37]/40 bg-[#c65f37]/15 px-3 py-2.5 text-xs font-extrabold text-[#c65f37] transition hover:bg-[#c65f37]/25 active:scale-95"
+                            >
+                              Collega anche «{nextEditingExercise.name}» nel gruppo{" "}
+                              {normalizeGroupId(editingExercise.group_id) ?? "A"}
+                            </button>
+                          ) : null}
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              updateExercise(
+                                selectedExercise.dayIndex,
+                                selectedExercise.exerciseIndex,
+                                { group_type: null, group_id: null, group_order: null },
+                              )
+                            }
+                            className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-xs font-bold text-slate-300 transition hover:bg-white/[0.08] active:scale-95"
+                          >
+                            Stacca dal gruppo
+                          </button>
+                        </div>
+                      </div>
+                    ) : null}
                   </Card>
 
                   <Card className="space-y-4 p-4">
@@ -776,7 +972,24 @@ function normalizeDays(days: EditableDay[]): EditableDay[] {
   }));
 }
 function normalizeExercises(exercises: EditableExercise[]): EditableExercise[] {
-  return exercises.map((exercise, index) => ({ ...exercise, exercise_order: index + 1 }));
+  const groupCounters = new Map<string, number>();
+  return exercises.map((exercise, index) => {
+    const groupType = normalizeGroupType(exercise.group_type);
+    const groupId = groupType ? normalizeGroupId(exercise.group_id) ?? "A" : null;
+    let groupOrder: number | null = null;
+    if (groupType && groupId) {
+      const nextOrder = (groupCounters.get(groupId) ?? 0) + 1;
+      groupCounters.set(groupId, nextOrder);
+      groupOrder = nextOrder;
+    }
+    return {
+      ...exercise,
+      exercise_order: index + 1,
+      group_type: groupType,
+      group_id: groupId,
+      group_order: groupOrder,
+    };
+  });
 }
 function toNumberOrNull(value: string) {
   const parsed = Number(value);

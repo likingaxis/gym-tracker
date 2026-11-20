@@ -31,6 +31,11 @@ const positiveInt = z.preprocess(
   z.coerce.number().int("Deve essere un numero intero").positive("Deve essere maggiore di zero").optional()
 );
 
+const nonNegativeInt = z.preprocess(
+  emptyToUndefined,
+  z.coerce.number().int("Deve essere un numero intero").min(0, "Non può essere negativo").optional()
+);
+
 export const exerciseImportSchema = z.object({
   order: z.coerce.number().int().positive(),
   name: z.string().trim().min(1, "Nome esercizio obbligatorio"),
@@ -42,13 +47,19 @@ export const exerciseImportSchema = z.object({
   muscle_group: optionalText,
   sets: positiveInt,
   reps: optionalText,
-  rest_seconds: positiveInt.default(90),
+  rest_seconds: nonNegativeInt.default(90),
   suggested_weight: optionalText,
   technique_notes: optionalText,
   tips: optionalText,
   video_url: optionalUrl,
   media_url: optionalUrl,
-  trainer_notes: optionalText
+  trainer_notes: optionalText,
+  group_type: z.preprocess(
+    emptyToUndefined,
+    z.enum(["superset", "jumpset", "triset", "circuit"]).optional()
+  ),
+  group_id: optionalText,
+  group_order: positiveInt
 });
 
 export const workoutDayImportSchema = z.object({

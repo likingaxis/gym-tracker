@@ -56,7 +56,10 @@ Schema obbligatorio:
           "tips": "",
           "video_url": "",
           "media_url": "",
-          "trainer_notes": "Consigli pratici e brevi su esecuzione, setup, controllo movimento, errori da evitare e focus muscolare."
+          "trainer_notes": "Consigli pratici e brevi su esecuzione, setup, controllo movimento, errori da evitare e focus muscolare.",
+          "group_type": "",
+          "group_id": "",
+          "group_order": null
         }
       ]
     }
@@ -68,12 +71,25 @@ Regole generali:
 - Se non ci sono mese/date, usa ${month} come month e stringhe vuote per start_date/end_date.
 - sets deve essere sempre numerico e maggiore di zero.
 - reps deve essere sempre stringa, anche se e' un numero, un range o "max".
-- rest_seconds deve essere numerico. Se non indicato usa 90.
-- Non usare null. Usa stringhe vuote quando non sai un valore testuale.
+- rest_seconds deve essere numerico (0 e' valido per i passaggi senza pausa nelle superserie). Se non indicato per un esercizio singolo usa 90.
+- Non usare null per campi testuali. Usa stringhe vuote quando non sai un valore testuale.
 - Non usare link markdown.
 - Non aggiungere campi extra oltre a quelli dello schema e ai campi di supporto ExerciseDB indicati.
 - trainer_notes deve contenere solo consigli pratici per eseguire meglio l'esercizio.
 - Non usare trainer_notes per proporre versioni alternative o per parlare del match ExerciseDB.
+
+Regole Superserie, Jumpset, Triset e Circuiti:
+- Se la scheda contiene una Superserie (es. "Superserie", "SUPER SERIE", "SS", "A1 / A2", "Esercizio 1 + Esercizio 2 senza pausa"):
+  - Crea oggetti esercizio separati e consecutivi in exercises, ciascuno con "group_type": "superset", "group_id": "A" (usa "A", "B", "C" per gruppi diversi nello stesso giorno) e "group_order": 1, 2, ecc.
+  - Imposta "rest_seconds": 0 sul primo esercizio (o primi esercizi) della superserie e metti il recupero di fine giro sull'ultimo esercizio del gruppo.
+  - Esempio: "SUPER SERIE 3 x 10 croci ai cavi alti + alzate laterali con manubri rec 1 min" => esercizio 1 ("Croci ai cavi alti", sets: 3, reps: "10", rest_seconds: 0, group_type: "superset", group_id: "A", group_order: 1) ed esercizio 2 ("Alzate laterali con manubri", sets: 3, reps: "10", rest_seconds: 60, group_type: "superset", group_id: "A", group_order: 2).
+  - Esempio: "super serie spider curl panca 45° + french press manubri panca 30° 3 x 10 (entrambi) rec 1 min" => entrambi sets: 3, reps: "10", rest_seconds: 0 sul primo e 60 sul secondo, stesso group_id ("A" o "B").
+- Se la scheda contiene un Jumpset / Jumper set (es. "Jumpset", "JUMPER SET", "Jumper set", "JS", "Jump set", "Serie alternate A1 / A2 con recupero"):
+  - Crea oggetti esercizio separati e consecutivi in exercises, ciascuno con "group_type": "jumpset", "group_id": "A" (poi "B", "C"...) e "group_order": 1, 2.
+  - Imposta "rest_seconds" di ciascun esercizio al recupero prescritto dopo ogni serie (es. 30, 60 o 80).
+  - Esempio: "JUMPER SET 3 x 8 alzate frontali con manubri rec 30 sec + 3 x 10 alzate posteriori da seduto rec 1:20" => esercizio 1 ("Alzate frontali con manubri", sets: 3, reps: "8", rest_seconds: 30, group_type: "jumpset", group_id: "B", group_order: 1) ed esercizio 2 ("Alzate posteriori da seduto", sets: 3, reps: "10", rest_seconds: 80, group_type: "jumpset", group_id: "B", group_order: 2).
+- Per 3 o piu' esercizi consecutivi senza recupero usa "group_type": "triset" (oppure "circuit" se e' un circuito).
+- Per gli esercizi singoli normali lascia "group_type": "", "group_id": "", "group_order": null.
 
 Regole ExerciseDB:
 - In questa prima chiamata NON compilare exercise_db_id e NON compilare media_url: lasciali sempre vuoti.

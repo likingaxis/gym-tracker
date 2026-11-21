@@ -53,10 +53,10 @@ Schema obbligatorio:
           "target_rpe": "",
           "suggested_weight": "",
           "technique_notes": "",
-          "tips": "",
+          "tips": "Consiglio biomeccanico sintetico in 1 frase (max 140 caratteri).",
           "video_url": "",
           "media_url": "",
-          "trainer_notes": "Consigli pratici e brevi su esecuzione, setup, controllo movimento, errori da evitare e focus muscolare.",
+          "trainer_notes": "",
           "group_type": "",
           "group_id": "",
           "group_order": null
@@ -66,17 +66,26 @@ Schema obbligatorio:
   ]
 }
 
-Regole generali:
-- Mantieni ordine e significato della scheda originale.
+Regole generali e lettura PDF / tabelle / immagini:
+- Leggi tutte le pagine, colonne e tabelle in ordine. Ignora loghi, watermark, intestazioni/piè di pagina ripetuti, avvertenze legali o piani alimentari esterni ai giorni di allenamento.
+- Mantieni ordine e significato della scheda originale senza troncare giorni o esercizi.
+- Tabelle multi-settimana (es. Settimana 1 / 2 / 3 / 4 nello stesso programma): NON duplicare i giorni per ogni settimana (niente "Giorno 1 Sett 1", "Giorno 1 Sett 2"). Estrai ogni giorno una sola volta usando la Settimana 1 (o prescrizione base) per sets, reps e rest_seconds, e riporta la progressione delle settimane successive in technique_notes (es. "Progressione: Sett.1 3x10 -> Sett.2 4x10 -> Sett.3 4x8").
 - Se non ci sono mese/date, usa ${month} come month e stringhe vuote per start_date/end_date.
-- sets deve essere sempre numerico e maggiore di zero.
+- sets deve essere sempre numerico intero e maggiore di zero.
 - reps deve essere sempre stringa, anche se e' un numero, un range o "max".
-- rest_seconds deve essere numerico (0 e' valido per i passaggi senza pausa nelle superserie). Se non indicato per un esercizio singolo usa 90.
-- Non usare null per campi testuali. Usa stringhe vuote quando non sai un valore testuale.
+- Piramidali / ripetizioni per serie: se un esercizio prevede ripetizioni diverse su 3 o piu' serie (es. "12/10/8/6", "12, 10, 8", "15 - 12 - 10 - 8"), formatta reps con i trattini senza spazi: "12-10-8-6" (cosi' il player pre-compila ogni serie). Mantieni i range a 2 numeri come "8-10" o "10-12".
+- Top Set + Back-off sulla stessa riga (es. "1x6 + 2x10"): imposta sets al totale delle serie (3), reps a "6-10-10" e spiega il dettaglio in technique_notes (es. "Serie 1 Top Set x6, Serie 2-3 Back-off x10").
+- RIR / Buffer / RPE: mappa indicazioni esplicite come "RPE 8", "@8.5", "RIR 1", "RIR 1-2", "Buffer 2", "Cedimento" dentro target_rpe (es. "RIR 1-2", "RPE 8.5", "Cedimento"). Lascia "" se non presente nel documento.
+- suggested_weight: compila SOLO se nel documento e' indicato esplicitamente un carico o una percentuale (es. "60 kg", "75% 1RM"). Non inventare o stimare carichi.
+- rest_seconds deve essere numerico intero (0 e' valido): converti "1'30\"" o "1:30" in 90, "2'" in 120, "45\"" in 45, "no rest" / "0\"" / "senza pausa" in 0. Se il recupero e' omesso su un esercizio singolo usa 90.
+- Separazione rigorosa delle note:
+  - trainer_notes: inserisci SOLO note, indicazioni o cue scritti esplicitamente dal coach/trainer nel documento originale (es. "Non bloccare i gomiti", "Sedia tacca 3", "Focus petto alto"). Se il documento non ha note del trainer per quell'esercizio, lascia "". NON inventare note del trainer.
+  - technique_notes: inserisci tecniche d'intensita', TUT (es. "TUT 3-1-1-0", "fermo 2s al petto", "eccentrica 4s"), stripping/dropset (es. "Ultima serie stripping 6+6+6"), rest-pause, myo-reps, iso-hold, top-set/back-off o progressioni settimanali presenti nel documento. Lascia "" se non presenti.
+  - tips: un consiglio biomeccanico sintetico ed efficace generato dall'AI in 1 frase (massimo 140 caratteri) per eseguire l'esercizio in sicurezza.
+- Non usare null per campi testuali. Usa stringhe vuote "" quando non hai un valore testuale.
 - Non usare link markdown.
 - Non aggiungere campi extra oltre a quelli dello schema e ai campi di supporto ExerciseDB indicati.
-- trainer_notes deve contenere solo consigli pratici per eseguire meglio l'esercizio.
-- Non usare trainer_notes per proporre versioni alternative o per parlare del match ExerciseDB.
+- Non usare trainer_notes o tips per parlare del match ExerciseDB.
 
 Regole Superserie, Jumpset, Triset e Circuiti:
 - Se la scheda contiene una Superserie (es. "Superserie", "SUPER SERIE", "SS", "A1 / A2", "Esercizio 1 + Esercizio 2 senza pausa"):

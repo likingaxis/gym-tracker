@@ -155,7 +155,7 @@ export function ProfileSelector({ initialProfiles }: { initialProfiles: Profile[
               autoFocus
               type="password"
               placeholder="••••"
-              className="w-full rounded-3xl border border-white/10 bg-black/30 px-4 py-4 text-center text-3xl font-black tracking-[0.5em] text-white outline-none focus:border-gym-accent"
+              className="w-full rounded-3xl border border-white/15 bg-[#050708] px-4 py-4 text-center text-3xl font-black tracking-[0.5em] text-white outline-none focus:border-gym-accent"
             />
             <div className="grid grid-cols-2 gap-2">
               <button
@@ -168,7 +168,7 @@ export function ProfileSelector({ initialProfiles }: { initialProfiles: Profile[
               >
                 Annulla
               </button>
-              <Button disabled={isSelecting || pin.length !== 4}>Entra</Button>
+              <Button disabled={isSelecting || pin.length !== 4} className="disabled:opacity-40">Entra</Button>
             </div>
           </form>
         </Card>

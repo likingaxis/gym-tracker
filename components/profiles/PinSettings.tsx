@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { useAppDialog } from "@/components/ui/AppDialogProvider";
 
@@ -124,30 +125,38 @@ export function PinSettings({ profile }: PinSettingsProps) {
         </p>
       </div>
 
-      <form onSubmit={savePin} className="space-y-3">
-        <h3 className="text-lg font-black">{pinEnabled ? "Cambia PIN" : "Attiva PIN"}</h3>
-        {pinEnabled ? (
-          <PinInput label="PIN attuale" value={currentPin} onChange={setCurrentPin} />
-        ) : null}
-        <PinInput label="Nuovo PIN" value={newPin} onChange={setNewPin} />
-        <PinInput label="Conferma nuovo PIN" value={confirmPin} onChange={setConfirmPin} />
-        <Button disabled={isSaving || newPin.length !== 4 || confirmPin.length !== 4} className="w-full">
-          {pinEnabled ? "Cambia PIN" : "Attiva PIN"}
-        </Button>
-      </form>
+      <details className="group rounded-2xl border border-white/10 bg-white/[0.02] p-4">
+        <summary className="flex cursor-pointer list-none items-center justify-between text-sm font-extrabold text-gym-soft [&::-webkit-details-marker]:hidden">
+          <span>{pinEnabled ? "Gestisci o modifica PIN" : "Attiva PIN"}</span>
+          <ChevronDown size={16} className="text-gym-muted transition-transform duration-200 group-open:rotate-180" />
+        </summary>
+        <div className="mt-4 space-y-5 border-t border-white/10 pt-4">
+          <form onSubmit={savePin} className="space-y-3">
+            <h3 className="text-lg font-black">{pinEnabled ? "Cambia PIN" : "Attiva PIN"}</h3>
+            {pinEnabled ? (
+              <PinInput label="PIN attuale" value={currentPin} onChange={setCurrentPin} />
+            ) : null}
+            <PinInput label="Nuovo PIN" value={newPin} onChange={setNewPin} />
+            <PinInput label="Conferma nuovo PIN" value={confirmPin} onChange={setConfirmPin} />
+            <Button disabled={isSaving || newPin.length !== 4 || confirmPin.length !== 4} className="w-full">
+              {pinEnabled ? "Cambia PIN" : "Attiva PIN"}
+            </Button>
+          </form>
 
-      {pinEnabled ? (
-        <form onSubmit={deletePin} className="space-y-3 rounded-3xl border border-red-500/10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-red-500/10 to-transparent p-4">
-          <h3 className="text-lg font-black text-red-200">Rimuovi PIN</h3>
-          <PinInput label="PIN attuale" value={removePin} onChange={setRemovePin} />
-          <button
-            disabled={isSaving || removePin.length !== 4}
-            className="w-full rounded-[1rem] bg-red-500/20 px-4 py-3 text-sm font-black text-red-200 border border-red-500/30 shadow-inner disabled:opacity-50 transition active:scale-[0.98]"
-          >
-            Rimuovi PIN
-          </button>
-        </form>
-      ) : null}
+          {pinEnabled ? (
+            <form onSubmit={deletePin} className="space-y-3 rounded-3xl border border-red-500/10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-red-500/10 to-transparent p-4">
+              <h3 className="text-lg font-black text-red-200">Rimuovi PIN</h3>
+              <PinInput label="PIN attuale" value={removePin} onChange={setRemovePin} />
+              <button
+                disabled={isSaving || removePin.length !== 4}
+                className="w-full rounded-[1rem] bg-red-500/20 px-4 py-3 text-sm font-black text-red-200 border border-red-500/30 shadow-inner disabled:opacity-50 transition active:scale-[0.98]"
+              >
+                Rimuovi PIN
+              </button>
+            </form>
+          ) : null}
+        </div>
+      </details>
 
       <button
         onClick={lockProfile}

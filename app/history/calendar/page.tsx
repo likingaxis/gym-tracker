@@ -89,10 +89,20 @@ function CalendarHistoryContent() {
 
   return (
     <div className="space-y-5">
-      <header className="rounded-[2rem] border border-white/10 bg-white/[0.035] p-5">
-        <p className="text-sm font-semibold text-gym-info">Calendario</p>
-        <h1 className="mt-2 text-3xl font-extrabold">Allenamenti</h1>
-        <p className="mt-2 text-sm text-gym-muted">Ogni pallino indica la scheda usata in quel giorno.</p>
+      <header className="flex items-start justify-between gap-3 rounded-[2rem] border border-white/10 bg-white/[0.035] p-5">
+        <div>
+          <p className="text-sm font-semibold text-gym-info">Calendario</p>
+          <h1 className="mt-2 text-3xl font-extrabold">Allenamenti</h1>
+          <p className="mt-2 text-sm text-gym-muted">Ogni pallino indica la scheda usata in quel giorno.</p>
+        </div>
+        <Link
+          href="/history/trash"
+          className="shrink-0 rounded-xl border border-red-500/30 bg-red-500/10 p-2.5 text-red-400 hover:bg-red-500/20"
+          title="Cestino"
+          aria-label="Apri cestino"
+        >
+          <Trash2 size={20} />
+        </Link>
       </header>
 
       <div className="grid grid-cols-2 gap-2 text-sm">
@@ -110,14 +120,9 @@ function CalendarHistoryContent() {
             <h2 className="text-2xl font-extrabold capitalize">{formatMonthTitle(month)}</h2>
             <p className="mt-1 text-xs text-gym-muted">{selectedPlan ? selectedPlan.name : "Tutte le schede"}</p>
           </div>
-          <div className="flex items-center gap-1">
-            <Link href={buildCalendarHref(nextMonth, undefined, selectedPlanId)} className="rounded-lg bg-white/10 p-3 text-slate-200" aria-label="Mese successivo">
-              <ChevronRight size={20} />
-            </Link>
-            <Link href="/history/trash" className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-red-400 hover:bg-red-500/20" title="Cestino" aria-label="Apri cestino">
-              <Trash2 size={20} />
-            </Link>
-          </div>
+          <Link href={buildCalendarHref(nextMonth, undefined, selectedPlanId)} className="rounded-lg bg-white/10 p-3 text-slate-200" aria-label="Mese successivo">
+            <ChevronRight size={20} />
+          </Link>
         </div>
 
         <div className="mt-4 grid grid-cols-3 gap-2 text-center text-xs">
@@ -130,7 +135,7 @@ function CalendarHistoryContent() {
       {plans.length > 1 ? (
         <Card variant="subtle" className="p-3">
           <p className="mb-3 text-xs font-bold uppercase tracking-wide text-gym-muted">Filtro scheda</p>
-          <div className="flex gap-2 overflow-x-auto pb-1">
+          <div className="hide-scrollbar no-scrollbar scroll-fade-x flex gap-2 overflow-x-auto pb-1">
             <PlanChip href={buildCalendarHref(month, selectedDay, null)} active={!selectedPlanId} label="Tutte" />
             {plans.map((plan) => (
               <PlanChip
@@ -410,6 +415,6 @@ function getDayClass(inMonth: boolean, selected: boolean, today: boolean, hasSes
   if (selected) return `${base} border-gym-accent bg-gym-accent text-[#050708] shadow-[0_4px_15px_rgba(198,95,55,0.4)]`;
   if (hasSessions) return `${base} border-gym-accent/40 bg-[radial-gradient(ellipse_at_top_right,_rgba(198,95,55,0.2),_transparent)] text-slate-100`;
   if (today) return `${base} border-white/20 bg-white/10 text-slate-100`;
-  if (!inMonth) return `${base} border-transparent bg-transparent text-slate-700`;
+  if (!inMonth) return `${base} border-white/[0.03] bg-white/[0.01] text-slate-600 opacity-45`;
   return `${base} border-white/5 bg-white/[0.02] text-slate-400`;
 }

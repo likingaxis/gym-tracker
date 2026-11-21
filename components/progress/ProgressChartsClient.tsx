@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Clock3, TrendingUp, TrendingDown, Target, CalendarDays } from "lucide-react";
-import { formatCompactNumber } from "@/lib/progress";
+import { formatCompactNumber, formatShortDate } from "@/lib/progress";
 import type { SessionLike } from "@/lib/progress";
 import { getWorkoutDurationSeconds, getSessionSummary } from "@/lib/progress";
 
@@ -31,6 +31,7 @@ export function DurationChartClient({ sessions }: { sessions: SessionLike[] }) {
   const [activePoint, setActivePoint] = useState<typeof points[0] | null>(null);
   
   const polyline = points.map(p => `${p.x},${p.y}`).join(" ");
+  const pathD = points.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ");
   const area = `0,${h + 4} ${polyline} ${w},${h + 4}`;
 
   function formatDurationFromMinutes(minutes: number): string {
@@ -91,8 +92,8 @@ export function DurationChartClient({ sessions }: { sessions: SessionLike[] }) {
                viewport={{ once: true, margin: "-30px" }}
                transition={{ duration: 1, ease: "easeOut" }}
              />
-             <motion.polyline 
-               points={polyline} 
+             <motion.path 
+               d={pathD} 
                fill="none" 
                stroke="#3b82f6" 
                strokeWidth="3" 
@@ -126,6 +127,10 @@ export function DurationChartClient({ sessions }: { sessions: SessionLike[] }) {
                </g>
              ))}
           </svg>
+          <div className="flex justify-between text-[9px] font-bold text-gym-muted pl-8 mt-1">
+            <span>{formatShortDate(durations[0].date)}</span>
+            <span>{formatShortDate(durations[durations.length - 1].date)}</span>
+          </div>
         </div>
       </div>
     </div>
@@ -194,6 +199,10 @@ export function ActivityChartClient({ sessions }: { sessions: SessionLike[] }) {
               </div>
             );
           })}
+        </div>
+        <div className="flex justify-between text-[9px] font-bold text-gym-muted pl-6 pr-2 mt-1">
+          <span>{days[0].toLocaleDateString("it-IT", { day: "2-digit", month: "short" })}</span>
+          <span>Oggi</span>
         </div>
       </div>
     </div>

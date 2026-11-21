@@ -42,6 +42,29 @@
   box-sizing: border-box;
 }
 
+html, body, * {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.14) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.24);
+}
+
 html {
   background: #050708;
 }
@@ -64,6 +87,10 @@ button, a {
 
 input, textarea, select {
   outline: none;
+}
+
+textarea.input, textarea {
+  resize: none;
 }
 
 ::selection {
@@ -609,7 +636,7 @@ body {
 .status-signal {
   border-color: rgba(198, 95, 55, 0.4);
   background: rgba(198, 95, 55, 0.15);
-  color: #c7d0ff;
+  color: #ffcdb8;
 }
 
 .status-success {
@@ -644,7 +671,7 @@ body {
   border-radius: 10px;
 }
 
-.semantic-blue { background: rgba(198, 95, 55, 0.16); color: #9eafff; }
+.semantic-blue { background: rgba(198, 95, 55, 0.16); color: #ffcdb8; }
 .semantic-green { background: rgba(96, 125, 109, 0.18); color: #acd0b8; }
 .semantic-orange { background: rgba(198, 95, 55, 0.17); color: #ffbd9e; }
 .semantic-violet { background: rgba(141, 98, 168, 0.18); color: #d7afea; }
@@ -702,8 +729,9 @@ body {
 }
 
 .segmented-active {
-  background: #202a3d;
-  color: #dbe1ff;
+  background: rgba(198, 95, 55, 0.2);
+  color: #f0f1ed;
+  border: 1px solid rgba(198, 95, 55, 0.45);
 }
 
 .stepper {
@@ -781,7 +809,7 @@ body {
   padding: 0.8rem 1rem;
   font-weight: 700;
 }
-.status-info { border-color: rgba(198,95,55,.38); background: rgba(198,95,55,.1); color: #ced6ff; }
+.status-info { border-color: rgba(198,95,55,.38); background: rgba(198,95,55,.1); color: #f0f1ed; }
 .status-success { border-color: rgba(96,125,109,.45); background: rgba(96,125,109,.14); color: #c7dfcf; }
 .status-error { border-color: rgba(169,78,72,.45); background: rgba(169,78,72,.14); color: #ffd8d3; }
 
@@ -870,7 +898,7 @@ body {
 .workout-header {
   padding: 1rem;
   border-color: rgba(198, 95, 55, 0.35);
-  background: #151d28;
+  background: #14181b;
 }
 .workout-header-paused { border-color: rgba(198,95,55,.48); background: #251b17; }
 .progress-summary {
@@ -1078,6 +1106,9 @@ body {
   min-height: 3rem;
   justify-content: center;
   border-radius: 0.85rem;
+  font-size: 0.875rem;
+  white-space: nowrap;
+  padding-inline: 0.75rem;
 }
 
 .app-dialog-actions-single {
@@ -1190,6 +1221,11 @@ body {
 .no-scrollbar {
   -ms-overflow-style: none;  /* IE and Edge */
   scrollbar-width: none;  /* Firefox */
+}
+
+.scroll-fade-x {
+  mask-image: linear-gradient(to right, black calc(100% - 24px), transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, black calc(100% - 24px), transparent 100%);
 }
 
 .session-dock-icon-primary:hover {

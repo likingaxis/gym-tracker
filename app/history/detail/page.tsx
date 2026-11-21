@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState, Suspense } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { firstRelation, relationName } from "@/lib/relations";
 import { getDayNameSnapshot, getPlanColorSnapshot, getPlanDotClass, getPlanNameSnapshot } from "@/lib/workoutPlanHistory";
@@ -55,6 +57,10 @@ function SessionDetailContent() {
 
   return (
     <div className="space-y-5">
+      <Link href="/history" className="inline-flex items-center gap-2 text-sm font-bold text-gym-accent">
+        <ArrowLeft size={16} /> Storico
+      </Link>
+
       <header>
         <p className="text-sm font-semibold text-gym-info">Dettaglio</p>
         <h1 className="mt-2 text-3xl font-extrabold">{getDayNameSnapshot(session)}</h1>
@@ -85,18 +91,26 @@ function SessionDetailContent() {
               </div>
               <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-bold">{item.completed ? "OK" : "No"}</span>
             </div>
-            <div className="mt-3 space-y-2">
-              {[...(item.exercise_sets ?? [])]
-                .sort((a: any, b: any) => a.set_number - b.set_number)
-                .map((set: any) => (
-                  <div key={set.id} className="grid grid-cols-4 gap-2 rounded-2xl bg-black/20 p-2 text-center text-sm">
-                    <Info label="Serie" value={set.set_number ?? "-"} />
-                    <Info label="Reps" value={set.reps ?? "-"} />
-                    <Info label="Kg" value={set.weight || "-"} />
-                    <Info label="RPE" value={set.rpe ?? "-"} />
-                  </div>
-                ))}
-            </div>
+            {(item.exercise_sets?.length ?? 0) > 0 ? (
+              <div className="mt-3 space-y-1.5">
+                <div className="grid grid-cols-4 px-3 pb-1 text-center text-[10px] font-bold uppercase tracking-wider text-gym-muted">
+                  <span>Serie</span>
+                  <span>Kg</span>
+                  <span>Reps</span>
+                  <span>RPE</span>
+                </div>
+                {[...(item.exercise_sets ?? [])]
+                  .sort((a: { set_number?: number | null }, b: { set_number?: number | null }) => (a.set_number ?? 0) - (b.set_number ?? 0))
+                  .map((set: { id: string; set_number?: number | null; weight?: string | number | null; reps?: string | number | null; rpe?: number | null }) => (
+                    <div key={set.id} className="grid grid-cols-4 items-center rounded-xl bg-black/20 px-3 py-2 text-center text-sm font-bold text-slate-100">
+                      <span>{set.set_number ?? "-"}</span>
+                      <span>{set.weight || "-"}</span>
+                      <span>{set.reps ?? "-"}</span>
+                      <span>{set.rpe ?? "-"}</span>
+                    </div>
+                  ))}
+              </div>
+            ) : null}
             {item.personal_notes ? <p className="mt-3 rounded-2xl bg-black/20 p-3 text-sm text-slate-200">{item.personal_notes}</p> : null}
           </Card>
         ))}

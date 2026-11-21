@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, Download, FileDown, Trash2 } from "lucide-react";
+import { AlertTriangle, Download, FileDown } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -99,7 +99,6 @@ export function DataManagement({ profileName }: DataManagementProps) {
       <div className="divide-y divide-gym-line rounded-lg border border-white/10 bg-black/10">
         <DataLink href={csvHref} icon={<FileDown size={17} />} title="Esporta CSV" description="Storico allenamenti in formato tabellare." />
         <DataLink href={jsonHref} icon={<Download size={17} />} title="Scarica backup JSON" description={`Copia completa del profilo ${profileName}.`} />
-        <DataLink href="/history/trash" icon={<Trash2 size={17} />} title="Cestino" description="Sessioni eliminate, ripristino e svuotamento." />
       </div>
 
       {status ? <p className="rounded-lg border border-gym-accent/35 bg-gym-accent/10 px-4 py-3 text-sm text-gym-accent">{status}</p> : null}

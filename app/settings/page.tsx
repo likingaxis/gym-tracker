@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
-import { Archive, ChevronRight, DatabaseBackup, FileText, Shield, UserRound, Trash2 } from "lucide-react";
+import { Archive, ArrowLeft, ChevronRight, DatabaseBackup, FileText, Scale, Shield, UserRound, Trash2 } from "lucide-react";
 import { PinSettings } from "@/components/profiles/PinSettings";
 import { DataManagement } from "@/components/settings/DataManagement";
 import { getSettingsProfile } from "@/lib/api-client/settings";
@@ -43,6 +43,9 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-6">
+      <Link href="/" className="inline-flex items-center gap-2 text-sm font-bold text-gym-accent">
+        <ArrowLeft size={16} /> Home
+      </Link>
       <header className="app-hero">
         <p className="technical-label text-gym-warning">Profilo attivo</p>
         <h1 className="mt-3 text-4xl font-extrabold leading-none text-white">Impostazioni</h1>
@@ -53,7 +56,7 @@ export default function SettingsPage() {
         <p className="technical-label">Profilo</p>
         <div className="app-list mt-3">
           <SettingsLink href="/profiles" icon={<UserRound size={18} />} title="Gestisci profili" description="Profilo attivo e accesso." />
-          <SettingsLink href="/settings/body" icon={<UserRound size={18} />} title="Dati Fisici" description="Peso, altezza, età e sesso." />
+          <SettingsLink href="/settings/body" icon={<Scale size={18} />} title="Dati Fisici" description="Peso, altezza, età e sesso." />
           <div className="p-4 border-t border-white/5">
             <div className="mb-3 flex items-center gap-3">
               <div className="icon-action"><Shield size={18} /></div>
@@ -97,7 +100,7 @@ export default function SettingsPage() {
         <div className="app-list mt-3 p-4">
           <h2 className="font-extrabold text-gym-soft">Gym Tracker</h2>
           <p className="mt-1 text-sm text-gym-muted">Versione app: v0.26.5</p>
-          <p className="mt-1 text-xs text-gym-muted">Widget persistenti, dialoghi nativi e gerarchia aggiornata.</p>
+          <p className="mt-1 text-xs text-gym-muted">Allenamenti, schede e progressi sempre sincronizzati anche offline.</p>
         </div>
       </section>
     </div>

@@ -133,10 +133,12 @@ export default function DashboardPage() {
             </div>
             <div className="flex-1">
               <p className="technical-label">Questa settimana</p>
-              <h2 className="mt-1 text-2xl font-extrabold leading-tight">
+              <h2 className="mt-1 flex items-center gap-2 text-2xl font-extrabold leading-tight">
+                <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-full bg-gym-accent" />
                 {completedThisWeek.size} di {days.length} giorni
               </h2>
-              <p className="mt-1 text-sm text-gym-muted">
+              <p className="mt-1 flex items-center gap-2 text-sm text-gym-muted">
+                <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-full bg-white/80" />
                 {formatSetCount(overview.totalSetsThisWeek)} completate
               </p>
             </div>

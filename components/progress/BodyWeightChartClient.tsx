@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Scale } from "lucide-react";
+import { formatShortDate } from "@/lib/progress";
 
 export function BodyWeightChartClient({ logs }: { logs: { date: string; weight: number }[] }) {
   // Sort logs by date ascending to ensure proper charting
@@ -41,6 +42,7 @@ export function BodyWeightChartClient({ logs }: { logs: { date: string; weight: 
   const [activePoint, setActivePoint] = useState<typeof points[0] | null>(null);
   
   const polyline = points.map(p => `${p.x},${p.y}`).join(" ");
+  const pathD = points.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ");
   const area = `0,${h + 4} ${polyline} ${w},${h + 4}`;
 
   function formatDate(iso: string | null) {
@@ -97,8 +99,8 @@ export function BodyWeightChartClient({ logs }: { logs: { date: string; weight: 
                viewport={{ once: true, margin: "-30px" }}
                transition={{ duration: 1, ease: "easeOut" }}
              />
-             <motion.polyline 
-               points={polyline} 
+             <motion.path 
+               d={pathD} 
                fill="none" 
                stroke="#c65f37" 
                strokeWidth="3" 
@@ -152,6 +154,10 @@ export function BodyWeightChartClient({ logs }: { logs: { date: string; weight: 
                );
              })}
           </svg>
+          <div className="flex justify-between text-[9px] font-bold text-gym-muted pl-8 mt-1">
+            <span>{isSinglePoint ? "" : formatShortDate(chartData[0].date)}</span>
+            <span>{formatShortDate(chartData[chartData.length - 1].date)}</span>
+          </div>
         </div>
       </div>
     </div>

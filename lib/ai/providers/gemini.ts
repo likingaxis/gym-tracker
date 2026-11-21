@@ -85,41 +85,184 @@ function getExerciseDbCsvForPrompt() {
   return cachedExerciseDbCsv;
 }
 
-async function callGeminiJson(parts: GeminiPart[], temperature = 0.15) {
+const WORKOUT_PLAN_RESPONSE_SCHEMA = {
+  type: "OBJECT",
+  properties: {
+    name: { type: "STRING" },
+    month: { type: "STRING" },
+    start_date: { type: "STRING" },
+    end_date: { type: "STRING" },
+    days: {
+      type: "ARRAY",
+      items: {
+        type: "OBJECT",
+        properties: {
+          name: { type: "STRING" },
+          order: { type: "INTEGER" },
+          description: { type: "STRING" },
+          exercises: {
+            type: "ARRAY",
+            items: {
+              type: "OBJECT",
+              properties: {
+                order: { type: "INTEGER" },
+                name: { type: "STRING" },
+                exercise_db_query: { type: "STRING" },
+                alternative_queries: { type: "ARRAY", items: { type: "STRING" } },
+                equipment_hint: { type: "STRING" },
+                target_muscle_hint: { type: "STRING" },
+                body_part_hint: { type: "STRING" },
+                movement_pattern: { type: "STRING" },
+                variant_hints: { type: "ARRAY", items: { type: "STRING" } },
+                position_hint: { type: "STRING" },
+                grip_hint: { type: "STRING" },
+                bench_angle_hint: { type: "STRING" },
+                side_hint: { type: "STRING" },
+                exercise_db_id: { type: "STRING" },
+                muscle_group: { type: "STRING" },
+                sets: { type: "INTEGER" },
+                reps: { type: "STRING" },
+                rest_seconds: { type: "INTEGER" },
+                target_rpe: { type: "STRING" },
+                suggested_weight: { type: "STRING" },
+                technique_notes: { type: "STRING" },
+                tips: { type: "STRING" },
+                video_url: { type: "STRING" },
+                media_url: { type: "STRING" },
+                trainer_notes: { type: "STRING" },
+                group_type: { type: "STRING" },
+                group_id: { type: "STRING" },
+                group_order: { type: "INTEGER", nullable: true },
+              },
+              required: ["order", "name", "sets", "reps", "rest_seconds"],
+            },
+          },
+        },
+        required: ["name", "order", "exercises"],
+      },
+    },
+  },
+  required: ["name", "month", "days"],
+};
+
+const CANDIDATE_SELECTION_RESPONSE_SCHEMA = {
+  type: "OBJECT",
+  properties: {
+    selections: {
+      type: "ARRAY",
+      items: {
+        type: "OBJECT",
+        properties: {
+          key: { type: "STRING" },
+          selected_exercise_db_id: { type: "STRING" },
+          confidence: { type: "STRING", enum: ["high", "medium", "low"] },
+          reason: { type: "STRING" },
+        },
+        required: ["key", "selected_exercise_db_id", "confidence", "reason"],
+      },
+    },
+  },
+  required: ["selections"],
+};
+
+const TRANSIENT_HTTP_STATUSES = new Set([429, 500, 502, 503, 504]);
+
+class GeminiImportErrorFallback extends Error {}
+
+function sleep(ms: number) {
+  return new Promise<void>((resolve) => setTimeout(resolve, ms));
+}
+
+async function callGeminiJson(
+  parts: GeminiPart[],
+  temperature = 0.15,
+  responseSchema?: Record<string, unknown>,
+) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    throw new Error("GEMINI_API_KEY non configurata.");
+    throw new GeminiImportErrorFallback("GEMINI_API_KEY non configurata.");
   }
 
-  const model = process.env.GEMINI_MODEL || "gemini-2.5-flash";
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`,
-    {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ role: "user", parts }],
-        generationConfig: {
-          temperature,
-          responseMimeType: "application/json",
-        },
-      }),
-    },
-  );
+  const model = process.env.GEMINI_MODEL || "gemini-4-hydrogen";
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;
+  const maxRetries = 2;
+  const timeoutMs = 45_000;
 
-  const data = await response.json().catch(() => null);
+  let lastError: Error = new Error("Errore AI sconosciuto.");
 
-  if (!response.ok) {
-    const message = data?.error?.message || `Gemini API error ${response.status}`;
-    throw new Error(message);
+  for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+      const generationConfig: Record<string, unknown> = {
+        temperature,
+        maxOutputTokens: 16384,
+        responseMimeType: "application/json",
+      };
+      if (responseSchema) {
+        generationConfig.responseSchema = responseSchema;
+      }
+
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ role: "user", parts }],
+          generationConfig,
+        }),
+        signal: controller.signal,
+      });
+
+      const data = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        const message = data?.error?.message || `Gemini API error ${response.status}`;
+        lastError = new Error(message);
+        if (TRANSIENT_HTTP_STATUSES.has(response.status) && attempt < maxRetries) {
+          await sleep(500 * Math.pow(2, attempt));
+          continue;
+        }
+        throw lastError;
+      }
+
+      const finishReason = data?.candidates?.[0]?.finishReason;
+      if (finishReason === "MAX_TOKENS") {
+        throw new Error(
+          "La scheda è molto lunga e la risposta AI è stata troncata (MAX_TOKENS). Riprova o dividi il documento.",
+        );
+      }
+
+      const text = extractGeminiText(data);
+      if (!text) {
+        throw new Error("Gemini non ha restituito testo valido.");
+      }
+
+      return text;
+    } catch (error) {
+      if ((error as Error)?.name === "AbortError") {
+        lastError = new Error(`Timeout chiamata Gemini dopo ${timeoutMs / 1000}s.`);
+        if (attempt < maxRetries) {
+          await sleep(500 * Math.pow(2, attempt));
+          continue;
+        }
+        throw lastError;
+      }
+      if (error instanceof GeminiImportErrorFallback) {
+        throw error;
+      }
+      if (error instanceof TypeError && attempt < maxRetries) {
+        lastError = error;
+        await sleep(500 * Math.pow(2, attempt));
+        continue;
+      }
+      throw error;
+    } finally {
+      clearTimeout(timer);
+    }
   }
 
-  const text = extractGeminiText(data);
-  if (!text) {
-    throw new Error("Gemini non ha restituito testo valido.");
-  }
-
-  return text;
+  throw lastError;
 }
 
 function parseJsonObject(text: string) {
@@ -152,7 +295,7 @@ ${catalogCsv}`,
     parts.push({ inlineData: { mimeType: options.file.mimeType, data: options.file.base64 } });
   }
 
-  return callGeminiJson(parts, 0.12);
+  return callGeminiJson(parts, 0.12, WORKOUT_PLAN_RESPONSE_SCHEMA);
 }
 
 export async function selectExerciseDbCandidatesWithGemini(
@@ -202,7 +345,7 @@ Rispondi SOLO JSON valido con questa struttura:
 Richieste:
 ${JSON.stringify(compactRequests)}`;
 
-  const text = await callGeminiJson([{ text: prompt }], 0.05);
+  const text = await callGeminiJson([{ text: prompt }], 0.05, CANDIDATE_SELECTION_RESPONSE_SCHEMA);
   const parsed = parseJsonObject(text);
   const selections = Array.isArray(parsed?.selections) ? parsed.selections : [];
 

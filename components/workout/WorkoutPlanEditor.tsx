@@ -325,7 +325,7 @@ export function WorkoutPlanEditor({ initialPlan }: { initialPlan: EditablePlan }
   }
 
   return (
-    <div className="relative space-y-6 pb-36">
+    <div className="relative space-y-6 pb-24">
       {/* Header Pagina */}
       <header className="app-hero relative overflow-hidden rounded-3xl border border-white/10 bg-[#0f121a]/80 p-5 backdrop-blur-xl shadow-xl">
         <div className="absolute -right-10 -top-10 h-36 w-36 rounded-full bg-gym-accent/15 blur-2xl pointer-events-none" />
@@ -398,7 +398,7 @@ export function WorkoutPlanEditor({ initialPlan }: { initialPlan: EditablePlan }
         {/* Tab Bar Giorni */}
         {plan.days.length > 0 ? (
           <div
-            className="flex gap-2 overflow-x-auto pb-1 hide-scrollbar no-scrollbar"
+            className="flex gap-2 overflow-x-auto pb-1 hide-scrollbar no-scrollbar scroll-fade-x"
             style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
           >
             {plan.days.map((day, index) => {
@@ -580,7 +580,7 @@ export function WorkoutPlanEditor({ initialPlan }: { initialPlan: EditablePlan }
           ) : null}
 
           {/* Sticky Bottom Bar per Salvataggio Scheda (Posizionato SOPRA la Bottom Navbar dell'app) */}
-          <div className="fixed bottom-[calc(5.2rem+env(safe-area-inset-bottom))] inset-x-4 z-[90] mx-auto max-w-md pointer-events-none">
+          <div className="fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] inset-x-4 z-[90] mx-auto max-w-md pointer-events-none">
             <motion.button
               whileTap={{ scale: 0.97 }}
               type="button"
@@ -729,7 +729,7 @@ export function WorkoutPlanEditor({ initialPlan }: { initialPlan: EditablePlan }
                                 group_order: option.value ? editingExercise.group_order ?? 1 : null,
                               })
                             }
-                            className={`rounded-xl border px-3 py-2 text-xs font-extrabold transition active:scale-95 ${
+                            className={`min-h-[42px] flex items-center justify-center text-center leading-tight rounded-xl border px-3 py-2 text-xs font-extrabold transition active:scale-95 ${
                               isSelected
                                 ? "border-[#c65f37] bg-[#c65f37]/20 text-white"
                                 : "border-white/10 bg-white/[0.03] text-slate-300 hover:bg-white/[0.06]"
@@ -886,7 +886,7 @@ export function WorkoutPlanEditor({ initialPlan }: { initialPlan: EditablePlan }
 
                   {/* Picker GIF ExerciseDB */}
                   <Card className="p-4">
-                    <p className="technical-label text-gym-accent mb-1">Animazione & GIF Demonstrativa</p>
+                    <p className="technical-label text-gym-accent mb-1">Animazione & GIF Dimostrativa</p>
                     <ExerciseDbMediaPicker
                       exerciseId={editingExercise.id ?? ""}
                       exerciseName={editingExercise.name}

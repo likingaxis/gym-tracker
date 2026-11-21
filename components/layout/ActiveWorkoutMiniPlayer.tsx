@@ -152,7 +152,7 @@ export function ActiveWorkoutMiniPlayer() {
       initial={reduceMotion ? false : { opacity: 0, y: 14 }}
       animate={reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
       transition={{ duration: 0.18, ease: "easeOut" }}
-      className="fixed inset-x-0 bottom-[96px] z-40 mx-auto max-w-md px-4"
+      className="fixed inset-x-0 bottom-[calc(5.75rem+env(safe-area-inset-bottom))] z-40 mx-auto max-w-md px-4"
       aria-label="Allenamento in corso"
       aria-busy={Boolean(pending)}
     >
@@ -198,7 +198,9 @@ export function ActiveWorkoutMiniPlayer() {
           onClick={() => runAction(toggleAction)}
           disabled={Boolean(pending)}
           className={`relative z-10 flex h-12 w-12 shrink-0 items-center justify-center rounded-full shadow-lg transition-all duration-300 ${
-            isPaused ? "bg-white text-black hover:bg-gray-200" : "bg-gym-accent text-white hover:brightness-110"
+            isPaused
+              ? "border border-gym-accent/50 bg-gym-accent/20 text-gym-accent hover:bg-gym-accent/30"
+              : "bg-gym-accent text-[#050708] hover:brightness-110"
           }`}
           aria-label={isPaused ? "Riprendi allenamento" : "Metti in pausa"}
           title={isPaused ? "Riprendi" : "Pausa"}

@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ImportUploader } from "@/components/import/ImportUploader";
-import { Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 
 export default function ImportPage() {
   const [loading, setLoading] = useState(true);
@@ -28,6 +29,9 @@ export default function ImportPage() {
 
   return (
     <div className="space-y-7">
+      <Link href="/workout" className="inline-flex items-center gap-2 text-sm font-bold text-gym-accent">
+        <ArrowLeft size={16} /> Scheda
+      </Link>
       <header>
         <p className="technical-label">Nuova scheda</p>
         <h1 className="page-title mt-1">Importa</h1>

@@ -2,18 +2,22 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
+  ArrowLeft,
   CheckCircle2,
   ChevronDown,
   ChevronUp,
   ChevronLeft,
   ChevronRight,
+  Clock,
   BarChart2,
   ExternalLink,
   ImageIcon,
   Maximize2,
+  Minus,
   Pause,
   Play,
   PlayCircle,
@@ -129,6 +133,8 @@ export function WorkoutSessionClient({ day, durationEstimate }: Props) {
 
   const [exercises, setExercises] = useState<Exercise[]>(day.exercises);
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const [sessionStartedAt, setSessionStartedAt] = useState<string | null>(null);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [drafts, setDrafts] = useState<Record<string, ExerciseDraft>>({});
   const [generalNotes, setGeneralNotes] = useState("");
   const [status, setStatus] = useState("Preparazione sessione...");
@@ -210,6 +216,7 @@ export function WorkoutSessionClient({ day, durationEstimate }: Props) {
 
         const session = data.session;
         setSessionId(session.id);
+        setSessionStartedAt(session.started_at ?? new Date().toISOString());
         setSessionStatus(session.status === "paused" ? "paused" : "in_progress");
         setGeneralNotes(session.general_notes ?? "");
 
@@ -278,6 +285,7 @@ export function WorkoutSessionClient({ day, durationEstimate }: Props) {
         const cached = getSessionSnapshot(`fallback_${day.id}`);
         if (cached && cached.session) {
           setSessionId(cached.session.id);
+          setSessionStartedAt(cached.session.started_at ?? new Date().toISOString());
           setSessionStatus(cached.session.status === "paused" ? "paused" : "in_progress");
           setGeneralNotes(cached.generalNotes ?? "");
           setDrafts(cached.drafts ?? {});
@@ -295,6 +303,22 @@ export function WorkoutSessionClient({ day, durationEstimate }: Props) {
       cancelled = true;
     };
   }, [day.id, day.workout_plan_id, day.exercises]);
+
+  useEffect(() => {
+    if (!sessionStartedAt) return;
+    const startedMs = new Date(sessionStartedAt).getTime();
+    if (Number.isNaN(startedMs)) return;
+
+    const updateElapsed = () => {
+      setElapsedSeconds(Math.max(0, Math.floor((Date.now() - startedMs) / 1000)));
+    };
+
+    updateElapsed();
+    if (sessionStatus !== "in_progress") return;
+
+    const interval = window.setInterval(updateElapsed, 1000);
+    return () => window.clearInterval(interval);
+  }, [sessionStartedAt, sessionStatus]);
 
   const isOnline = useOnlineStatus();
 
@@ -321,7 +345,7 @@ export function WorkoutSessionClient({ day, durationEstimate }: Props) {
       };
 
       saveSessionSnapshot(`fallback_${day.id}`, {
-        session: { id: sessionId, status: sessionStatus },
+        session: { id: sessionId, status: sessionStatus, started_at: sessionStartedAt },
         drafts,
         generalNotes,
       });
@@ -352,7 +376,7 @@ export function WorkoutSessionClient({ day, durationEstimate }: Props) {
     }, 700);
 
     return () => window.clearTimeout(timeout);
-  }, [drafts, generalNotes, sessionId, day.id, sessionStatus]);
+  }, [drafts, generalNotes, sessionId, day.id, sessionStatus, sessionStartedAt]);
 
   useEffect(() => {
     if (!activeTimer?.isRunning || !activeTimer.targetEndAt) return;
@@ -411,10 +435,11 @@ export function WorkoutSessionClient({ day, durationEstimate }: Props) {
   const totalSets = useMemo(
     () =>
       exercises.reduce(
-        (total, exercise) => total + Math.max(1, Number(exercise.sets ?? 1)),
+        (total, exercise) =>
+          total + Math.max(1, drafts[exercise.id]?.sets.length ?? Number(exercise.sets ?? 1)),
         0,
       ),
-    [exercises],
+    [drafts, exercises],
   );
   const progress =
     totalSets > 0 ? Math.round((completedSets / totalSets) * 100) : 0;
@@ -496,6 +521,46 @@ export function WorkoutSessionClient({ day, durationEstimate }: Props) {
           ...draft,
           sets: nextSets,
           completed,
+        },
+      };
+    });
+  }
+
+  function addSet(exerciseId: string) {
+    setDrafts((current) => {
+      const draft = current[exerciseId];
+      if (!draft) return current;
+      const lastSet = draft.sets[draft.sets.length - 1];
+      const nextSet: SetDraft = {
+        set_number: draft.sets.length + 1,
+        reps: lastSet?.reps ?? "",
+        weight: lastSet?.weight ?? "",
+        weight_source: lastSet?.weight?.trim() ? "manual" : "empty",
+        rpe: "",
+        completed: false,
+      };
+      return {
+        ...current,
+        [exerciseId]: {
+          ...draft,
+          sets: [...draft.sets, nextSet],
+          completed: false,
+        },
+      };
+    });
+  }
+
+  function removeLastSet(exerciseId: string) {
+    setDrafts((current) => {
+      const draft = current[exerciseId];
+      if (!draft || draft.sets.length <= 1) return current;
+      const nextSets = draft.sets.slice(0, -1);
+      return {
+        ...current,
+        [exerciseId]: {
+          ...draft,
+          sets: nextSets,
+          completed: nextSets.length > 0 && nextSets.every((s) => s.completed),
         },
       };
     });
@@ -775,10 +840,35 @@ export function WorkoutSessionClient({ day, durationEstimate }: Props) {
   }
 
   const statusIsError = /errore|non riusc/i.test(status);
+  const allSetsCompleted = totalSets > 0 && completedSets >= totalSets;
 
   return (
-    <div className="space-y-4">
-      <header className={`app-hero mb-6 transition-opacity ${sessionStatus === "paused" ? "opacity-75 grayscale-[50%]" : ""}`}>
+    <div className={`space-y-4 ${activeTimer ? "pb-28" : "pb-6"}`}>
+      <header className={`app-hero mb-6 transition-colors ${sessionStatus === "paused" ? "!border-gym-accent/50" : ""}`}>
+        <div className="mb-4 flex items-center justify-between gap-2">
+          <Link
+            href="/workout"
+            className="inline-flex min-h-9 items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-bold text-slate-200 transition hover:bg-white/10 active:scale-95"
+          >
+            <ArrowLeft size={14} /> Esci
+          </Link>
+
+          <div className="flex items-center gap-2">
+            {sessionStatus === "paused" ? (
+              <span className="inline-flex min-h-7 items-center rounded-full border border-gym-accent/40 bg-gym-accent/15 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-gym-accent">
+                IN PAUSA
+              </span>
+            ) : null}
+            <div
+              className="inline-flex min-h-9 items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-1.5 font-mono text-xs font-bold tabular-nums text-slate-200"
+              title="Durata sessione"
+            >
+              <Clock size={12} className="text-gym-accent" />
+              <span>{formatCountdown(elapsedSeconds)}</span>
+            </div>
+          </div>
+        </div>
+
         <div className="flex items-center justify-between gap-4">
           <button type="button" className="min-w-0 flex-1 text-left active:scale-[0.98] transition-transform" onClick={() => setProgressOpen(true)}>
             <h1 className="line-clamp-2 text-xl font-extrabold leading-tight tracking-tight text-white">{day.name ?? "Allenamento"}</h1>
@@ -818,7 +908,7 @@ export function WorkoutSessionClient({ day, durationEstimate }: Props) {
 
         <div className="mt-5 flex items-center gap-2">
           {sessionStatus === "paused" ? (
-            <button type="button" onClick={resumeSession} disabled={!sessionId || completing} className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-2xl bg-gym-accent px-4 text-sm font-bold text-black transition-transform active:scale-95 disabled:opacity-50">
+            <button type="button" onClick={resumeSession} disabled={!sessionId || completing} className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-2xl bg-gym-accent px-4 text-sm font-extrabold text-[#050708] shadow-[0_4px_15px_rgba(198,95,55,0.35)] transition-transform active:scale-95 disabled:opacity-50">
               <PlayCircle size={16} /> Riprendi
             </button>
           ) : (
@@ -831,16 +921,16 @@ export function WorkoutSessionClient({ day, durationEstimate }: Props) {
             <Info size={16} /> Riepilogo
           </button>
 
-          <details className="relative">
-            <summary className="flex min-h-12 w-14 list-none items-center justify-center rounded-2xl border border-white/10 bg-white/5 transition-transform hover:bg-white/10 active:scale-95 cursor-pointer">
-              <Trash2 size={16} className="text-gym-soft" />
-            </summary>
-            <div className="absolute right-0 top-[calc(100%+0.5rem)] z-50 min-w-[200px] rounded-2xl border border-white/10 bg-[#1c1c1c] p-2 shadow-2xl">
-              <button type="button" onClick={deleteSessionToTrash} disabled={!sessionId || completing} className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-gym-danger transition-colors hover:bg-white/5">
-                <Trash2 size={18} /> Elimina sessione
-              </button>
-            </div>
-          </details>
+          <button
+            type="button"
+            onClick={deleteSessionToTrash}
+            disabled={!sessionId || completing}
+            className="flex min-h-12 w-14 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-gym-soft transition hover:border-red-500/40 hover:bg-red-500/10 hover:text-red-300 active:scale-95 disabled:opacity-50"
+            aria-label="Elimina sessione"
+            title="Elimina sessione"
+          >
+            <Trash2 size={16} />
+          </button>
         </div>
 
         {day.description ? (
@@ -993,6 +1083,8 @@ export function WorkoutSessionClient({ day, durationEstimate }: Props) {
                   onSetChange={(setNumber, patch) => updateSet(ex.id, setNumber, patch)}
                   onCompleteSet={(setNumber) => completeSetAndStartRest(ex, setNumber)}
                   onCopyPreviousWeight={(setNumber) => copyPreviousWeight(ex.id, setNumber)}
+                  onAddSet={() => addSet(ex.id)}
+                  onRemoveSet={() => removeLastSet(ex.id)}
                   onStartTimer={() => startTimer(ex)}
                   onPauseTimer={pauseTimer}
                   onResumeTimer={resumeTimer}
@@ -1044,12 +1136,26 @@ export function WorkoutSessionClient({ day, durationEstimate }: Props) {
               }}
             >
               <Card className="flex flex-col items-center justify-center space-y-6 p-8 text-center bg-gym-raised shadow-xl w-full max-w-md mx-auto">
-                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gym-success/20">
-                  <CheckCircle2 size={40} className="text-gym-success" />
+                <div
+                  className={`flex h-20 w-20 items-center justify-center rounded-full ${
+                    allSetsCompleted ? "bg-gym-success/20" : "bg-gym-accent/20"
+                  }`}
+                >
+                  {allSetsCompleted ? (
+                    <CheckCircle2 size={40} className="text-gym-success" />
+                  ) : (
+                    <Flag size={36} className="text-gym-accent" />
+                  )}
                 </div>
                 <div>
-                  <h2 className="text-2xl font-extrabold text-white">Allenamento completato!</h2>
-                  <p className="mt-2 text-gym-muted">Ottimo lavoro. Lascia un commento finale e chiudi la sessione.</p>
+                  <h2 className="text-2xl font-extrabold text-white">
+                    {allSetsCompleted ? "Allenamento completato!" : "Concludi allenamento?"}
+                  </h2>
+                  <p className="mt-2 text-gym-muted">
+                    {allSetsCompleted
+                      ? "Ottimo lavoro. Lascia un commento finale e chiudi la sessione."
+                      : `Hai completato ${completedSets} di ${totalSets} serie. Puoi lasciare una nota finale e chiudere la sessione, oppure tornare agli esercizi.`}
+                  </p>
                 </div>
                 
                 <div className="w-full text-left">
@@ -1179,6 +1285,17 @@ function WorkoutProgressSheet({
 }) {
   const reduceMotion = useReducedMotion();
 
+  useEffect(() => {
+    if (!open) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [open, onClose]);
+
   return (
     <AnimatePresence>
       {open ? (
@@ -1227,7 +1344,7 @@ function WorkoutProgressSheet({
             <div className="mt-4 space-y-2">
               {exercises.map((exercise, index) => {
                 const draft = drafts[exercise.id];
-                const total = Math.max(1, Number(exercise.sets ?? draft?.sets.length ?? 1));
+                const total = Math.max(1, draft?.sets.length ?? Number(exercise.sets ?? 1));
                 const completed = draft?.sets.filter((set) => set.completed).length ?? 0;
                 const status = completed >= total ? "completed" : completed > 0 ? "active" : "todo";
                 const groupMeta = exerciseGroups.get(exercise.id);
@@ -1307,6 +1424,8 @@ function TrackableExerciseCard({
   onSetChange,
   onCompleteSet,
   onCopyPreviousWeight,
+  onAddSet,
+  onRemoveSet,
   onStartTimer,
   onPauseTimer,
   onResumeTimer,
@@ -1330,6 +1449,8 @@ function TrackableExerciseCard({
   onSetChange: (setNumber: number, patch: Partial<SetDraft>) => void;
   onCompleteSet: (setNumber: number) => void;
   onCopyPreviousWeight: (setNumber: number) => void;
+  onAddSet: () => void;
+  onRemoveSet: () => void;
   onStartTimer: () => void;
   onPauseTimer: () => void;
   onResumeTimer: () => void;
@@ -1344,6 +1465,17 @@ function TrackableExerciseCard({
   const [notesOpen, setNotesOpen] = useState(false);
   const [showAllSetsHistory, setShowAllSetsHistory] = useState(false);
   const reduceMotion = useReducedMotion();
+
+  useEffect(() => {
+    if (!showAllSetsHistory) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setShowAllSetsHistory(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [showAllSetsHistory]);
 
   if (!draft) {
     return (
@@ -1417,7 +1549,6 @@ function TrackableExerciseCard({
             <h3 className="mt-1 line-clamp-2 text-2xl font-extrabold leading-tight">{exercise.name}</h3>
             <p className="mt-2 text-sm font-bold text-slate-300">
               {exercise.sets ?? "-"} × {exercise.reps ?? "-"} · {formatRestTime(exercise.rest_seconds)}
-              {groupMeta ? ` · ${groupMeta.badgeLabel.toLowerCase()}` : ""}
               {exercise.target_rpe ? ` · RPE ${exercise.target_rpe}` : ""}
             </p>
           </div>
@@ -1485,13 +1616,13 @@ function TrackableExerciseCard({
                   </button>
                 );
               })}
-              <div className="flex min-w-[78px] shrink-0 flex-col justify-center rounded-xl border border-white/10 bg-black/30 px-2.5 py-2 text-left">
+              <div className="flex min-w-[68px] shrink-0 flex-col items-center justify-center rounded-xl border border-white/10 bg-black/30 px-2 py-1.5 text-center">
                 <span className="text-xs font-black text-white">
                   {groupMeta.groupType === "jumpset"
                     ? formatRestTime(exercise.rest_seconds)
                     : formatRestTime(groupMeta.roundRestSeconds)}
                 </span>
-                <span className="mt-0.5 text-[10px] font-bold text-gym-muted">
+                <span className="mt-0.5 text-[10px] font-bold text-gym-muted whitespace-nowrap">
                   {groupMeta.groupType === "jumpset" ? "Ogni serie" : "Recupero"}
                 </span>
               </div>
@@ -1620,6 +1751,8 @@ function TrackableExerciseCard({
               onEditCompleted={(setNumber) =>
                 onSetChange(setNumber, { completed: false })
               }
+              onAddSet={onAddSet}
+              onRemoveSet={onRemoveSet}
             />
           </div>
 
@@ -1815,10 +1948,14 @@ function CompactSetLog({
   sets,
   nextSetNumber,
   onEditCompleted,
+  onAddSet,
+  onRemoveSet,
 }: {
   sets: SetDraft[];
   nextSetNumber: number | null;
   onEditCompleted: (setNumber: number) => void;
+  onAddSet: () => void;
+  onRemoveSet: () => void;
 }) {
   return (
     <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-3 shadow-inner">
@@ -1878,6 +2015,30 @@ function CompactSetLog({
             </div>
           );
         })}
+      </div>
+      <div className="mt-2 flex flex-wrap items-center justify-between gap-2 border-t border-white/5 pt-2.5">
+        <span className="text-[11px] font-medium text-gym-muted">
+          Tocca una serie completata per riaprirla
+        </span>
+        <div className="ml-auto flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={onRemoveSet}
+            disabled={sets.length <= 1}
+            className="inline-flex min-h-8 items-center gap-1 rounded-lg border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[11px] font-bold text-gym-soft transition hover:bg-white/10 active:scale-95 disabled:pointer-events-none disabled:opacity-40"
+            aria-label="Rimuovi ultima serie"
+          >
+            <Minus size={12} /> Serie
+          </button>
+          <button
+            type="button"
+            onClick={onAddSet}
+            className="inline-flex min-h-8 items-center gap-1 rounded-lg border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[11px] font-bold text-gym-soft transition hover:bg-white/10 active:scale-95"
+            aria-label="Aggiungi serie"
+          >
+            <Plus size={12} /> Serie
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -1942,14 +2103,14 @@ function ActiveTimerBanner({
       animate={reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }}
       exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 30, scale: 0.95 }}
       transition={reduceMotion ? { duration: 0.15 } : { type: "spring", stiffness: 400, damping: 28 }}
-      className="fixed inset-x-0 bottom-24 z-40 mx-auto max-w-md px-3"
+      className="fixed inset-x-0 bottom-[calc(1rem+env(safe-area-inset-bottom))] z-50 mx-auto max-w-md px-3"
     >
       <div
         className={`relative overflow-hidden rounded-[1.75rem] border ${
           timer.finished
             ? "border-gym-success/50 shadow-[0_8px_30px_rgba(96,125,109,0.3)]"
             : "border-[#c65f37]/40 shadow-[0_8px_35px_rgba(198,95,55,0.25)]"
-        } bg-black/90 p-3.5 backdrop-blur-2xl supports-[padding:max(0px)]:mb-[max(0px,env(safe-area-inset-bottom))] flex items-center justify-between gap-3`}
+        } bg-black/90 p-3.5 backdrop-blur-2xl flex items-center justify-between gap-2.5`}
       >
         {/* Progress Bar Line at bottom */}
         <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-white/5">
@@ -1962,11 +2123,11 @@ function ActiveTimerBanner({
         </div>
 
         {/* Left: Countdown Digits & Exercise Name */}
-        <div className="min-w-0 flex-1 flex items-center gap-3">
+        <div className="min-w-0 flex-1 flex items-center gap-2.5">
           <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${timer.finished ? "bg-gym-success/20 text-gym-success" : "bg-[#c65f37]/20 text-[#c65f37]"}`}>
             <TimerReset size={18} />
           </span>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <p className="truncate text-xs font-bold text-white/90">
               {timer.exerciseName}
             </p>
@@ -1980,7 +2141,7 @@ function ActiveTimerBanner({
               {formatCountdown(timer.remainingSeconds)}
             </p>
             {timer.nextLabel ? (
-              <p className="mt-1 truncate text-[11px] font-semibold text-gym-muted">
+              <p className="mt-1 line-clamp-2 text-[11px] font-semibold text-gym-muted">
                 {timer.nextLabel}
               </p>
             ) : null}
@@ -1988,47 +2149,57 @@ function ActiveTimerBanner({
         </div>
 
         {/* Right: Icon Action Buttons */}
-        <div className="flex shrink-0 items-center gap-1.5">
+        <div className="flex shrink-0 items-center gap-1">
           {timer.isRunning ? (
             <motion.button
               type="button"
               onClick={onPause}
               whileTap={{ scale: 0.88 }}
-              className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white transition hover:bg-white/15"
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white transition hover:bg-white/15"
               aria-label="Metto in pausa timer"
             >
-              <Pause size={17} fill="currentColor" />
+              <Pause size={16} fill="currentColor" />
             </motion.button>
           ) : (
             <motion.button
               type="button"
               onClick={onResume}
               whileTap={{ scale: 0.88 }}
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-[#c65f37] to-[#ea580c] text-white shadow-[0_0_12px_rgba(198,95,55,0.4)] transition"
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-[#c65f37] to-[#ea580c] text-white shadow-[0_0_12px_rgba(198,95,55,0.4)] transition"
               aria-label="Riprendi timer"
             >
-              <Play size={17} fill="currentColor" className="ml-0.5" />
+              <Play size={16} fill="currentColor" className="ml-0.5" />
             </motion.button>
           )}
 
           <motion.button
             type="button"
+            onClick={() => onAdjust(-15)}
+            whileTap={{ scale: 0.88 }}
+            className="flex h-9 px-2 items-center justify-center gap-0.5 rounded-full border border-white/10 bg-white/5 text-[11px] font-extrabold text-white transition hover:bg-white/15"
+            aria-label="Togli 15 secondi"
+          >
+            <Minus size={12} strokeWidth={3} />15s
+          </motion.button>
+
+          <motion.button
+            type="button"
             onClick={() => onAdjust(15)}
             whileTap={{ scale: 0.88 }}
-            className="flex h-10 px-2.5 items-center justify-center gap-0.5 rounded-full border border-white/10 bg-white/5 text-xs font-extrabold text-white transition hover:bg-white/15"
+            className="flex h-9 px-2 items-center justify-center gap-0.5 rounded-full border border-white/10 bg-white/5 text-[11px] font-extrabold text-white transition hover:bg-white/15"
             aria-label="Aggiungi 15 secondi"
           >
-            <Plus size={13} strokeWidth={3} />15s
+            <Plus size={12} strokeWidth={3} />15s
           </motion.button>
 
           <motion.button
             type="button"
             onClick={onClose}
             whileTap={{ scale: 0.88 }}
-            className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/60 transition hover:bg-white/15 hover:text-white"
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/60 transition hover:bg-white/15 hover:text-white"
             aria-label="Chiudi timer recupero"
           >
-            <X size={17} />
+            <X size={16} />
           </motion.button>
         </div>
       </div>
@@ -2047,6 +2218,17 @@ function MediaPreview({
   const reduceMotion = useReducedMotion();
   const cleanUrl = mediaUrl?.trim();
 
+  useEffect(() => {
+    if (!fullScreen) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setFullScreen(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [fullScreen]);
+
   if (!cleanUrl) {
     return null;
   }
@@ -2057,50 +2239,62 @@ function MediaPreview({
         <button
           type="button"
           onClick={() => setFullScreen(true)}
-          className="relative shrink-0 overflow-hidden rounded-[1.25rem] border border-white/10 bg-white/[0.04] p-1 shadow-inner transition active:scale-[0.95]"
+          className="relative shrink-0 overflow-hidden rounded-[1.25rem] border border-white/10 bg-[#0c0f12] p-1 shadow-inner transition active:scale-[0.95]"
           aria-label={`Apri GIF di ${name} a schermo intero`}
         >
           <img
             src={cleanUrl}
             alt={name}
-            className="h-24 w-24 rounded-[1rem] object-cover"
+            className="h-24 w-24 rounded-[1rem] bg-[#0c0f12] object-cover brightness-95"
             loading="lazy"
           />
         </button>
 
-        <AnimatePresence>
-          {fullScreen ? (
-            <motion.div
-              className="fixed inset-0 z-[100] flex flex-col h-screen w-screen bg-black/95 p-4 backdrop-blur-md overflow-hidden select-none"
-              initial={reduceMotion ? false : { opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setFullScreen(false)}
-            >
-              <div className="sticky top-0 z-50 mx-auto flex w-full max-w-md items-center justify-between gap-3 pt-[env(safe-area-inset-top)] pb-2 bg-black/90 backdrop-blur-md shrink-0 border-b border-white/10">
-                <div className="min-w-0">
-                  <p className="technical-label text-gym-accent">GIF tecnica</p>
-                  <h2 className="mt-0.5 truncate text-xl font-extrabold text-white">{name}</h2>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setFullScreen(false)}
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-white/15 bg-white/10 text-white hover:bg-white/20 active:scale-95"
-                  aria-label="Chiudi GIF"
-                >
-                  <X size={22} />
-                </button>
-              </div>
-              <div className="flex flex-1 items-center justify-center overflow-hidden p-2" onClick={(event) => event.stopPropagation()}>
-                <img
-                  src={cleanUrl}
-                  alt={name}
-                  className="max-h-[78vh] max-w-full rounded-[1.5rem] bg-gym-bg object-contain shadow-2xl border border-white/10"
-                />
-              </div>
-            </motion.div>
-          ) : null}
-        </AnimatePresence>
+        {typeof document !== "undefined"
+          ? createPortal(
+              <AnimatePresence>
+                {fullScreen ? (
+                  <motion.div
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label={`GIF tecnica: ${name}`}
+                    className="fixed inset-0 z-[120] flex flex-col bg-black/95 p-4 backdrop-blur-xl overflow-hidden select-none"
+                    initial={reduceMotion ? false : { opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    onClick={() => setFullScreen(false)}
+                  >
+                    <div
+                      className="sticky top-0 z-50 mx-auto flex w-full max-w-md items-center justify-between gap-3 pt-[env(safe-area-inset-top)] pb-2 bg-black/90 backdrop-blur-md shrink-0 border-b border-white/10"
+                      onClick={(event) => event.stopPropagation()}
+                    >
+                      <div className="min-w-0">
+                        <p className="technical-label text-gym-accent">GIF tecnica</p>
+                        <h2 className="mt-0.5 truncate text-xl font-extrabold text-white">{name}</h2>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setFullScreen(false)}
+                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-white/15 bg-white/10 text-white hover:bg-white/20 active:scale-95"
+                        aria-label="Chiudi GIF"
+                      >
+                        <X size={22} />
+                      </button>
+                    </div>
+                    <div className="flex flex-1 items-center justify-center overflow-hidden p-2">
+                      <img
+                        src={cleanUrl}
+                        alt={name}
+                        onClick={(event) => event.stopPropagation()}
+                        className="max-h-[78vh] max-w-full rounded-[1.5rem] bg-[#0c0f12] object-contain shadow-2xl border border-white/10 brightness-95"
+                      />
+                    </div>
+                  </motion.div>
+                ) : null}
+              </AnimatePresence>,
+              document.body,
+            )
+          : null}
       </>
     );
   }
@@ -2146,11 +2340,9 @@ function Field({
         onChange={(event) => onChange(event.target.value)}
         className={`officina-input-value ${mutedValue ? "text-slate-500" : "text-white"}`}
       />
-      {sourceLabel ? (
-        <span className="mt-1 block text-center text-[10px] font-bold uppercase tracking-wide text-gym-muted">
-          {sourceLabel}
-        </span>
-      ) : null}
+      <span className="mt-1 block min-h-[14px] text-center text-[10px] font-bold uppercase tracking-wide text-gym-muted">
+        {sourceLabel ?? "\u00A0"}
+      </span>
     </label>
   );
 }

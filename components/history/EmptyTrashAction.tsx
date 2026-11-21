@@ -54,7 +54,7 @@ export function EmptyTrashAction({ hasSessions }: { hasSessions: boolean }) {
       type="button"
       onClick={handleEmptyTrash}
       disabled={pending}
-      className="flex items-center gap-2 rounded-lg bg-red-500/10 px-3 py-1.5 text-sm font-bold text-red-400 transition hover:bg-red-500/20 active:scale-95 disabled:opacity-50"
+      className="flex shrink-0 items-center gap-2 whitespace-nowrap rounded-lg bg-red-500/10 px-3 py-1.5 text-sm font-bold text-red-400 transition hover:bg-red-500/20 active:scale-95 disabled:opacity-50"
     >
       {pending ? <LoaderCircle size={16} className="animate-spin" /> : <Trash2 size={16} />}
       <span>Svuota tutto</span>

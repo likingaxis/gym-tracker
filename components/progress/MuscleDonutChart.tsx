@@ -15,7 +15,7 @@ const PALETTE = [
   "#10b981", // Emerald Green
   "#f59e0b", // Warm Gold
   "#8b5cf6", // Royal Violet
-  "#f97316", // Bright Coral
+  "#ec4899", // Rose/Pink
   "#06b6d4", // Vivid Cyan
   "#d946ef", // Electric Magenta
   "#e11d48", // Crimson Rose
@@ -69,7 +69,7 @@ export function MuscleDonutChart({ data }: { data: MuscleData[] }) {
   const circumference = 2 * Math.PI * radius;
 
   // Gap between segments
-  const gapLength = processedData.length > 1 ? 10 : 0;
+  const gapLength = processedData.length > 1 ? 6 : 0;
   const totalGapLength = processedData.length * gapLength;
   const usableCircumference = Math.max(0, circumference - totalGapLength);
 
@@ -161,7 +161,7 @@ export function MuscleDonutChart({ data }: { data: MuscleData[] }) {
                       strokeWidth={strokeWidth}
                       strokeDasharray={dashArray}
                       strokeDashoffset={-slice.offset}
-                      strokeLinecap="round"
+                      strokeLinecap="butt"
                       className="transition-all duration-300 ease-out cursor-pointer"
                       style={{
                         pointerEvents: "stroke",

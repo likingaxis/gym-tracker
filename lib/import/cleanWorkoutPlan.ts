@@ -47,6 +47,19 @@ function cleanNumber(value: unknown): unknown {
   return value;
 }
 
+function cleanReps(value: unknown): string {
+  const text = cleanText(value) ?? "";
+  if (!text) return "";
+  if (/^\d+(?:\s*[/,]\s*\d+){2,}$/.test(text)) {
+    return text
+      .split(/[/,]/)
+      .map((part) => part.trim())
+      .filter(Boolean)
+      .join("-");
+  }
+  return text;
+}
+
 function addWarning(warnings: ImportWarning[], path: string, before: unknown, after: unknown, label: string) {
   if (before === after) return;
   const beforeText = before === undefined || before === null ? "" : String(before).trim();
@@ -112,7 +125,7 @@ export function normalizeWorkoutPlanJson(input: unknown): {
         exercise_db_confidence: cleanText(rawExercise.exercise_db_confidence) ?? "",
         muscle_group: cleanText(rawExercise.muscle_group) ?? "",
         sets: cleanNumber(rawExercise.sets),
-        reps: cleanText(rawExercise.reps) ?? "",
+        reps: cleanReps(rawExercise.reps),
         rest_seconds:
           rawExercise.rest_seconds === 0
             ? 0

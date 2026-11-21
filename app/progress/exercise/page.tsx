@@ -171,13 +171,18 @@ function WeightLineChart({ entries }: { entries: Array<{ date: string; averageWe
         <line x1="20" y1="130" x2="300" y2="130" stroke="rgba(255,255,255,0.15)" strokeWidth="2" />
         <line x1="20" y1="30" x2="300" y2="30" stroke="rgba(255,255,255,0.08)" strokeWidth="1" />
         <polyline points={polyline} fill="none" stroke="currentColor" strokeWidth="4" className="text-gym-accent" strokeLinecap="round" strokeLinejoin="round" />
-        {svgPoints.map((point) => (
-          <g key={`${point.date}-${point.x}`}>
-            <circle cx={point.x} cy={point.y} r="5" fill="currentColor" className="text-gym-accent" />
-            <text x={point.x} y={point.y - 10} textAnchor="middle" fontSize="10" fill="rgba(226,232,240,0.9)">{point.averageWeight.toFixed(0)}kg</text>
-            <text x={point.x} y="150" textAnchor="middle" fontSize="9" fill="rgba(148,163,184,0.9)">{formatShortDate(point.date)}</text>
-          </g>
-        ))}
+        {svgPoints.map((point) => {
+          const label = point.averageWeight % 1 === 0
+            ? `${point.averageWeight.toFixed(0)}kg`
+            : `${point.averageWeight.toFixed(1).replace(".", ",")}kg`;
+          return (
+            <g key={`${point.date}-${point.x}`}>
+              <circle cx={point.x} cy={point.y} r="5" fill="currentColor" className="text-gym-accent" />
+              <text x={point.x} y={Math.max(14, point.y - 11)} textAnchor="middle" fontSize="10" fill="rgba(226,232,240,0.9)">{label}</text>
+              <text x={point.x} y="150" textAnchor="middle" fontSize="9" fill="rgba(148,163,184,0.9)">{formatShortDate(point.date)}</text>
+            </g>
+          );
+        })}
       </svg>
     </div>
   );

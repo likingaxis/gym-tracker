@@ -80,7 +80,7 @@ function WorkoutDayPreviewContent() {
                   {groupMeta ? groupMeta.codeLabel : String(index + 1).padStart(2, "0")}
                 </span>
                 {exercise.media_url ? (
-                  <img src={exercise.media_url} alt="" className="h-14 w-14 shrink-0 rounded-lg border border-white/10 bg-gym-bg object-contain" />
+                  <img src={exercise.media_url} alt="" className="h-14 w-14 shrink-0 rounded-lg border border-white/10 bg-[#0c0f12] p-1 brightness-95 object-contain" />
                 ) : (
                   <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/[0.035] text-gym-muted"><Dumbbell size={20} /></span>
                 )}

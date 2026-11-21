@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Archive, CheckCircle2, FileText } from "lucide-react";
+import { Archive, ArrowLeft, CheckCircle2, FileText } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { formatDayCount, formatExerciseCount, formatWorkoutCount } from "@/lib/utils/copy";
@@ -40,6 +40,9 @@ export default function WorkoutArchivePage() {
 
   return (
     <div className="space-y-5">
+      <Link href="/workout" className="inline-flex items-center gap-2 text-sm font-bold text-gym-accent">
+        <ArrowLeft size={16} /> Scheda
+      </Link>
       <header className="space-y-3">
         <div className="flex items-start gap-3">
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-white/10 text-slate-200">

@@ -21,7 +21,39 @@ function normalize(value: string) {
 }
 
 export function getPromptVocabularyForLlm() {
-  return JSON.stringify(promptVocabulary, null, 2);
+  const vocab = promptVocabulary as {
+    version?: string;
+    purpose?: string;
+    official?: {
+      body_parts?: string[];
+      equipments?: string[];
+      target_muscles?: string[];
+    };
+    controlled?: {
+      movement_patterns?: string[];
+      variant_hints?: string[];
+    };
+    rules?: string[];
+  };
+
+  return JSON.stringify(
+    {
+      version: vocab.version,
+      purpose: vocab.purpose,
+      official: {
+        body_parts: vocab.official?.body_parts ?? [],
+        equipments: vocab.official?.equipments ?? [],
+        target_muscles: vocab.official?.target_muscles ?? [],
+      },
+      controlled: {
+        movement_patterns: vocab.controlled?.movement_patterns ?? [],
+        variant_hints: vocab.controlled?.variant_hints ?? [],
+      },
+      rules: vocab.rules ?? [],
+    },
+    null,
+    2,
+  );
 }
 
 export function getItalianSynonymItems(): Record<string, SynonymEntry> {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import Link from "next/link";
 import { AlertTriangle, Bot, Check, CheckCircle2, ChevronDown, Eye, FileJson, RefreshCw, UploadCloud } from "lucide-react";
 import { Button } from "@/components/ui/Button";
@@ -181,7 +181,7 @@ export function ImportUploader() {
 
       <section className="app-row flex-col items-stretch !p-6 border-[#c65f37]/20 shadow-lg">
         <div className="flex items-center gap-4">
-          <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-[1rem] ${mode === "ai" ? "bg-blue-500/10 text-blue-400" : "bg-violet-500/10 text-violet-400"}`}>
+          <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-[1rem] ${mode === "ai" ? "bg-[#c65f37]/15 text-[#c65f37]" : "bg-violet-500/10 text-violet-400"}`}>
             {mode === "ai" ? <Bot size={24} /> : <FileJson size={24} />}
           </div>
           <div>
@@ -331,14 +331,21 @@ function ImportSteps({ fileReady, previewReady, imported }: { fileReady: boolean
     { label: "Attiva", active: previewReady, done: imported },
   ];
   return (
-    <ol className="flex items-center justify-between px-2" aria-label="Avanzamento importazione">
+    <ol className="flex items-center px-2" aria-label="Avanzamento importazione">
       {steps.map((step, index) => (
-        <li key={step.label} className={`flex flex-col items-center gap-2 ${step.active ? "text-white" : "text-gym-muted opacity-50"}`}>
-          <div className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-black transition-all duration-500 ${step.done ? "bg-[#c65f37] text-white shadow-[0_0_10px_rgba(198,95,55,0.4)]" : step.active ? "border-2 border-[#c65f37] text-[#c65f37]" : "border-2 border-gym-muted"}`}>
-            {step.done ? <Check size={16} strokeWidth={3} /> : index + 1}
-          </div>
-          <span className="text-[11px] font-bold uppercase tracking-wider">{step.label}</span>
-        </li>
+        <Fragment key={step.label}>
+          <li className={`flex shrink-0 flex-col items-center gap-2 ${step.active ? "text-white" : "text-gym-muted opacity-50"}`}>
+            <div className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-black transition-all duration-500 ${step.done ? "bg-[#c65f37] text-white shadow-[0_0_10px_rgba(198,95,55,0.4)]" : step.active ? "border-2 border-[#c65f37] text-[#c65f37]" : "border-2 border-gym-muted"}`}>
+              {step.done ? <Check size={16} strokeWidth={3} /> : index + 1}
+            </div>
+            <span className="text-[11px] font-bold uppercase tracking-wider">{step.label}</span>
+          </li>
+          {index < steps.length - 1 ? (
+            <li aria-hidden="true" className="mx-2 mb-5 h-0.5 flex-1 overflow-hidden rounded-full bg-white/10">
+              <div className={`h-full rounded-full bg-[#c65f37] transition-all duration-500 ${step.done ? "w-full" : "w-0"}`} />
+            </li>
+          ) : null}
+        </Fragment>
       ))}
     </ol>
   );

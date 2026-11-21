@@ -67,17 +67,14 @@ export default function TrashPage() {
               : "-";
             return (
               <Card key={session.id} className="border-red-400/25 bg-red-500/[0.06]">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-xs font-bold uppercase text-red-100">Eliminata {deletedAt}</p>
-                    <h2 className="mt-1 line-clamp-2 text-xl font-extrabold">{getDayNameSnapshot(session)}</h2>
-                    <p className="mt-1 flex items-center gap-2 text-sm text-gym-muted">
-                      <span className={`h-2 w-2 rounded-full ${getPlanDotClass(getPlanColorSnapshot(session))}`} />
-                      <span>{getPlanNameSnapshot(session)}</span>
-                    </p>
-                    <p className="mt-2 text-sm text-slate-300">{summary.completedSets}/{summary.totalSets} serie · {formatCompactNumber(summary.volume)} kg</p>
-                  </div>
-                  <span className="rounded-full bg-red-400/10 px-3 py-1 text-xs font-bold text-red-100">Cestino</span>
+                <div className="min-w-0">
+                  <p className="text-xs font-bold uppercase text-red-100">Eliminata {deletedAt}</p>
+                  <h2 className="mt-1 line-clamp-2 text-xl font-extrabold">{getDayNameSnapshot(session)}</h2>
+                  <p className="mt-1 flex items-center gap-2 text-sm text-gym-muted">
+                    <span className={`h-2 w-2 rounded-full ${getPlanDotClass(getPlanColorSnapshot(session))}`} />
+                    <span>{getPlanNameSnapshot(session)}</span>
+                  </p>
+                  <p className="mt-2 text-sm text-slate-300">{summary.completedSets}/{summary.totalSets} serie · {formatCompactNumber(summary.volume)} kg</p>
                 </div>
                 <div className="mt-4">
                   <TrashSessionActions sessionId={session.id} />

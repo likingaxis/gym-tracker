@@ -3,12 +3,12 @@
 import { useEffect, useState, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { CalendarDays, History as HistoryIcon, Trash2 } from "lucide-react";
+import { CalendarDays, History as HistoryIcon, SlidersHorizontal, Trash2 } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { getDayNameSnapshot, getPlanColorSnapshot, getPlanDotClass, getPlanNameSnapshot } from "@/lib/workoutPlanHistory";
 import { SessionActions } from "@/components/history/SessionActions";
-import { formatCompactNumber, getSessionSummary as getSmartSessionSummary } from "@/lib/progress";
+import { formatCompactNumber, getSessionSummary as getSmartSessionSummary, type SessionLike } from "@/lib/progress";
 import { formatSetCount, formatWorkoutCount } from "@/lib/utils/copy";
 import { FadeIn, SlideUp, StaggeredList, StaggeredItem } from "@/components/ui/animations";
 import { getHistoryPlans, getHistorySessions } from "@/lib/api-client/history";
@@ -66,11 +66,7 @@ function HistoryContent() {
     return <div className="p-6 text-center text-gym-muted">Caricamento storico...</div>;
   }
 
-  const weekSessions = sessions.filter((session: any) => {
-    const started = new Date(session.started_at).getTime();
-    return Number.isFinite(started) && Date.now() - started <= 7 * 24 * 60 * 60 * 1000;
-  });
-  const weekSets = weekSessions.reduce((total: number, session: any) => total + getSmartSessionSummary(session).completedSets, 0);
+  const totalVisibleSets = sessions.reduce((total: number, session: SessionLike) => total + getSmartSessionSummary(session).completedSets, 0);
 
   return (
     <div className="space-y-5">
@@ -93,7 +89,7 @@ function HistoryContent() {
         <div className="flex items-center justify-between gap-3 text-sm">
           <div>
             <p className="font-bold text-slate-200">Questa vista</p>
-            <p className="text-gym-muted">{selectedPlan ? selectedPlan.name : "Tutte le schede"} · {formatWorkoutCount(weekSessions.length)} · {formatSetCount(weekSets)}</p>
+            <p className="text-gym-muted">{selectedPlan ? selectedPlan.name : "Tutte le schede"} · {formatWorkoutCount(sessions.length)} · <span className="whitespace-nowrap">{formatSetCount(totalVisibleSets)}</span></p>
           </div>
           <div className="flex items-center gap-2">
             <Link
@@ -106,8 +102,10 @@ function HistoryContent() {
               <span>Cestino</span>
             </Link>
             <details className="relative text-right">
-              <summary className="cursor-pointer rounded-lg bg-white/10 px-3 py-2 text-xs font-bold text-slate-200 hover:bg-white/15">Filtra</summary>
-              <div className="absolute right-0 z-30 mt-2 grid w-48 gap-1.5 rounded-2xl border border-white/15 bg-[#141824] p-2.5 shadow-2xl shadow-black/80 backdrop-blur-xl">
+              <summary className="inline-flex cursor-pointer list-none items-center gap-1.5 rounded-lg bg-white/10 px-3 py-2 text-xs font-bold text-slate-200 hover:bg-white/15 [&::-webkit-details-marker]:hidden">
+                <SlidersHorizontal size={14} /> Filtra
+              </summary>
+              <div className="absolute right-0 z-30 mt-2 grid w-48 gap-1.5 rounded-2xl border border-white/15 bg-[#121619] p-2.5 shadow-2xl shadow-black/80 backdrop-blur-xl">
                 <FilterLink href={buildHistoryHref("completed", selectedPlanId)} active={filter === "completed"} label="Completati" />
                 <FilterLink href={buildHistoryHref("in_progress", selectedPlanId)} active={filter === "in_progress"} label="In corso" />
                 <FilterLink href={buildHistoryHref("paused", selectedPlanId)} active={filter === "paused"} label="In pausa" />
@@ -122,7 +120,7 @@ function HistoryContent() {
       {plans.length > 1 ? (
         <SlideUp delay={0.4} className="app-list p-3">
           <p className="mb-3 text-xs font-bold uppercase tracking-wide text-gym-muted">Filtro scheda</p>
-          <div className="flex gap-2 overflow-x-auto pb-1">
+          <div className="hide-scrollbar no-scrollbar scroll-fade-x flex gap-2 overflow-x-auto pb-1">
             <PlanChip href={buildHistoryHref(filter, null)} active={!selectedPlanId} label="Tutte" />
             {plans.map((plan) => (
               <PlanChip
